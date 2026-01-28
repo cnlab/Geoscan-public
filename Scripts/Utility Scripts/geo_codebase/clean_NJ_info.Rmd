@@ -1,0 +1,191 @@
+---
+title: "Update and Clean 2022 NJ Retailers Data"
+author: "Emily Zhou"
+date: "2024-07-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+library(tidyverse)
+library(readxl)
+
+```
+
+
+```{r}
+
+# change the filepath to where you save the xlsx sheet with annotations on what to change
+file_path <- "/Users/emzhou/Downloads/all_Retailers_DE_8_2023_PA_8_2023_NJ_2022err_SZmanualedits.xlsx"
+data_2022 <- read_excel(file_path, skip = 1) %>% 
+    mutate(
+    lat = round(as.numeric(lat), 5),
+    lon = round(as.numeric(lon), 5)
+  )
+
+head(data_2022)
+
+```
+
+
+```{r}
+
+data_2022_NJ<- data_2022 %>% 
+  filter(state == "NJ") 
+
+```
+
+
+```{r}
+
+# change the filepath to where you save the latest retailers data
+file_path <- "/Users/emzhou/Downloads/all_Retailers_DE_06_2024_PA_06_2024_NJ_2022err.csv"
+data_2024 <- read_csv(file_path) 
+head(data_2024)
+
+```
+
+
+```{r}
+
+data_2024_NJ<- data_2024 %>% 
+  filter(state == "NJ") 
+
+```
+
+
+```{r}
+
+data_2022_NJ_annotated<- data_2022 %>% 
+  filter(is.na(...13) == FALSE) %>% 
+  filter(...13 != "can't find it") %>% 
+  filter(...13 != "0") %>%
+  filter(!grepl("cannot find it,", ...13)) %>%
+  filter(!grepl("I can only find the mailing address on Bizapedia", ...13)) %>%
+  filter(!grepl("I can't find the store using the address it shows here", ...13)) %>%
+  filter(!grepl("I did not find this one", ...13)) %>%
+  filter(!grepl("REY'S MINI MARKET", ...13)) %>% 
+  filter(!grepl("I found the address on Bizapedia", ...13)) %>%
+  filter(!grepl("I found the store's ins but I can't find the address", ...13)) %>%
+  filter(!grepl("Smoke N Vape Shop", ...13)) %>%
+  filter(!grepl("Zariyah and Sophia's Candy Shop", ...13)) %>%
+  filter(!grepl("mark", ...13)) %>%
+  filter(!grepl("marked", ...13)) %>%
+  filter(!grepl("not sure which", ...13)) %>%
+  filter(!grepl("old", ...13)) %>%
+  filter(!grepl("Permanently closed", ...13)) %>%
+  filter(!grepl("Temporary closed", ...13)) %>%
+  filter(!grepl("the other addresses for retailers with this name", ...13)) %>%
+  filter(!grepl("There are two stores named this", ...13)) %>%
+  filter(!grepl("There is one", ...13))
+  
+```
+
+
+```{r}
+
+data_2022_NJ_annotated <- data_2022_NJ_annotated %>% 
+  mutate(for_join = paste(trade_name, account, sep = "_")) %>% 
+  dplyr::select(for_join, expiration_date, lat, lon, address_full, publish_date) %>%
+  rename(expiration_date_a = expiration_date) %>%
+  rename(publish_date_a = publish_date) %>%
+  rename(address_full_a = address_full) %>%
+  rename(lat_a = lat) %>%
+  rename(lon_a = lon) 
+          
+```
+
+
+```{r}
+
+data_2024_NJ_update <- data_2024_NJ %>% 
+  mutate(for_join = paste(trade_name, account, sep = "_")) %>% 
+  left_join(data_2022_NJ_annotated, by = "for_join") 
+  
+
+```
+
+
+```{r}
+
+data_2024_NJ_update <- data_2024_NJ_update %>% 
+  mutate(lat = if_else(!is.na(lat_a), as.numeric(lat_a), lat),
+         lon = if_else(!is.na(lon_a), as.numeric(lon_a), lon)) %>% 
+  mutate(expiration_date_a = as.Date(expiration_date_a, format = "%Y-%m-%d")) %>% 
+  mutate(publish_date_a = as.Date(publish_date_a, format = "%Y-%m-%d")) %>%
+  mutate(expiration_date = if_else(!is.na(expiration_date_a), expiration_date_a, expiration_date)) %>%
+  mutate(publish_date = if_else(!is.na(publish_date_a), publish_date_a, publish_date)) %>%
+  mutate(address_full = if_else(!is.na(address_full_a), address_full_a, address_full)) %>% 
+  dplyr::select(-c(for_join, expiration_date_a, publish_date_a, address_full_a, lat_a, lon_a))
+  
+  
+  
+```
+
+
+```{r}
+
+data_2024_update <- data_2024 %>% 
+  filter(state == "PA" | state == "DE") %>% 
+  rbind(data_2024_NJ_update)
+
+```
+
+
+```{r}
+canonical_names <- c("county", "trade_name", "account", "license_type",
+                       "expiration_date", "lat", "lon", "address_full",
+                       "publish_date", "state", "expired_y_n")
+```
+
+
+
+```{r}
+
+df <- data_2024_update %>%
+    dplyr::select(all_of(canonical_names)) %>%
+    mutate_if(is.factor, as.character) %>%
+    mutate(account = as.character(account)) %>%
+    #mutate(publish_date = format(strptime(publish_date, format = "%m/%d/%y"), format = "%Y-%m-%d")) %>% 
+   # mutate(expiration_date = format(strptime(expiration_date, format = "%m/%d/%y"), format = "%Y-%m-%d")) %>% 
+    dplyr::select(c(lat, lon, publish_date, expiration_date)) %>%
+    mutate(publish_date = ymd(publish_date),
+           expiration_date = ymd(expiration_date),
+           lat = as.character(lat),
+           lon = as.character(lon)) %>% 
+    filter(!is.na(publish_date) & !is.na(expiration_date)) %>%
+    arrange(lat, lon, expiration_date, publish_date)
+
+```
+
+
+```{r}
+  merge_intervals <- function(data) {
+    data %>%
+      arrange(publish_date) %>% 
+      mutate(lag_expiration_date = lag(expiration_date),
+             lag_publish_date = lag(publish_date)) %>%
+      group_by(group = cumsum(is.na(lag_expiration_date) | publish_date > lag_expiration_date)) %>%
+      summarize(lat = first(lat),
+                lon = first(lon),
+                publish_date = min(publish_date),
+                expiration_date = max(expiration_date)) %>%
+      ungroup() %>%
+      select(-group)
+  }
+```
+
+
+```{r}
+  result <- df %>%
+    group_by(lat, lon) %>%
+    do(merge_intervals(.)) %>%
+    do(merge_intervals(.)) %>%
+    ungroup()
+```
+

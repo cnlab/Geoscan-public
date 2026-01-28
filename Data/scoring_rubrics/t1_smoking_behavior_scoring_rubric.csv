@@ -1,0 +1,14 @@
+scale name,column name,reverse,min,max,transform,sum,mean,t1_bhv_filter,t1_bhv_filter_3_text,t1_lisa_01,t1_lisa_02,t1_lisa_02_9_text,t1_habit_01_new_1,t1_habit_01_new_2,t1_habit_01_new_3,t1_habit_01_new_4,t1_habit_02,t1_habit_02_5_text,t1_habit_02_3_text,t1_habit_02_1_text
+t1_smoking_behavior,t1_bhv_filter,0,1,3,0,sum,mean,1,,,,,,,,,,,,
+t1_smoking_behavior,t1_bhv_filter_3_text,0,NA,NA,0,sum,mean,,I,,,,,,,,,,,
+t1_smoking_behavior,t1_lisa_01,0,1,6,0,sum,mean,,,1,,,,,,,,,,
+t1_smoking_behavior,t1_lisa_02,0,1,9,0,sum,mean,,,,1,,,,,,,,,
+t1_smoking_behavior,t1_lisa_02_9_text,0,NA,NA,0,sum,mean,,,,,I,,,,,,,,
+t1_smoking_behavior,t1_habit_01_new_1,0,NA,NA,0,sum,mean,,,,,,I,,,,,,,
+t1_smoking_behavior,t1_habit_01_new_2,0,NA,NA,0,sum,mean,,,,,,,I,,,,,,
+t1_smoking_behavior,t1_habit_01_new_3,0,NA,NA,0,sum,mean,,,,,,,,I,,,,,
+t1_smoking_behavior,t1_habit_01_new_4,0,NA,NA,0,sum,mean,,,,,,,,,I,,,,
+t1_smoking_behavior,t1_habit_02,0,1,6,0,sum,mean,,,,,,,,,,1,,,
+t1_smoking_behavior,t1_habit_02_5_text,0,NA,NA,0,sum,mean,,,,,,,,,,,I,,
+t1_smoking_behavior,t1_habit_02_3_text,0,NA,NA,0,sum,mean,,,,,,,,,,,,I,
+t1_smoking_behavior,t1_habit_02_1_text,0,NA,NA,0,sum,mean,,,,,,,,,,,,,I

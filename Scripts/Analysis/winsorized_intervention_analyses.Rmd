@@ -1,0 +1,359 @@
+---
+title: "wins"
+author: "Ben Muzekari"
+date: "2024-08-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+EMA_Covariates_Distinct_Final <- EMA_Covariates_Distinct_Final %>%
+    group_by(pid, StudyPhase) %>%
+    mutate(
+        daily_average_crave_winsorized = Winsorize(daily_average_crave, probs = c(0.05, 0.95), na.rm = TRUE),
+        daily_cigs_winsorized = Winsorize(daily_cigs, probs = c(0.05, 0.95), na.rm = TRUE)
+    ) %>%
+    ungroup()
+```
+
+## Intent-to-treat analyses
+## Craving
+
+## run lme model: craving as DV
+```{r}
+lme_craving_itt <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_craving_itt)
+```
+
+## run lme model: craving as DV, age as covariate
+```{r}
+lme_craving_itt_age <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + age + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_craving_itt_age)
+```
+
+## run lme model: craving as DV, gender as covariate
+```{r}
+lme_craving_itt_gender <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + gender + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_craving_itt_gender)
+```
+
+## run lme model: craving as DV, ethnicity as covariate
+```{r}
+lme_craving_itt_ethnicity <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + ethnicity + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_craving_itt_ethnicity)
+```
+
+## run lme model: craving as DV, race as covariate
+```{r}
+lme_craving_itt_race <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + race + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_craving_itt_race)
+```
+
+## run lme model: craving as DV, FTND as covariate
+```{r}
+lme_craving_itt_FTND <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + FTND_score + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_craving_itt_FTND)
+```
+
+## run lme model: craving as DV, average baseline exposures (500ft_100ft) as covariate
+```{r}
+lme_craving_itt_avg_exposures_per_day_baseline_500ft_100ft <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_500ft_100ft + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_craving_itt_avg_exposures_per_day_baseline_500ft_100ft)
+```
+
+## run lme model: craving as DV, average baseline exposures (500ft_100ft) AND average baseline observations as covariate
+```{r}
+lme_craving_itt_avg_exposures_per_day_baseline_500ft_100ft_avg_observations_per_day_baseline <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_500ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_craving_itt_avg_exposures_per_day_baseline_500ft_100ft_avg_observations_per_day_baseline)
+```
+
+## run lme model: craving as DV, average baseline exposures (1000ft_100ft) as covariate
+```{r}
+lme_craving_itt_avg_exposures_per_day_baseline_1000ft_100ft <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_1000ft_100ft + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_craving_itt_avg_exposures_per_day_baseline_1000ft_100ft)
+```
+
+## run lme model: craving as DV, average baseline exposures (1000ft_100ft) AND average baseline observations as covariate
+```{r}
+lme_craving_itt_avg_exposures_per_day_baseline_1000ft_100ft_avg_observations_per_day_baseline <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_1000ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_craving_itt_avg_exposures_per_day_baseline_1000ft_100ft_avg_observations_per_day_baseline)
+```
+
+## run lme model: craving as DV, all covariates (500ft_100ft)
+```{r}
+lme_craving_itt_all_500ft_100ft <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + age + gender + ethnicity + race + FTND_score + avg_exposures_per_day_baseline_500ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_craving_itt_all_500ft_100ft)
+```
+
+## run lme model: craving as DV, all covariates (1000ft_100ft)
+```{r}
+lme_craving_itt_all_1000ft_100ft <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + age + gender + ethnicity + race + FTND_score + avg_exposures_per_day_baseline_1000ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_craving_itt_all_1000ft_100ft)
+```
+
+## Smoking
+
+## run lme model: cigs as DV
+```{r}
+lme_cigs_itt <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_cigs_itt)
+```
+
+## run lme model: cigs as DV, age as covariate
+```{r}
+lme_cigs_itt_age <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + age + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_cigs_itt_age)
+```
+
+## run lme model: cigs as DV, gender as covariate
+```{r}
+lme_cigs_itt_gender <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + gender + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_cigs_itt_gender)
+```
+
+## run lme model: cigs as DV, ethnicity as covariate
+```{r}
+lme_cigs_itt_ethnicity <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + ethnicity + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_cigs_itt_ethnicity)
+```
+
+## run lme model: cigs as DV, race as covariate
+```{r}
+lme_cigs_itt_race <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + race + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_cigs_itt_race)
+```
+
+## run lme model: cigs as DV, FTND as covariate
+```{r}
+lme_cigs_itt_FTND <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + FTND_score + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_cigs_itt_FTND)
+```
+
+## run lme model: cigs as DV, average baseline exposures (500ft_100ft) as covariate
+```{r}
+lme_cigs_itt_avg_exposures_per_day_baseline_500ft_100ft <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_500ft_100ft + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_cigs_itt_avg_exposures_per_day_baseline_500ft_100ft)
+```
+
+## run lme model: cigs as DV, average baseline exposures (500ft_100ft) AND average baseline observations as covariate
+```{r}
+lme_cigs_itt_avg_exposures_per_day_baseline_500ft_100ft_avg_observations_per_day_baseline <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_500ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_cigs_itt_avg_exposures_per_day_baseline_500ft_100ft_avg_observations_per_day_baseline)
+```
+
+## run lme model: cigs as DV, average baseline exposures (1000ft_100ft) as covariate
+```{r}
+lme_cigs_itt_avg_exposures_per_day_baseline_1000ft_100ft <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_1000ft_100ft + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_cigs_itt_avg_exposures_per_day_baseline_1000ft_100ft)
+```
+
+## run lme model: cigs as DV, average baseline exposures (1000ft_100ft) AND average baseline observations as covariate
+```{r}
+lme_cigs_itt_avg_exposures_per_day_baseline_1000ft_100ft_avg_observations_per_day_baseline <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_1000ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_cigs_itt_avg_exposures_per_day_baseline_1000ft_100ft_avg_observations_per_day_baseline)
+```
+
+## run lme model: cigs as DV, all covariates (500ft_100ft)
+```{r}
+lme_cigs_itt_all_500ft_100ft <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + age + gender + ethnicity + race + FTND_score + avg_exposures_per_day_baseline_500ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_cigs_itt_all_500ft_100ft)
+```
+
+## run lme model: cigs as DV, all covariates (1000ft_100ft)
+```{r}
+lme_cigs_itt_all_1000ft_100ft <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + age + gender + ethnicity + race + FTND_score + avg_exposures_per_day_baseline_1000ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final)
+summary(lme_cigs_itt_all_1000ft_100ft)
+```
+
+## Intervention completed analyses
+
+## Subset to ppts who completed intervention
+```{r}
+EMA_Covariates_Distinct_Final_Completed_Intervention <- EMA_Covariates_Distinct_Final[EMA_Covariates_Distinct_Final$intervention_complete == 1, ]
+#print(length(unique(EMA_Covariates_Distinct_Final_Completed_Intervention$pid)))
+#[1] 168
+
+EMA_Covariates_Distinct_Final_Completed_Intervention <- EMA_Covariates_Distinct_Final_Completed_Intervention %>%
+    filter(!is.na(pid))
+```
+
+## Craving
+
+## run lme model: craving as DV
+```{r}
+lme_craving_complete <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_craving_complete)
+```
+
+## run lme model: craving as DV, age as covariate
+```{r}
+lme_craving_complete_age <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + age + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_craving_complete_age)
+```
+
+## run lme model: craving as DV, gender as covariate
+```{r}
+lme_craving_complete_gender <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + gender + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_craving_complete_gender)
+```
+
+## run lme model: craving as DV, ethnicity as covariate
+```{r}
+lme_craving_complete_ethnicity <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + ethnicity + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_craving_complete_ethnicity)
+```
+
+## run lme model: craving as DV, average baseline exposures (500ft_100ft) as covariate
+```{r}
+lme_craving_complete_avg_exposures_per_day_baseline_500ft_100ft <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_500ft_100ft + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_craving_complete_avg_exposures_per_day_baseline_500ft_100ft)
+```
+
+## run lme model: craving as DV, average baseline exposures (500ft_100ft) AND average baseline observations as covariate
+```{r}
+lme_craving_complete_avg_exposures_per_day_baseline_500ft_100ft_avg_observations_per_day_baseline <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_500ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_craving_itt_avg_exposures_per_day_baseline_500ft_100ft_avg_observations_per_day_baseline)
+```
+
+## run lme model: craving as DV, average baseline exposures (1000ft_100ft) as covariate
+```{r}
+lme_craving_complete_avg_exposures_per_day_baseline_1000ft_100ft <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_1000ft_100ft + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_craving_complete_avg_exposures_per_day_baseline_1000ft_100ft)
+```
+
+## run lme model: craving as DV, average baseline exposures (1000ft_100ft) AND average baseline observations as covariate
+```{r}
+lme_craving_complete_avg_exposures_per_day_baseline_500ft_100ft_avg_observations_per_day_baseline <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_1000ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_craving_itt_avg_exposures_per_day_baseline_1000ft_100ft_avg_observations_per_day_baseline)
+```
+
+## run lme model: craving as DV, all covariates (500ft_100ft)
+```{r}
+lme_craving_complete_all_500ft_100ft <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + age + gender + ethnicity + race + FTND_score + avg_exposures_per_day_baseline_500ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_craving_complete_all_500ft_100ft)
+```
+
+## run lme model: craving as DV, all covariates (1000ft_100ft)
+```{r}
+lme_craving_complete_all_1000ft_100ft <- lmer(daily_average_crave_winsorized ~ StudyPhase * cond + age + gender + ethnicity + race + FTND_score + avg_exposures_per_day_baseline_1000ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_craving_complete_all_1000ft_100ft)
+```
+
+## Smoking
+
+## run lme model: cigs as DV
+```{r}
+lme_cigs_complete <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_cigs_complete)
+```
+
+## run lme model: cigs as DV, age as covariate
+```{r}
+lme_cigs_complete_age <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + age + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_cigs_complete_age)
+```
+
+## run lme model: cigs as DV, gender as covariate
+```{r}
+lme_cigs_complete_gender <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + gender + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_cigs_complete_gender)
+```
+
+## run lme model: cigs as DV, ethnicity as covariate
+```{r}
+lme_cigs_complete_ethnicity <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + ethnicity + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_cigs_complete_ethnicity)
+```
+
+## run lme model: cigs as DV, race as covariate
+```{r}
+lme_cigs_complete_race <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + race + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_cigs_complete_race)
+```
+
+## run lme model: cigs as DV, FTND as covariate
+```{r}
+lme_cigs_complete_FTND <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + FTND_score + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_cigs_complete_FTND)
+```
+
+## run lme model: cigs as DV, average baseline exposures (500ft_100ft) as covariate
+```{r}
+lme_cigs_complete_avg_exposures_per_day_baseline_500ft_100ft <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_500ft_100ft + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_cigs_complete_avg_exposures_per_day_baseline_500ft_100ft)
+```
+
+## run lme model: cigs as DV, average baseline exposures (500ft_100ft) AND average baseline observations as covariate
+```{r}
+lme_cigs_complete_avg_exposures_per_day_baseline_500ft_100ft_avg_observations_per_day_baseline <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_500ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_cigs_itt_avg_exposures_per_day_baseline_500ft_100ft_avg_observations_per_day_baseline)
+```
+
+## run lme model: cigs as DV, average baseline exposures (1000ft_100ft) as covariate
+```{r}
+lme_cigs_complete_avg_exposures_per_day_baseline_1000ft_100ft <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_1000ft_100ft + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_cigs_complete_avg_exposures_per_day_baseline_1000ft_100ft)
+```
+
+## run lme model: cigs as DV, average baseline exposures (1000ft_100ft) AND average baseline observations as covariate
+```{r}
+lme_cigs_complete_avg_exposures_per_day_baseline_1000ft_100ft_avg_observations_per_day_baseline <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + avg_exposures_per_day_baseline_1000ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_cigs_itt_avg_exposures_per_day_baseline_1000ft_100ft_avg_observations_per_day_baseline)
+```
+
+## run lme model: cigs as DV, all covariates (500ft_100ft)
+```{r}
+lme_cigs_complete_all_500ft_100ft <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + age + gender + ethnicity + race + FTND_score + avg_exposures_per_day_baseline_500ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_cigs_complete_all_500ft_100ft)
+```
+
+## run lme model: cigs as DV, all covariates (1000ft_100ft)
+```{r}
+lme_cigs_complete_all_1000ft_100ft <- lmer(daily_cigs_winsorized ~ StudyPhase * cond + age + gender + ethnicity + race + FTND_score + avg_exposures_per_day_baseline_1000ft_100ft + avg_observations_per_day_baseline + (StudyPhase|pid), data = EMA_Covariates_Distinct_Final_Completed_Intervention)
+summary(lme_cigs_complete_all_1000ft_100ft)
+```
+```{r}
+ggplot(EMA_Covariates_Distinct_Final, aes(x = StudyPhase, y = daily_average_crave_winsorized, fill = cond)) +
+  geom_boxplot() +
+  labs(title = "Daily Average Crave by Study Phase and Condition (ITT)", 
+       x = "Study Phase", 
+       y = "Daily Average Crave") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(EMA_Covariates_Distinct_Final, aes(x = StudyPhase, y = daily_cigs_winsorized, fill = cond)) +
+  geom_boxplot() +
+  labs(title = "Daily Cigs by Study Phase and Condition (ITT)", 
+       x = "Study Phase", 
+       y = "Daily Cigs") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(EMA_Covariates_Distinct_Final_Completed_Intervention, aes(x = StudyPhase, y = daily_cigs_winsorized, fill = cond)) +
+  stat_summary(fun = mean, geom = "bar", position = "dodge") +
+  labs(title = "Mean Daily Cigs by Study Phase and Condition (Completed Intervention)", 
+       x = "Study Phase", 
+       y = "Mean Daily Cigs") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(EMA_Covariates_Distinct_Final_Completed_Intervention, aes(x = StudyPhase, y = daily_cigs_winsorized, fill = cond)) +
+  geom_boxplot() +
+  labs(title = "Daily Cigs by Study Phase and Condition (Completed Intervention)", 
+       x = "Study Phase", 
+       y = "Daily Cigs") +
+  theme_minimal()
+
+# overlay means 
+```
+
+```{r}
+
+```
+

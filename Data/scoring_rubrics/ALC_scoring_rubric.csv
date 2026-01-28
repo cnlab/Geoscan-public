@@ -1,0 +1,3 @@
+scale name,column name,reverse,min,max,transform,alcohol_1,alcohol_2
+ALC,alcohol_1,0,1,11,0,1,
+ALC,alcohol_2,0,1,11,0,,1

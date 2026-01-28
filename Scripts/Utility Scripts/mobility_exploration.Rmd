@@ -1,0 +1,2045 @@
+---
+title: "mobility_exploration"
+output: html_document
+date: "2025-09-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Let's set our scripts directory, data path, and load our geo data
+
+# DATA LOADING/SETUP
+## Sourcing scripts and loading packages
+```{r echo=FALSE}
+## Set Working Directory ----
+if ("Scripts" %in% unlist(strsplit(normalizePath("."), "/"))) {
+  scripts_directory = paste(unlist(strsplit(normalizePath("."), "/"))[1:which(unlist(strsplit(normalizePath("."), "/"))=="Scripts")],collapse="/")
+} else {
+  print("Select any file within Scripts to set up the path")
+  temp = file.choose()
+  scripts_directory = paste(unlist(strsplit(temp, "/"))[1:which(unlist(strsplit(temp, "/"))=="Scripts")],collapse="/")
+}
+
+# R Packages, Function to load and install packages simultaneously
+if (!requireNamespace("pacman", quietly = TRUE)) {
+  install.packages("pacman")
+} else {require(pacman)}
+
+p_load(tidyverse, sf, knitr, lubridate, mapview, kable, kableExtra)
+
+# Load geo_analysis and geo_mobility functions
+source(file.path(scripts_directory, "Utility Scripts", "geo_analysis2.R"))
+source(file.path(scripts_directory, "Utility Scripts", "geo_redcap.r"))
+source(file.path(scripts_directory, "MCogMobility", "geo_mobility_exploration.r"))
+source(file.path(scripts_directory, "MCogMobility", "geo_mobility.r"))
+source(file.path(scripts_directory, "Utility Scripts", "geo_lifedata.r"))
+
+
+data_path = "/Volumes/cnlab/GeoRemote/Data"
+```
+## Load descriptives
+```{r}
+platformType = read_csv(file.path(data_path, "Redcap/utility/platformType.csv"))
+cond = read_csv(file.path(data_path, "Redcap/utility/conditions.csv"))
+```
+
+## Load raw geodata
+```{r}
+# Load raw geo observations - no exposures/retailers (yet)
+baseline = load_geodata("baseline")
+intervention = load_geodata("intervention")
+
+# Want to join the geodata?
+geodata = rbind(
+  baseline %>% dplyr::mutate(Type = "Baseline"),
+  intervention %>% dplyr::mutate(Type = "Intervention")
+)
+
+# Want sf object?
+geodata_sf = geodata %>%
+  dplyr::filter(!is.na(lon), !is.na(lat)) %>% 
+  sf::st_as_sf(coords = c("lon", "lat"),
+           crs = 4326) %>% 
+  sf::st_transform(crs = 2272)
+
+# Beware how much space everything can take up, try to only keep the dataframes you need loaded.
+```
+
+We've generated the coordinates for the home addresses. Let's create buffer zones and check the participant's location points in them. Two addresses were PO boxes so we will have to skip them. (GR180 and GR282)
+
+## Load Homes and Lifedata and store_visits
+```{r}
+homes = read_csv(file.path(data_path, "admin", "geocoded_addresses.csv"))
+lifedata = load_lifedata()
+store_visits = read_csv(file.path(data_path, "RetailerExposure/store_visits_by_period.csv")) %>%
+  dplyr::mutate(Store = case_when(
+    grepl("7-ELEVEN", Store) ~ "7-Eleven",
+    grepl("7-Eleven", Store) ~ "7-Eleven",
+    grepl("CVS*", Store) ~ "CVS"
+  ))
+
+baseline_store_hour_summary = read_csv(file.path(data_path, "RetailerExposure/baseline_store_hour_summary.csv"))
+
+baseline_store_participant_summary = read_csv(file.path(data_path, "RetailerExposure/baseline_store_participant_summary.csv"))
+
+intervention_store_hour_summary = read_csv(file.path(data_path, "RetailerExposure/intervention_store_hour_summary.csv"))
+
+intervention_store_participant_summary = read_csv(file.path(data_path, "RetailerExposure/baseline_store_participant_summary.csv"))
+
+homes_sf = homes %>%
+  sf::st_as_sf(coords = c("lon", "lat"),
+           crs = 4326) %>% 
+  sf::st_transform(crs = 2272)
+
+```
+Looking at the homes, we do have some inconsistencies in starting in baseline:
+GR003 - Home is far separated from all geo points
+GR024 - Home is within movement track but no points within home - address slightly off?
+GR061 - Home is in city but not close to movement track. Majority of nighttime points are around c(lat = 40.02696613066965, lon = -75.04174214918841)
+GR123 - Address and tract in city but never touch
+GR175 - Address and tract in city but never touch
+
+We still get some issues especially with apartment buildings.
+
+#Processing Mobility Data
+## Process max neighbors to see generated clusters
+```{r}
+results = process_all_participants_max_neighbors(baseline, buffer_distance = 100, point_id_col = "point_id", save_dir = file.path(data_path, "mobility", "max_neighbors_results"), combine_results = TRUE)
+```
+
+We still get some issues, especially with apartment buildings, so lets try something else. This might take a long time to run...
+
+Let's see how many points are within 100 feet of each other and use the maximum of those buffers as a comparison. I'll probably save this after I run it since it will probably take a long time.
+```{r}
+files <- list.files(file.path(data_path, "admin","mobility", "max_neighbors_results"), pattern = "^max_neighbors_.*\\.rds$", full.names = TRUE)
+#existing_results <- load_participant_results(file.path(data_path, "admin","mobility", "max_neighbors_results"))
+processed_pids <- str_extract(files, "GR\\d+")
+all_pids <- unique(baseline$pid)
+remaining_pids <- setdiff(all_pids, processed_pids)
+for (pid in remaining_pids) {
+  process_participant_max_neighbors(
+    df = baseline,
+    target_pid = pid,
+    buffer_distance = 100,
+    save_dir = file.path(data_path, "admin","mobility", "max_neighbors_results")
+  )
+}
+
+result_gr111 <- process_participant_max_neighbors_efficient(
+  df = baseline,
+  target_pid = "GR312",
+  buffer_distance = 100,
+  save_dir = file.path(data_path, "admin","mobility", "max_neighbors_results"),
+  max_points = 10000,  # Subsample if more than this
+  subsample_method = "systematic"  # or "random"
+)
+```
+
+```{r}
+results <- process_all_participants_batches(
+  df = intervention,
+  buffer_distance = 100,
+  batch_size = 10000,
+  cluster_match_distance = 200,
+  save_dir = file.path(data_path, "admin","mobility", "max_neighbors_results", "Intervention")
+)
+```
+
+Okay I saved these out as csvs so we can skip the creation and load the csvs in as we need them.
+
+## Load max-neighbor cluster results
+### Baseline
+```{r}
+baseline = read_csv(file.path(data_path, "admin","mobility", "max_neighbors_results", "Baseline", "max_neighbors_results.csv"))
+baseline_clusters = read_csv(file.path(data_path, "admin","mobility", "max_neighbors_results", "Baseline", "max_clusters.csv"))
+```
+
+### Intervention
+```{r}
+intervention = read_csv(file.path(data_path, "admin","mobility", "max_neighbors_results", "Intervention", "max_neighbors_results.csv"))
+intervention_clusters = read_csv(file.path(data_path, "admin","mobility", "max_neighbors_results", "Intervention", "max_clusters.csv"))
+```
+
+## Times left home
+
+Times left home 
+- Let's see how many times they left home in each period, and if it matches up with leaving the home cluster
+```{r}
+leave_home = load_lifedata() 
+leave_home_sum = leave_home %>%
+  dplyr::filter(grepl("leave_house", `Prompt Label`)) %>%
+  dplyr::filter(Response == 1) %>%
+  dplyr::mutate(
+    # Create new grouping variable
+    Period = case_when(
+      Type == "Baseline" ~ "Baseline",
+      Type == "Intervention" & day <= 14 ~ "Intervention (Days 1-14)",
+      Type == "Intervention" & day > 14 ~ "Intervention (Days 15-28)",
+      TRUE ~ "Other"
+    )
+  ) %>%
+  dplyr::group_by(pid, Period) %>%
+  dplyr::summarise(leave_house_count = n(), .groups = 'drop')
+
+box_plot <- leave_home_sum %>%
+  filter(Period != "Other") %>%  # Remove any "Other" entries
+  ggplot(aes(x = Period, y = leave_house_count, fill = Period)) +
+  geom_boxplot(alpha = 0.7, width = 0.6) +
+  geom_jitter(width = 0.2, alpha = 0.5, size = 2) +
+  labs(title = "Distribution of Leave House Events by 14-Day Periods",
+       x = "Study Period",
+       y = "Number of Leave House Events") +
+  scale_fill_manual(values = c(
+    "Baseline (Days 1-14)" = "skyblue",
+    "Intervention (Days 1-14)" = "lightcoral", 
+    "Intervention (Days 15-28)" = "darkred"
+  )) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1)  # Rotate x-axis labels
+  )
+
+box_plot
+```
+Okay, it doesn't really look like there is any difference in period for the amount of times someone has left their house. Let's take a look at people's geodata on days they said they did not leave the house and see if it matches up to their cluster. It only starts at pid GR197, so maybe the lifepaks that were updated around 09-09-23. let's check baseline first.
+
+## Looking at leave_house=1 raw data
+```{r}
+leave_house = ema %>%
+  dplyr::filter(!is.na(leave_house)) %>%
+  dplyr::select(pid, pakID, `Notification Date`, Type, cond, day, leave_house) 
+
+leave_house %>%
+  pull(pid) %>%
+  unique() %>%
+  length() %>%
+  paste0(" unique participants with leave_house data") %>%
+  print()
+
+baseline_leave_house = dplyr::inner_join(leave_house, baseline, by = c("pid", "Notification Date")) %>%
+  filter(!is.na(lon), !is.na(lat), leave_house=='2') %>% 
+  sf::st_as_sf(coords = c("lon", "lat"),
+           crs = 4326) %>% 
+  sf::st_transform(crs = 2272)
+baseline_clusters_sf = baseline_clusters %>%
+  filter(pid %in% baseline_leave_house$pid) %>%
+  sf::st_as_sf(coords = c("max_neighbors_lon", "max_neighbors_lat"),
+           crs = 4326) %>% 
+  sf::st_transform(crs = 2272) %>%
+  sf::st_buffer(dist = 500)
+listed_home = homes %>%
+  filter(pid %in% baseline_leave_house$pid) %>%
+  sf::st_as_sf(coords = c("lon", "lat"),
+           crs = 4326) %>% 
+  sf::st_transform(crs = 2272) %>% 
+  sf::st_buffer(dist = 300)
+pids = unique(baseline_leave_house$pid)
+for (participant in pids) {
+  map = mapview(baseline_clusters_sf %>% filter(pid==participant), 
+          col.regions = "blue", 
+          alpha.regions = 0.3,  # Transparency for buffers
+          layer.name = "1000ft Buffer") +
+     mapview(listed_home %>% filter(pid==participant), 
+          col.regions = "yellow", 
+          alpha.regions = 0.3,  # Transparency for buffers
+          layer.name = "1000ft Buffer") +
+  mapview(baseline_leave_house %>% filter(pid==participant), 
+          col.regions = "red",
+          cex = 4,  # Point size
+          layer.name = "Individual Points")
+    # Print header and map
+  cat("\n\n## Participant:", participant, "\n\n")
+  print(map)
+  cat("\n\n")
+}
+```
+GR228 - looks like cluster is their workplace, not home
+GR240 - cluster and home don't match. Maybe I made the cluster buffers too big!
+GR273 - This is one where the cluster is actually better than the home
+For the most part, the clusters and address overlap pretty perfectly. Maybe we use the home addresses *except* for where there aren't any points within them, but we should maybe have a limit. Is having 5 points within the home buffer good enough or do we want at least 25 points over the course of the entire study before we use a calculated cluster? It also looks like a *lot* (not all!) of people at least did one trip on a day they answered that they did not leave the home. This was only baseline, let's look at baseline + intervention.
+
+Let's review the clusters between baseline, intervention, and listed homes.
+
+## Reviewing clusters vs listed address
+```{r}
+baseline_clusters_sf = baseline_clusters %>%
+  sf::st_as_sf(coords = c("max_neighbors_lon", "max_neighbors_lat"),
+           crs = 4326) %>% 
+  sf::st_transform(crs = 2272) %>%
+  sf::st_buffer(dist = 400)
+intervention_clusters_sf = intervention_clusters %>%
+  filter(!is.na(cluster_center_lon), !is.na(cluster_center_lat)) %>%
+  sf::st_as_sf(coords = c("cluster_center_lon", "cluster_center_lat"),
+           crs = 4326) %>% 
+  sf::st_transform(crs = 2272) %>%
+  sf::st_buffer(dist = 500)
+homes_sf = homes %>%
+  sf::st_as_sf(coords = c("lon", "lat"),
+           crs = 4326) %>% 
+  sf::st_transform(crs = 2272) %>% 
+  sf::st_buffer(dist = 300)
+```
+
+```{r}
+pids = unique(intervention_clusters_sf$pid)
+for (participant in pids) {
+  if (nrow(baseline_clusters_sf %>% filter(pid==participant)) > 0 && nrow(intervention_clusters_sf %>% filter(pid==participant)) > 0 && homes_sf %>% filter(pid==participant) %>% nrow() > 0) {
+  map = mapview(baseline_clusters_sf %>% filter(pid==participant), 
+          col.regions = "red", 
+          alpha.regions = 0.3,  # Transparency for buffers
+          layer.name = "Baseline Cluster") +
+     mapview(intervention_clusters_sf %>% filter(pid==participant), 
+          col.regions = "blue", 
+          alpha.regions = 0.3,  # Transparency for buffers
+          layer.name = "Intervention Cluster") +
+     mapview(homes_sf %>% filter(pid==participant), 
+          col.regions = "yellow", 
+          alpha.regions = 0.3,  # Transparency for buffers
+          layer.name = "Home address listed") +
+  print(map)
+}}
+```
+Let's look through some of these. For the most part all clusters overlap each other almost perfectly. I'll list out some of the more off ones here:
+GR319 - Address *not* near overlapping baseline/intervention clusters
+GR317 - Baseline cluster is *not* touching but is near overlapping address/intervention clusters
+GR304 - Address *not* near overlapping baseline/intervention clusters
+GR287 - each cluster is in a different part of the city
+GR286 - Intervention cluster is *not* near the overlapping home and baseline clusters
+GR280 - Baseline cluster is *not* near overlapping address/intervention clusters
+GR267 - Intervention cluster is *not* near the overlapping home and baseline clusters
+GR266 - Baseline cluster is *not* near overlapping address/intervention clusters
+GR265 - Intervention cluster is *not* touching but is near the overlapping home and baseline clusters
+GR257 - Intervention cluster is *not* near the overlapping home and baseline clusters
+GR252 - *Clusters for baseline and intervention are in chicago???*
+GR228 - Address *not* near overlapping baseline/intervention clusters
+GR211 - One intervention cluster separated from overlapping intervention/baseline/home: Remove
+GR210 - Address *not* near overlapping baseline/intervention clusters
+GR208 - Address *not* near overlapping baseline/intervention clusters
+GR207 - Baseline and one intervention cluster separate from address/intervention cluster - Remove?
+GR204 - One intervention cluster separated from overlapping intervention/baseline/home: Remove
+[done] GR195 - Baseline cluster is *not* near overlapping address/intervention clusters
+[done] GR188 - Intervention cluster is *not* near the overlapping home and baseline clusters
+[done] GR184 - One intervention cluster separated from overlapping intervention/baseline/home: Remove
+[done] GR183 - Baseline cluster is *not* near overlapping address/intervention clusters
+[done] GR175 - Address *not* near overlapping baseline/intervention clusters
+[done] GR174 - Address *not* near overlapping baseline/intervention clusters, but clusters are not residential***
+[done] GR162 - Address *not* near overlapping baseline/intervention clusters, but kind of close
+[done] GR154 - No clusters are near each other!
+[done] GR146 - Intervention cluster is *not* near the overlapping home and baseline clusters
+[done] GR133 - Intervention cluster is *not* near the overlapping home and baseline clusters (it's in florida!!!)
+[done] GR123 - Address *not* near overlapping baseline/intervention clusters, but clusters are not residential***
+[done] GR113 - Intervention cluster is *not* near the overlapping home and baseline clusters
+[done] GR110 - Address just barely touching the overlapping baseline/intervention clusters
+[done] GR105 - Address *not* near overlapping baseline/intervention clusters
+[done] GR099 - Address *not* near overlapping baseline/intervention clusters
+[done] GR080 - Address *not* near overlapping baseline/intervention clusters
+[done] GR065 - Address *not* near overlapping baseline/intervention clusters
+[done] GR061 - Address *not* near overlapping baseline/intervention clusters
+[done] GR060 - Intervention cluster is *not* near the overlapping home and baseline clusters
+[done] GR047 - Address *not* near overlapping baseline/intervention clusters
+[done] GR029 - Intervention cluster is *not* near the overlapping home and baseline clusters
+[done] GR027 - One intervention cluster separated from overlapping intervention/baseline/home: Remove
+[done] GR025 - Address *not* near overlapping baseline/intervention clusters
+[done] GR024 - Address *not* near overlapping baseline/intervention clusters
+[done] GR017 - Baseline close but not really near overlapping intervention/home clusters
+[done] GR013 - One intervention cluster separated from overlapping intervention/baseline/home: Remove
+[done] GR012 - Address *not* near overlapping baseline/intervention clusters
+[done] GR003 - Address not near clusters, intervention has two clusters but one overlaps baseline cluster
+
+Okay now let's look at each persons geodata within their clusters and also check to see if a cluster is a commercial building (e.g. their work) and if their address would be a better place
+
+## Viewing clusters that don't overlap well with home address
+```{r}
+geo_data = rbind(baseline %>% select(pid, lat, lon, datetime, day, `Notification Date`),
+                 intervention %>% select(pid, lat, lon, datetime, day, `Notification Date`))
+
+ppt = "GR319" #Update this for new maps
+map = mapview(baseline_clusters_sf %>% filter(pid==ppt), 
+          col.regions = "red", 
+          alpha.regions = 0.3,  # Transparency for buffers
+          layer.name = "Baseline Cluster") +
+     mapview(intervention_clusters_sf %>% filter(pid==ppt), 
+          col.regions = "blue", 
+          alpha.regions = 0.3,  # Transparency for buffers
+          layer.name = "Intervention Cluster") +
+     mapview(homes_sf %>% filter(pid==ppt), 
+          col.regions = "yellow", 
+          alpha.regions = 0.3,  # Transparency for buffers
+          layer.name = "Home address listed") + 
+  mapview(geo_data %>% filter(pid==ppt, !is.na(lon), !is.na(lat), lubridate::hour(datetime) < 8) %>%
+            sf::st_as_sf(coords = c("lon", "lat"),
+           crs = 4326) %>% 
+      sf::st_transform(crs = 2272),
+      col.regions = "green")
+print(map)
+```
+
+Results:
+We will use the address as a default unless noted otherwise here
+GR003 - *use baseline cluster* - address is nowhere near any points second intervention cluster is at college
+GR024 - *use baseline* - address barely has any points, clusters at home
+GR061 - *use baseline* - address has no observations
+GR065 - *use address?* address has observations, looks like clusters have more and is also residential. maybe check night times - Look at times after 10pm, home address has none and the clusters have a lot across multiple dates.
+GR080 - *use address?* address has observations, looks like clusters have more and is also residential. maybe check night times -times before 6am still have observations even if clusters have more... i guess use address
+GR105 - *use baseline* - not a ton of observations, maybe look a little closer. clusters could be residential - address only has data for one night
+GR110 - *use baseline cluster* - most points are in cluster which is just next to address
+GR123 - *use baseline cluster* - address has no points
+GR175 - *use baseline cluster* - address has like 3 points..
+GR287 - *use address?? - maybe use intervention cluster* - investigate, all three points are in different areas of the city. intervention has consisted nighttime points across entire study
+GR319 - *use address?* - investigate
+
+
+Okay now he have some clusters we can mostly agree on. Let's do some simple checks.
+(The new home clusters were saved to homes)
+## Edit homes with better clusters 
+```{r}
+use_baseline_clusters = c("GR003", "GR105","GR110","GR123","GR175")
+homes <- homes %>%
+  left_join(baseline_clusters %>% 
+              filter(pid %in% use_baseline_clusters) %>%
+              select(pid, lat_baseline = max_neighbors_lat, lon_baseline = max_neighbors_lon),
+            by = "pid") %>%
+  mutate(lat = coalesce(lat_baseline, lat),
+         lon = coalesce(lon_baseline, lon)) %>%
+  select(pid, lat, lon)
+```
+
+Let's see how many points are within 300 feet of the home address at night
+## Geopoints home at night
+```{r}
+whole_study_df = rbind(baseline %>% select(pid, lat, lon, datetime, day, `Notification Date`),
+                 intervention %>% select(pid, lat, lon, datetime, day, `Notification Date`)) %>%
+  filter(!is.na(lon), !is.na(lat))
+
+# Convert to sf objects and transform to projected CRS
+home_sf <- st_as_sf(homes, coords = c("lon", "lat"), crs = 4326) %>%
+           st_transform(crs = 2272)
+
+df_sf <- st_as_sf(whole_study_df, coords = c("lon", "lat"), crs = 4326) %>%
+         st_transform(crs = 2272)
+
+# Create 300ft buffers (convert feet to meters: 1 ft = 0.3048 m)
+home_buffers <- st_buffer(home_sf, dist = 300 * 0.3048)
+
+# Step 5: Join observations with their home buffers and check if within buffer
+whole_study_df <- whole_study_df %>%
+  mutate(
+    # Create temporary geometry for joining
+    temp_geom = st_geometry(df_sf)
+  )
+
+# Join and check intersection
+df_with_home <- df_sf %>%
+  st_join(home_buffers, join = st_intersects, left = TRUE, suffix = c("", "_home")) %>%
+  mutate(at_home = ifelse(pid == pid_home, 1, 0)) %>%
+  st_drop_geometry() %>%
+  select(-pid_home)
+
+# Step 2: Calculate nighttime home percentages by participant
+night_home_pct <- df_with_home %>%
+  dplyr::mutate(
+    # Extract hour from datetime
+    hour = hour(datetime),
+    # Define nighttime (10pm-6am means hour >= 22 OR hour < 6)
+    is_night = hour >= 22 | hour < 6
+  ) %>%
+  dplyr::filter(is_night) %>%  # Only nighttime observations
+  dplyr::group_by(pid) %>%
+  dplyr::summarise(
+    total_night_obs = n(),
+    night_obs_at_home = sum(at_home, na.rm = TRUE),
+    pct_night_at_home = (night_obs_at_home / total_night_obs) * 100
+  )
+
+# Step 3: Create boxplot
+ggplot(night_home_pct, aes(x = "", y = pct_night_at_home)) +
+  geom_boxplot(fill = "lightblue", alpha = 0.7) +
+  geom_jitter(width = 0.2, alpha = 0.5) +  # Show individual points
+  labs(
+    title = "Percentage of Nighttime Observations at Home",
+    y = "% of Night Observations at Home",
+    x = ""
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+
+# View the summary statistics
+summary(night_home_pct$pct_night_at_home)
+```
+
+## Ppts home by hour
+```{r}
+# Create the summary data
+hourly_at_home <- df_with_home %>%
+  dplyr::filter(at_home == 1) %>%
+  dplyr::mutate(hour = hour(datetime)) %>%
+  dplyr::group_by(hour) %>%
+  dplyr::summarise(count = n())
+
+# Create bar graph with nighttime highlighted
+ggplot(hourly_at_home, aes(x = hour, y = count)) +
+  geom_bar(stat = "identity", aes(fill = hour >= 22 | hour < 6)) +
+  scale_fill_manual(values = c("steelblue", "darkblue"), 
+                    labels = c("Day", "Night"),
+                    name = "Time Period") +
+  scale_x_continuous(breaks = 0:23) +
+  labs(
+    title = "Total Observations at Home by Hour of Day",
+    x = "Hour of Day (0 = midnight, 12 = noon)",
+    y = "Number of Observations"
+  ) +
+  theme_minimal() +
+  theme(panel.grid.minor = element_blank())
+```
+
+Okay now lets look at some of the differences in visiting the retailers during baseline and intervention
+we'll also add the condition variable so we can see if there are differences between groups
+
+# Retailer Visit Exploration
+```{r}
+redcap = load_redcap_data()
+cvs_stores = read_csv(file.path(data_path, "Retailers","CVS_Retailers.csv"))
+
+# Let's load 7-11 receipts and see if we can match them to the retailer database
+seven_eleven_stores = read_csv(file.path(data_path, "Retailers","seven_eleven_stores_geocoded.csv"))
+
+geo_observations = rbind(baseline %>% dplyr::mutate(Type="Baseline"), intervention %>% dplyr::mutate(Type="Intervention")) %>%
+  filter(!is.na(lon) & !is.na(lat)) %>%
+  dplyr::mutate(
+    # Create new grouping variable
+    Period = case_when(
+      Type == "Baseline" ~ "Baseline",
+      Type == "Intervention" & day <= 14 ~ "Intervention (Days 1-14)",
+      Type == "Intervention" & day > 14 ~ "Intervention (Days 15-28)",
+      TRUE ~ "Other"
+    )
+  ) %>%
+  merge(redcap %>% select(pid, cond), by = "pid", all.x = TRUE)
+
+# Convert dataframes to sf objects (assuming CRS 4326 - WGS84)
+seven_eleven_sf <- seven_eleven_stores %>%
+  filter(!is.na(lon) & !is.na(lat)) %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
+  st_transform(crs = 2272)
+
+cvs_sf <- cvs_stores %>%
+  filter(!is.na(lon) & !is.na(lat)) %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
+  st_transform(crs = 2272)
+
+geo_observations_sf <- geo_observations %>%
+  filter(!is.na(lon) & !is.na(lat)) %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
+  st_transform(crs = 2272)
+
+# Create 300m buffers around stores 
+cat("Creating store buffers...\n")
+seven_eleven_buffer <- st_buffer(seven_eleven_sf, dist = 300)
+cvs_buffer <- st_buffer(cvs_sf, dist = 300)
+
+# Combine all store buffers for "any store" analysis
+all_stores_buffer <- st_union(st_union(seven_eleven_buffer), st_union(cvs_buffer))
+
+# Find which observations intersect with buffers
+cat("Finding observations near stores...\n")
+near_7eleven_idx <- st_intersects(geo_observations_sf, seven_eleven_buffer, sparse = FALSE)
+near_cvs_idx <- st_intersects(geo_observations_sf, cvs_buffer, sparse = FALSE)
+near_any_idx <- st_intersects(geo_observations_sf, all_stores_buffer, sparse = FALSE)
+
+# Add results back to original dataframe
+geo_observations <- geo_observations %>%
+  dplyr::mutate(
+    near_7eleven = rowSums(near_7eleven_idx) > 0,
+    near_cvs = rowSums(near_cvs_idx) > 0,
+    near_any_store = as.vector(near_any_idx)
+  )
+
+# Summary statistics by Type
+summary_stats <- geo_observations %>%
+  dplyr::group_by(Period) %>%
+  dplyr::summarise(
+    total_obs = n(),
+    near_7eleven = sum(near_7eleven, na.rm = TRUE),
+    near_cvs = sum(near_cvs, na.rm = TRUE),
+    near_any_store = sum(near_any_store, na.rm = TRUE),
+    pct_near_7eleven = round(100 * near_7eleven / total_obs, 2),
+    pct_near_cvs = round(100 * near_cvs / total_obs, 2),
+    pct_near_any = round(100 * near_any_store / total_obs, 2)
+  )
+
+print(summary_stats)
+
+# Statistical tests
+cat("\n=== Chi-square tests ===\n")
+
+# Test for any store
+contingency_any <- table(geo_observations$Period, geo_observations$near_any_store)
+print("Any store proximity by Type:")
+print(contingency_any)
+print(chisq.test(contingency_any))
+
+# Test for 7-Eleven
+contingency_7eleven <- table(geo_observations$Period, geo_observations$near_7eleven)
+print("\n7-Eleven proximity by Type:")
+print(contingency_7eleven)
+print(chisq.test(contingency_7eleven))
+
+# Test for CVS
+contingency_cvs <- table(geo_observations$Type, geo_observations$near_cvs)
+print("\nCVS proximity by Type:")
+print(contingency_cvs)
+print(chisq.test(contingency_cvs))
+```
+
+
+```{r}
+summary_by_condition <- geo_observations %>%
+  dplyr::filter(!is.na(lon) & !is.na(lat)) %>%
+  dplyr::group_by(cond, Period) %>%
+  dplyr::summarise(
+    n_obs = n(),
+    n_near_7eleven = sum(near_7eleven),
+    n_near_cvs = sum(near_cvs),
+    n_near_any = sum(near_any_store),
+    pct_near_7eleven = round(100 * n_near_7eleven / n_obs, 2),
+    pct_near_cvs = round(100 * n_near_cvs / n_obs, 2),
+    pct_near_any = round(100 * n_near_any / n_obs, 2),
+    .groups = "drop"
+  )
+
+print(summary_by_condition)
+
+# Overall summary by condition (collapsed across periods)
+summary_condition_only <- geo_observations %>%
+  dplyr::filter(!is.na(lon) & !is.na(lat)) %>%
+  dplyr::group_by(cond) %>%
+  dplyr::summarise(
+    n_obs = n(),
+    n_near_7eleven = sum(near_7eleven),
+    n_near_cvs = sum(near_cvs),
+    pct_near_7eleven = round(100 * n_near_7eleven / n_obs, 2),
+    pct_near_cvs = round(100 * n_near_cvs / n_obs, 2),
+    .groups = "drop"
+  )
+
+print(summary_condition_only)
+
+# Participant-level summary
+participant_summary <- geo_observations %>%
+  dplyr::filter(!is.na(lon) & !is.na(lat)) %>%
+  dplyr::group_by(pid, cond, Period) %>%
+  dplyr::summarise(
+    n_obs = n(),
+    pct_near_7eleven = round(100 * sum(near_7eleven) / n_obs, 1),
+    pct_near_cvs = round(100 * sum(near_cvs) / n_obs, 1),
+    pct_near_any = round(100 * sum(near_any_store) / n_obs, 1),
+    .groups = "drop"
+  )
+
+# ============= VISUALIZATIONS =============
+
+# 1. Bar plot: Store proximity by condition and period
+plot1 <- summary_by_condition %>%
+  select(cond, Period, pct_near_7eleven, pct_near_cvs) %>%
+  pivot_longer(cols = starts_with("pct"), 
+               names_to = "Store", 
+               values_to = "Percentage") %>%
+  mutate(
+    Store = recode(Store, 
+                   "pct_near_7eleven" = "7-Eleven",
+                   "pct_near_cvs" = "CVS"),
+    cond = factor(cond, labels = c("Condition 1 (CVS)", 
+                                             "Condition 2 (7-11)", 
+                                             "Condition 3 (Control)"))
+  ) %>%
+  ggplot(aes(x = Period, y = Percentage, fill = Store)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~cond, ncol = 1) +
+  labs(title = "Observations Within 300m of Stores by Condition and Period",
+       y = "% of Observations",
+       x = "Period") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom") +
+  scale_fill_brewer(palette = "Set2")
+
+print(plot1)
+ggsave(file.path(data_path, "proximity_by_condition_period.png"), 
+       plot1, width = 12, height = 10)
+
+# 2. Side-by-side comparison of conditions
+plot2 <- summary_condition_only %>%
+  select(cond, pct_near_7eleven, pct_near_cvs) %>%
+  pivot_longer(cols = starts_with("pct"), 
+               names_to = "Store", 
+               values_to = "Percentage") %>%
+  mutate(
+    Store = recode(Store, 
+                   "pct_near_7eleven" = "7-Eleven",
+                   "pct_near_cvs" = "CVS"),
+    Condition = factor(cond, labels = c("CVS Condition",
+                                             "7-11 Condition", 
+                                             "Control"))
+  ) %>%
+  ggplot(aes(x = cond, y = Percentage, fill = Store)) +
+  geom_col(position = "dodge", width = 0.7) +
+  geom_text(aes(label = paste0(round(Percentage, 1), "%")), 
+            position = position_dodge(width = 0.7), 
+            vjust = -0.5, size = 3.5) +
+  labs(title = "Store Proximity by Experimental Condition",
+       subtitle = "Overall across all periods",
+       y = "% of Observations Within 300m",
+       x = "Condition") +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  scale_fill_brewer(palette = "Set1") +
+  ylim(0, max(summary_condition_only$pct_near_7eleven, 
+              summary_condition_only$pct_near_cvs) * 1.15)
+
+print(plot2)
+ggsave(file.path(data_path, "proximity_by_condition_overall.png"), 
+       plot2, width = 10, height = 6)
+
+# 3. Line plot showing trends over periods
+plot3 <- summary_by_condition %>%
+  select(Condition, Period, pct_near_7eleven, pct_near_cvs) %>%
+  pivot_longer(cols = starts_with("pct"), 
+               names_to = "Store", 
+               values_to = "Percentage") %>%
+  mutate(
+    Store = recode(Store, 
+                   "pct_near_7eleven" = "7-Eleven",
+                   "pct_near_cvs" = "CVS"),
+    Condition = factor(Condition, labels = c("CVS Condition","7-11 Condition", 
+                                                                                 "Control"))
+  ) %>%
+  ggplot(aes(x = Period, y = Percentage, color = Store, group = Store)) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +
+  facet_wrap(~Condition, ncol = 3) +
+  labs(title = "Store Proximity Trends Over Time by Condition",
+       y = "% of Observations Within 300m",
+       x = "Period") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom") +
+  scale_color_brewer(palette = "Set1")
+
+print(plot3)
+ggsave(file.path(data_path, "proximity_trends.png"), 
+       plot3, width = 14, height = 5)
+
+# 4. Heatmap of proximity percentages
+plot4 <- summary_by_condition %>%
+  select(cond, Period, pct_near_7eleven, pct_near_cvs) %>%
+  pivot_longer(cols = starts_with("pct"), 
+               names_to = "Store", 
+               values_to = "Percentage") %>%
+  mutate(
+    Store = recode(Store, 
+                   "pct_near_7eleven" = "7-Eleven",
+                   "pct_near_cvs" = "CVS"),
+    Condition = factor(cond, labels = c("CVS Cond.",
+                                             "7-11 Cond.", 
+                                             "Control"))
+  ) %>%
+  ggplot(aes(x = Period, y = Store, fill = Percentage)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = paste0(round(Percentage, 1), "%")), 
+            color = "black", size = 3) +
+  facet_wrap(~Condition, ncol = 1) +
+  scale_fill_gradient2(low = "white", high = "darkblue", 
+                       midpoint = 15, name = "% Near Store") +
+  labs(title = "Heatmap: Store Proximity by Condition and Period",
+       x = "Period", y = "Store Type") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(plot4)
+ggsave(file.path(data_path, "proximity_heatmap.png"), 
+       plot4, width = 12, height = 8)
+
+# 5. Participant-level variability (boxplot)
+plot5 <- participant_summary %>%
+  select(pid, cond, Period, pct_near_7eleven, pct_near_cvs) %>%
+  pivot_longer(cols = starts_with("pct"), 
+               names_to = "Store", 
+               values_to = "Percentage") %>%
+  mutate(
+    Store = recode(Store, 
+                   "pct_near_7eleven" = "7-Eleven",
+                   "pct_near_cvs" = "CVS"),
+    Condition = factor(cond, labels = c("CVS Condition",
+                                        "7-11 Condition", 
+                                         "Control"))
+  ) %>%
+  ggplot(aes(x = cond, y = Percentage, fill = Store)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Store Proximity Across Participants",
+       subtitle = "Each point represents one participant-period",
+       y = "% of Observations Near Store",
+       x = "Condition") +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  scale_fill_brewer(palette = "Set2")
+
+print(plot5)
+ggsave(file.path(data_path, "proximity_distribution.png"), 
+       plot5, width = 10, height = 6)
+
+# ============= STATISTICAL TESTS =============
+
+cat("\n=== Statistical Tests ===\n")
+
+# Test 1: Does 7-11 condition have more 7-11 proximity than other conditions?
+geo_observations_valid <- geo_observations %>%
+  filter(!is.na(lon) & !is.na(lat))
+
+# 7-Eleven proximity by condition
+test1_table <- table(geo_observations_valid$Condition, geo_observations_valid$near_7eleven)
+cat("\n7-Eleven proximity by condition:\n")
+print(test1_table)
+print(chisq.test(test1_table))
+
+# CVS proximity by condition
+test2_table <- table(geo_observations_valid$Condition, geo_observations_valid$near_cvs)
+cat("\nCVS proximity by condition:\n")
+print(test2_table)
+print(chisq.test(test2_table))
+
+# Pairwise comparisons for 7-Eleven
+cat("\nPairwise comparisons for 7-Eleven:\n")
+for (i in 1:2) {
+  for (j in (i+1):3) {
+    subset_data <- geo_observations_valid %>% filter(Condition %in% c(i, j))
+    test_table <- table(subset_data$Condition, subset_data$near_7eleven)
+    cat(sprintf("Condition %d vs %d:\n", i, j))
+    print(chisq.test(test_table))
+  }
+}
+
+# ============= SAVE RESULTS =============
+
+write_csv(summary_by_condition, 
+          file.path(data_path, "summary_by_condition_period.csv"))
+write_csv(summary_condition_only, 
+          file.path(data_path, "summary_by_condition.csv"))
+write_csv(participant_summary, 
+          file.path(data_path, "participant_summary.csv"))
+
+cat("\n=== Analysis complete! ===\n")
+cat("Summary files and plots saved to:", data_path, "\n")
+```
+
+
+Let's see the spread of participants/condition by urbanicity
+# Urbanicity Exploration
+```{r}
+library(tigris)
+neighborhood_data = load(file.path(data_path, "EnvironmentalDatabases", "ICPSR", "ICPSR_38606",
+                                   "DS0001", "38606-0001-Data.rda"))
+pa_tracts <- tracts(state = "42", year = 2020)
+de_tracts <- tracts(state = "10", year = 2020)
+nj_tracts <- tracts(state = "34", year = 2020)
+
+# Combine them
+all_tracts <- rbind(pa_tracts, de_tracts, nj_tracts) %>%
+  left_join(da38606.0001, by = c("GEOID" = "TRACT_FIPS10"))
+
+# If not loaded already
+homes = load_home_clusters()
+people_with_ruca <- st_join(homes, all_tracts %>% sf::st_transform(crs = 2272), join = st_within)
+
+# Let's add the condition to them
+people_with_ruca = people_with_ruca %>%
+  merge(redcap %>% select(pid, cond), by = "pid", all.x = TRUE)
+
+people_with_ruca %>%
+  st_drop_geometry() %>%
+  dplyr::group_by(cond, RUCA7) %>%
+  dplyr::summarise(n = n(), .groups = "drop") %>%
+  dplyr::group_by(cond) %>%
+  dplyr::mutate(
+    total = sum(n),
+    percent = round(n/total * 100, 1)
+  ) %>%
+  arrange(cond, RUCA7)
+
+# 3. Visualization - stacked bar chart
+people_with_ruca %>%
+  st_drop_geometry() %>%
+  ggplot(aes(x = factor(cond), fill = RUCA7)) +
+  geom_bar(position = "fill") +
+  labs(
+    x = "Condition",
+    y = "Proportion",
+    fill = "RUCA Category",
+    title = "RUCA Distribution by Condition"
+  ) +
+  scale_y_continuous(labels = scales::percent) +
+  theme_minimal()
+```
+
+
+Okay let's look at times left the house and compare it to ema
+# Times left home geo vs ema
+```{r}
+library(dplyr)
+library(sf)
+
+
+geodata = geodata %>% filter(!is.na(lat), !is.na(lon))
+
+# Step 1: Join dataframes and prepare data
+geodata_with_home <- geodata %>%
+  dplyr::arrange(pid, datetime) %>%
+  dplyr::left_join(
+    homes %>% dplyr::rename(home_lat = lat, home_lon = lon),
+    by = "pid"
+  ) %>%
+  dplyr::mutate(
+    date = as.Date(datetime),
+    hour = as.numeric(format(datetime, "%H"))
+  ) %>%
+  filter(!is.na(lat), !is.na(lon))
+
+# Step 2: Convert to sf and calculate distances
+geodata_sf <- geodata_with_home %>%
+  sf::st_as_sf(coords = c("lon", "lat"), crs = 4326, remove = FALSE) %>%
+  filter(!is.na(home_lon), !is.na(home_lat))
+
+# Create home points
+home_points <- geodata_with_home %>%
+  filter(!is.na(home_lon), !is.na(home_lat)) %>%
+  sf::st_as_sf(coords = c("home_lon", "home_lat"), crs = 4326) %>%
+  dplyr::pull(geometry)
+
+# Calculate distance from home (observation-level data with 'type' preserved)
+geodata_with_distance <- geodata_sf %>%
+  dplyr::mutate(
+    home_point = home_points,
+    distance_from_home = as.numeric(sf::st_distance(
+      sf::st_transform(geometry, 3857),
+      sf::st_transform(home_point, 3857),
+      by_element = TRUE
+    ))
+  ) %>%
+  dplyr::select(-home_point)
+
+# Step 3: Check for consecutive points >500m from home between 8am-10pm
+daily_leave_home <- geodata_with_distance %>%
+  dplyr::filter(hour >= 8, hour <= 18) %>%  # 8am to 10pm
+  dplyr::group_by(pid) %>%
+  dplyr::arrange(pid, datetime) %>%
+  dplyr::mutate(
+    away_from_home = distance_from_home > 500,
+    prev_away = dplyr::lag(away_from_home, default = FALSE),
+    is_consecutive_away = away_from_home & prev_away
+  ) %>%
+  dplyr::group_by(pid, date) %>%
+  dplyr::summarise(
+    leave_home = as.integer(any(is_consecutive_away)),
+    .groups = "drop"
+  )
+
+# Step 4: Calculate total distance traveled per day
+daily_distance <- geodata_sf %>%
+  dplyr::group_by(pid) %>%
+  dplyr::arrange(pid, datetime) %>%
+  dplyr::mutate(
+    distance_to_next = as.numeric(sf::st_distance(
+      sf::st_transform(geometry, 3857),
+      sf::st_transform(dplyr::lead(geometry), 3857),
+      by_element = TRUE
+    ))
+  ) %>%
+  dplyr::group_by(pid, date) %>%
+  dplyr::summarise(
+    distance_traveled = sum(distance_to_next, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Merge to get study period
+daily_leave_home_merged <- daily_leave_home %>%
+    dplyr::left_join(
+        geodata %>% 
+          dplyr::mutate(date = as.Date(datetime)) %>%
+          dplyr::select(pid, date, type) %>% distinct(),
+        by = c("pid", "date")
+    ) %>%
+    dplyr::left_join(
+      lifedata %>%
+        dplyr::filter(!is.na(leave_house)) %>%
+        dplyr::rename(date = `Notification Date`,
+                      leave_house_ema = leave_house) %>%
+        dplyr::mutate(date = as.Date(date)) %>%
+        dplyr::select(pid, date, Responded, leave_house_ema),
+        by = c("pid", "date")
+    )
+
+# Merge to get condition
+
+daily_leave_home_merged <- daily_leave_home_merged %>%
+  dplyr::left_join(
+    redcap %>% dplyr::select(pid, cond),
+    by = "pid"
+  )
+
+both_left_home <- daily_leave_home_merged %>%
+  dplyr::filter(!is.na(leave_house_ema), leave_home == 1 & leave_house_ema == 1) %>%
+  nrow() %>% print()
+
+# Recode leave_house_ema so 1=left, 0=stayed (2 becomes 0)
+daily_leave_home_recoded <- daily_leave_home_merged %>%
+  dplyr::filter(!is.na(leave_house_ema)) %>%  # Only where we have EMA data
+  dplyr::mutate(
+    leave_house_ema_binary = dplyr::case_when(
+      leave_house_ema == 1 ~ 1,  # Left house
+      leave_house_ema == 2 ~ 0,  # Did NOT leave house
+      TRUE ~ NA_real_
+    )
+  )
+
+# Create confusion matrix
+confusion_table <- daily_leave_home_recoded %>%
+  dplyr::count(leave_home, leave_house_ema_binary) %>%
+  tidyr::pivot_wider(names_from = leave_house_ema_binary, 
+                     values_from = n, 
+                     values_fill = 0,
+                     names_prefix = "EMA_")
+
+print("Confusion Matrix:")
+print("Rows = GPS leave_home | Columns = EMA leave_house")
+print(confusion_table)
+
+# Calculate agreement statistics
+agreement_stats <- daily_leave_home_recoded %>%
+  dplyr::summarise(
+    total_obs = dplyr::n(),
+    both_left = sum(leave_home == 1 & leave_house_ema_binary == 1),
+    both_stayed = sum(leave_home == 0 & leave_house_ema_binary == 0),
+    gps_left_ema_stayed = sum(leave_home == 1 & leave_house_ema_binary == 0),
+    gps_stayed_ema_left = sum(leave_home == 0 & leave_house_ema_binary == 1),
+    percent_agreement = ((both_left + both_stayed) / total_obs) * 100
+  )
+
+print("\nAgreement Statistics:")
+print(agreement_stats)
+
+daily_leave_home_recoded <- daily_leave_home_merged %>%
+  dplyr::filter(!is.na(leave_house_ema)) %>%
+  dplyr::mutate(
+    leave_house_ema_binary = dplyr::case_when(
+      leave_house_ema == 1 ~ 1,
+      leave_house_ema == 2 ~ 0,
+      TRUE ~ NA_real_
+    ),
+    agreement = leave_home == leave_house_ema_binary  # Changed from 'match' to 'agreement'
+  ) %>%
+  dplyr::left_join(
+    redcap %>% dplyr::select(pid, cond),
+    by = "pid"
+  )
+
+# Get PIDs with perfect agreement
+pids_perfect_match <- daily_leave_home_recoded %>%
+  dplyr::group_by(pid, type) %>%
+  dplyr::summarise(
+    total_days = dplyr::n(),
+    matching_days = sum(agreement),
+    pct_match = (matching_days / total_days) * 100
+  ) %>%
+  dplyr::filter(pct_match == 100) %>%
+  dplyr::pull(pid)
+
+print(paste("PIDs with perfect agreement:", length(pids_perfect_match)))
+print(pids_perfect_match)
+
+# Get PIDs with any disagreement
+pids_any_mismatch <- daily_leave_home_recoded %>%
+  dplyr::group_by(pid, type) %>%
+  dplyr::summarise(
+    total_days = dplyr::n(),
+    matching_days = sum(agreement),
+    pct_match = (matching_days / total_days) * 100
+  ) %>%
+  dplyr::filter(pct_match < 100) %>%
+  dplyr::arrange(pct_match)
+
+print(paste("PIDs with any disagreement:", nrow(pids_any_mismatch)))
+print(pids_any_mismatch)
+
+
+mismatch_summary <- daily_leave_home_recoded %>%
+  dplyr::group_by(pid, type) %>%
+  dplyr::summarise(
+    type = dplyr::first(type),
+    cond = dplyr::first(cond),
+    days_mismatch = sum(!agreement),
+    .groups = "drop"
+  )
+
+print(mismatch_summary)
+
+# Graph 1: Bar plot of average mismatches by type and condition
+avg_mismatch <- mismatch_summary %>%
+  dplyr::group_by(type, cond) %>%
+  dplyr::summarise(
+    mean_mismatch = mean(days_mismatch),
+    sd_mismatch = sd(days_mismatch),
+    n = dplyr::n(),
+    .groups = "drop"
+  )
+
+ggplot2::ggplot(avg_mismatch, 
+                ggplot2::aes(x = type, y = mean_mismatch, fill = factor(cond))) +
+  ggplot2::geom_bar(stat = "identity", position = "dodge") +
+  ggplot2::geom_errorbar(
+    ggplot2::aes(ymin = mean_mismatch - sd_mismatch,
+                 ymax = mean_mismatch + sd_mismatch),
+    position = ggplot2::position_dodge(width = 0.9),
+    width = 0.2
+  ) +
+  ggplot2::labs(
+    title = "Average Days of GPS-EMA Mismatch by Type and Condition",
+    x = "Type",
+    y = "Mean Days with Mismatch",
+    fill = "Condition"
+  ) +
+  ggplot2::theme_minimal()
+```
+
+Okay let's see if we learn why there might be a mismatch
+```{r}
+# 1. Count geo observations per pid/date
+geo_counts <- geodata_with_home %>%
+  group_by(pid, date) %>%
+  summarise(
+    n_observations = n(),
+    .groups = 'drop'
+  )
+
+# View the results
+print(geo_counts)
+
+# Using semi_join (only returns columns from geo_counts)
+geo_counts_disagreement <- geo_counts %>%
+  semi_join(
+    daily_leave_home_recoded %>% 
+      filter(agreement == FALSE) %>%
+      st_drop_geometry(),
+    by = c("pid", "date")
+  )
+
+# Using semi_join (only returns columns from geo_counts)
+geo_counts_agreement <- geo_counts %>%
+  semi_join(
+    daily_leave_home_recoded %>% 
+      filter(agreement == TRUE) %>%
+      st_drop_geometry(),
+    by = c("pid", "date")
+  )
+
+
+# 2. Average geo observations per pid (across all their dates)
+avg_agreement <- geo_counts_agreement %>%
+  group_by(pid) %>%
+  summarise(
+    avg_observations = mean(n_observations),
+    .groups = 'drop'
+  )
+
+avg_disagreement <- geo_counts_disagreement %>%
+  group_by(pid) %>%
+  summarise(
+    avg_observations = mean(n_observations),
+    .groups = 'drop'
+  )
+
+print(avg_per_pid)
+
+combined_avg <- bind_rows(
+  avg_agreement %>% mutate(group = "Agreement"),
+  avg_disagreement %>% mutate(group = "Disagreement")
+)
+
+# Create boxplot
+ggplot(combined_avg, aes(x = group, y = avg_observations, fill = group)) +
+  geom_boxplot() +
+  labs(
+    title = "Average Geo Observations per PID",
+    x = "Agreement Status",
+    y = "Average Number of Observations"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")  # Remove legend since x-axis shows groups
+```
+
+Eh, agreement does have slightly higher observations but not by much. Let's start looking at retailers. I'd like to see if maybe we can see a difference in unique retailers per day by period, or total unique retailers by period. Then we'll see how many people visit the retailers they did their store visits at during baseline.
+
+# Retailer visit exploration Baseline vs Intervention
+## Unique Retailers
+```{r}
+baseline = load_stay_events(type="Baseline", small_buffer = 100, conditional_buffer = 1000)
+
+# BASELINE - Calculate daily stats first, then aggregate
+baseline_retailer_stats <- baseline %>%
+  dplyr::filter(!is.na(retailer_id)) %>%
+  dplyr::group_by(pid, Notification.Date) %>%
+  dplyr::summarise(daily_unique_retailers = n_distinct(retailer_id),
+                   .groups = 'drop') %>%
+  dplyr::group_by(pid) %>%
+  dplyr::summarise(
+    avg_unique_retailers_per_day = mean(daily_unique_retailers),
+    n_unique_dates = n(),  # Each row is a unique date for this pid
+    .groups = 'drop'
+  ) %>%
+  dplyr::left_join(
+    baseline %>%
+      dplyr::filter(!is.na(retailer_id)) %>%
+      dplyr::group_by(pid) %>%
+      dplyr::summarise(total_unique_retailers = n_distinct(retailer_id),
+                       .groups = 'drop'),
+    by = "pid"
+  ) %>%
+  dplyr::mutate(retailers_per_unique_date = total_unique_retailers / n_unique_dates)
+
+print(baseline_retailer_stats)
+
+# INTERVENTION - Calculate daily stats first, then aggregate
+intervention = load_stay_events(type="Intervention", small_buffer = 100, conditional_buffer = 1000)
+intervention = intervention %>% mutate(Notification.Date = as.Date(datetime))
+
+intervention_retailer_stats <- intervention %>%
+  dplyr::filter(!is.na(retailer_id)) %>%
+  dplyr::group_by(pid, Notification.Date) %>%
+  dplyr::summarise(daily_unique_retailers = n_distinct(retailer_id),
+                   .groups = 'drop') %>%
+  dplyr::group_by(pid) %>%
+  dplyr::summarise(
+    avg_unique_retailers_per_day = mean(daily_unique_retailers),
+    n_unique_dates = n(),  # Each row is a unique date for this pid
+    .groups = 'drop'
+  ) %>%
+  dplyr::left_join(
+    intervention %>%
+      dplyr::filter(!is.na(retailer_id)) %>%
+      dplyr::group_by(pid) %>%
+      dplyr::summarise(total_unique_retailers = n_distinct(retailer_id),
+                       .groups = 'drop'),
+    by = "pid"
+  ) %>%
+  dplyr::mutate(retailers_per_unique_date = total_unique_retailers / n_unique_dates)
+
+print(intervention_retailer_stats)
+
+# COMBINED STATS
+retailer_stats = baseline_retailer_stats %>%
+  dplyr::left_join(intervention_retailer_stats, by="pid", suffix=c("_baseline","_intervention")) %>%
+  dplyr::filter(!is.na(avg_unique_retailers_per_day_intervention)) %>%
+  mutate(day_difference = avg_unique_retailers_per_day_intervention - avg_unique_retailers_per_day_baseline,
+         avg_difference = (total_unique_retailers_intervention - total_unique_retailers_baseline),
+         retailers_per_date_difference = retailers_per_unique_date_intervention - retailers_per_unique_date_baseline)
+
+# 14-DAY PERIOD ANALYSIS - with per-participant date counting
+intervention_retailer_stats_14day <- intervention %>%
+  dplyr::filter(!is.na(retailer_id)) %>%
+  # Create 14-day period variable
+  dplyr::mutate(period = ceiling(day / 14)) %>%
+  # Calculate daily unique retailers within each period
+  dplyr::group_by(pid, period, Notification.Date) %>%
+  dplyr::summarise(daily_unique_retailers = n_distinct(retailer_id),
+                   .groups = 'drop') %>%
+  # Calculate average per day within each period for each pid
+  dplyr::group_by(pid, period) %>%
+  dplyr::summarise(
+    avg_unique_retailers_per_day = mean(daily_unique_retailers),
+    n_days_in_period = n(),  # Each row is a unique date for this pid-period
+    .groups = 'drop'
+  ) %>%
+  # Join with total unique retailers per period per pid
+  dplyr::left_join(
+    intervention %>%
+      dplyr::filter(!is.na(retailer_id)) %>%
+      dplyr::mutate(period = ceiling(day / 14)) %>%
+      dplyr::group_by(pid, period) %>%
+      dplyr::summarise(total_unique_retailers = n_distinct(retailer_id),
+                       .groups = 'drop'),
+    by = c("pid", "period")
+  ) %>%
+  dplyr::mutate(retailers_per_unique_date = total_unique_retailers / n_days_in_period)
+
+print(intervention_retailer_stats)
+
+# Calculate difference between period 2 and period 1
+period_comparison <- intervention_retailer_stats_14day %>%
+  dplyr::filter(period %in% c(1, 2)) %>%
+  dplyr::select(pid, period, total_unique_retailers) %>%
+  tidyr::pivot_wider(names_from = period, 
+                     values_from = total_unique_retailers,
+                     names_prefix = "period_") %>%
+  dplyr::mutate(difference_period2_minus_period1 = period_2 - period_1)
+
+print(period_comparison)
+```
+
+Interesting. So we are definitely getting more unique retailers in intervention... Let's look at the specific 
+stores they visited during intervention and see if they visited them during baseline
+## Create Store visit baseline vs intervention
+```{r}
+receipt_coding = read_csv("/Volumes/cnlab/GeoRemote/Data/Receipts/Receipt_coding.csv") %>%
+  dplyr::select(pID, Store, `Address - # Street`, Date) %>%
+  dplyr::filter(!is.na(`Address - # Street`)) %>%
+  dplyr::mutate(Date = mdy(Date)) %>%
+  dplyr::group_by(pID, Store, `Address - # Street`) %>%
+  dplyr::summarise(n_days = n(),
+                   first_visit = min(Date, na.rm = TRUE),
+    last_visit = max(Date, na.rm = TRUE)) %>%
+  dplyr::distinct() %>%
+  dplyr::rename(pid = pID)
+
+
+post_stores = read_csv("/Volumes/cnlab/GeoRemote/Data/Retailers/seven_eleven_stores_geocoded.csv") %>%
+  dplyr::mutate(store = "7-11")
+no_post_stores = read_csv("/Volumes/cnlab/GeoRemote/Data/Retailers/CVS_Retailers.csv") %>% 
+  dplyr::mutate(full_address = address,
+         store = "CVS")
+
+stores = rbind(post_stores, no_post_stores %>% dplyr::select(full_address, lat, lon, store))
+
+stores_joined <- receipt_coding %>%
+  crossing(stores) %>%
+  dplyr::filter(str_detect(full_address, fixed(`Address - # Street`))) %>%
+  dplyr::select(-any_of(c("full_address"))) %>%
+  dplyr::distinct()
+
+
+# Convert result to sf object
+stores_joined_sf <- stores_joined %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326, remove = FALSE) %>%
+  sf::st_transform(crs = 2272)
+
+# Must have homes_sf loaded
+stores_with_distance <- stores_joined_sf %>%
+  dplyr::mutate(
+    home_geom = homes_sf$geometry[match(pid, homes_sf$pid)],
+    distance_ft = as.numeric(st_distance(geometry, home_geom, by_element = TRUE)),
+    distance_mi = round(distance_ft / 5280, 2)
+  ) %>%
+  dplyr::select(-home_geom)
+
+store_visits = stores_with_distance %>% 
+  dplyr::select(pid, Store, `Address - # Street`, n_days, first_visit, last_visit, distance_ft, distance_mi) %>%
+  dplyr::mutate(type="Real")
+
+# Convert baseline to sf object
+baseline_sf <- baseline %>%
+  dplyr::filter(!is.na(lat) & !is.na(lon)) %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326, remove = FALSE) %>%
+  sf::st_transform(crs = 2272) %>%
+  dplyr::mutate(Notification.Date = as.Date(datetime))
+
+# Spatial join - finds matches within a buffer (e.g., 10 meters)
+store_days <- st_join(stores_with_distance, baseline_sf, 
+                      join = st_is_within_distance, 
+                      dist = 1000) %>%
+  dplyr::filter(pid.x == pid.y) %>%
+  dplyr::rename(pid = pid.x) %>%
+  dplyr::select(-pid.y)
+
+# Create summary of hour-visits per store per day per participant
+baseline_store_hour_summary <- store_days %>%
+  st_drop_geometry() %>%  # Drop spatial geometry for faster processing
+  dplyr::mutate(
+    date = as.Date(datetime),
+    hour = hour(datetime)
+  ) %>%
+  # Group by participant, store, address, and date-hour combination
+  dplyr::group_by(pid, Store, `Address - # Street`, date, hour) %>%
+  dplyr::summarize(n_points = n(), .groups = 'drop') %>%
+  # Now count distinct hours per day
+  dplyr::group_by(pid, Store, `Address - # Street`, date) %>%
+  dplyr::summarize(
+    n_hour_visits = n(),  # Number of distinct hours visited
+    hours_visited = paste(sort(unique(hour)), collapse = ", "),
+    .groups = 'drop'
+  ) %>%
+  arrange(pid, Store, date)
+
+# Create a wider summary showing total hour-visits per store per participant
+baseline_store_participant_summary <- baseline_store_hour_summary %>%
+  dplyr::group_by(pid, Store, `Address - # Street`) %>%
+  dplyr::summarize(
+    n_days = n_distinct(date),
+    total_hour_visits = sum(n_hour_visits),
+    avg_hour_visits_per_day = mean(n_hour_visits),
+    .groups = 'drop'
+  )
+  
+  
+baseline_stores = store_days %>%
+  st_drop_geometry() %>%  # Remove geometry column after join
+  dplyr::filter(pid.x == pid.y) %>%  # Only keep matches for same participant
+  dplyr::group_by(pid.x, Store, `Address - # Street`) %>%
+  dplyr::summarise(
+    n_days = n_distinct(Notification.Date),
+    first_visit = min(Notification.Date, na.rm = TRUE),
+    last_visit = max(Notification.Date, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  dplyr::rename(pid = pid.x) %>%
+  dplyr::arrange(pid, desc(n_days)) %>%
+  dplyr::mutate(type="Baseline")
+
+# And intervention
+intervention_sf = intervention %>%
+  dplyr::filter(!is.na(lat) & !is.na(lon)) %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326, remove = FALSE) %>%
+  sf::st_transform(crs = 2272) %>%
+  dplyr::mutate(Notification.Date = as.Date(datetime))
+
+# Spatial join - finds matches within a buffer (e.g., 10 meters)
+store_days <- st_join(stores_with_distance, intervention_sf, 
+                      join = st_is_within_distance, 
+                      dist = 1000) %>%
+  dplyr:: filter(pid.x == pid.y) %>%
+  dplyr::rename(pid = pid.x) %>%
+  dplyr::select(-pid.y)
+  
+# Create summary of hour-visits per store per day per participant
+intervention_store_hour_summary <- store_days %>%
+  st_drop_geometry() %>%  # Drop spatial geometry for faster processing
+  dplyr::mutate(
+    date = as.Date(datetime),
+    hour = hour(datetime)
+  ) %>%
+  # Group by participant, store, address, and date-hour combination
+  dplyr::group_by(pid, Store, `Address - # Street`, date, hour) %>%
+  dplyr::summarize(n_points = n(), .groups = 'drop') %>%
+  # Now count distinct hours per day
+  dplyr::group_by(pid, Store, `Address - # Street`, date) %>%
+  dplyr::summarize(
+    n_hour_visits = n(),  # Number of distinct hours visited
+    hours_visited = paste(sort(unique(hour)), collapse = ", "),
+    .groups = 'drop'
+  ) %>%
+  dplyr::arrange(pid, Store, date)
+
+# Create a wider summary showing total hour-visits per store per participant
+intervention_store_participant_summary <- intervention_store_hour_summary %>%
+  dplyr::group_by(pid, Store, `Address - # Street`) %>%
+  dplyr::summarize(
+    n_days = n_distinct(date),
+    total_hour_visits = sum(n_hour_visits),
+    avg_hour_visits_per_day = mean(n_hour_visits),
+    .groups = 'drop'
+  )
+  
+
+intervention_stores = store_days %>%
+  st_drop_geometry() %>%  # Remove geometry column after join
+  dplyr::filter(pid.x == pid.y) %>%  # Only keep matches for same participant
+  dplyr::group_by(pid.x, Store, `Address - # Street`) %>%
+  dplyr::summarise(
+    n_days = n_distinct(Notification.Date),
+    first_visit = min(Notification.Date, na.rm = TRUE),
+    last_visit = max(Notification.Date, na.rm = TRUE),
+    .groups = 'drop'
+  ) %>%
+  dplyr::rename(pid = pid.x) %>%
+  dplyr::arrange(pid, desc(n_days)) %>%
+  dplyr::mutate(type="Intervention")
+
+geodata_store_visits = rbind(baseline_stores, intervention_stores) %>%
+  left_join(stores_with_distance %>% 
+              dplyr::select(pid, Store, `Address - # Street`, distance_ft, distance_mi), by=c("pid","Store", "Address - # Street")) %>%
+  rbind(store_visits)
+
+# To save
+write_csv(geodata_store_visits, file.path(data_path, "RetailerExposure/store_visits_by_period.csv"))
+```
+
+## Analyze store visits by distance
+Some Notes about this:
+GR207 made some visits to a CVS store in maryland, not caught because it was on 'philadelphia avenue' -_-
+
+```{r}
+store_visits_summary = geodata_store_visits %>%
+  dplyr::mutate(weighted_distance_ft = distance_ft * n_days) %>%
+  dplyr::group_by(type, pid, Store) %>%
+  dplyr::summarise(
+    total_days = sum(n_days),
+    total_weighted_distance_ft = sum(weighted_distance_ft),
+    avg_distance_ft = total_weighted_distance_ft / total_days)
+
+# 1. Compare by Type only
+ggplot(store_visits_summary, aes(x = type, y = avg_distance_ft, fill = type)) +
+  geom_boxplot() +
+  labs(title = "Average Distance by Type",
+       x = "Type",
+       y = "Average Distance (ft)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# 2. Compare by Store only
+ggplot(store_visits_summary, aes(x = Store, y = avg_distance_ft, fill = Store)) +
+  geom_boxplot() +
+  labs(title = "Average Distance by Store",
+       x = "Store",
+       y = "Average Distance (ft)") +
+  theme_minimal()
+
+# 3. Compare by both Type and Store (side-by-side)
+ggplot(store_visits_summary, aes(x = type, y = avg_distance_ft, fill = Store)) +
+  geom_boxplot(position = position_dodge(width = 0.8)) +
+  labs(title = "Average Distance by Type and Store",
+       x = "Type",
+       y = "Average Distance (ft)") +
+  theme_minimal()
+
+# 4. Alternative: Faceted view
+ggplot(store_visits_summary, aes(x = type, y = avg_distance_ft, fill = type)) +
+  geom_boxplot() +
+  facet_wrap(~Store) +
+  labs(title = "Average Distance by Type, Separated by Store",
+       x = "Type",
+       y = "Average Distance (ft)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# 5. Get summary statistics
+store_visits_summary %>%
+  dplyr::group_by(type, Store) %>%
+  dplyr::summarise(
+    n = n(),
+    mean_dist = mean(avg_distance_ft, na.rm = TRUE),
+    median_dist = median(avg_distance_ft, na.rm = TRUE),
+    sd_dist = sd(avg_distance_ft, na.rm = TRUE)
+  ) %>%
+  dplyr::arrange(type, Store)
+```
+
+# Mobility Package Exploration
+## Clusters
+Make sure baseline and intervention geodata is loaded (they do not need to be sf objects). This will use the adapted mobility package code found in geo_mobility.r
+
+First half runs the cluster processing, second half shows a comparison between baseline/intervention cluster numbers.
+
+### Preproc & Calculate Clusters
+```{r}
+# Make sure geodata is loaded.
+# Preprocess
+baseline_proc = mobility_preprocess_geodata(baseline)[[1]]
+intervention_proc = mobility_preprocess_geodata(intervention)[[1]]
+
+# Calculate Clusters (5 points in 25m is default)
+baseline_clusters = calculate_clusters(baseline_proc %>%
+                                         st_as_sf(., coords = c("lon", "lat"), crs = 4326) %>%
+         st_transform(crs = 2272), eps = 100)
+intervention_clusters = calculate_clusters(intervention_proc %>%
+                                         st_as_sf(., coords = c("lon", "lat"), crs = 4326) %>%
+         st_transform(crs = 2272), eps = 250)
+```
+
+#### Compare Periods
+```{r}
+baseline_summary <- baseline_clusters %>%
+  sf::st_drop_geometry() %>%
+  dplyr::group_by(pid) %>%
+  dplyr::summarise(
+    n_baseline_clusters = n_distinct(clusterID),
+    n_baseline_days = n_distinct(`Notification Date`))
+
+intervention_summary <- intervention_clusters %>%
+  sf::st_drop_geometry() %>%
+  dplyr::group_by(pid) %>%
+  dplyr::summarise(
+    n_intervention_clusters = n_distinct(clusterID),
+    n_baseline_days = n_distinct(`Notification Date`))
+
+# Join them together
+cluster_comparison <- full_join(baseline_summary, intervention_summary, by = "pid") %>%
+  dplyr::rename(n_intervention_days = n_baseline_days.y,
+         n_baseline_days = n_baseline_days.x)
+
+# Optional: Replace NAs with 0 if a pid exists in one dataset but not the other
+cluster_comparison <- cluster_comparison %>%
+  dplyr::mutate(
+    n_baseline_clusters = replace_na(n_baseline_clusters, 0),
+    n_intervention_clusters = replace_na(n_intervention_clusters, 0)
+  )
+
+print(cluster_comparison)
+
+cluster_comparison %>%
+  kable(col.names = c("Participant ID", 
+                      "Baseline Clusters", 
+                      "Baseline Days",
+                      "Intervention Clusters", 
+                      "Intervention Days"),
+        caption = "Cluster Comparison by Participant",
+        format = "html") %>%
+  kable_styling(bootstrap_options = "striped",
+                full_width = FALSE) %>%
+  row_spec(0, background = "white", color = "black")
+# For an even nicer interactive table, you could use:
+# library(DT)
+# datatable(cluster_comparison)
+
+# Filter for participants with data in both periods
+comparison_plot_data <- cluster_comparison %>%
+  filter(n_baseline_days > 0 & n_intervention_days > 0)
+
+# Create a comparison plot
+ggplot(comparison_plot_data, aes(x = n_baseline_clusters, y = n_intervention_clusters)) +
+  geom_point(alpha = 0.6, size = 3) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "red") +
+  labs(title = "Baseline vs Intervention Cluster Counts",
+       subtitle = "Red line indicates equal clusters in both periods",
+       x = "Number of Baseline Clusters",
+       y = "Number of Intervention Clusters") +
+  theme_minimal() +
+  coord_equal()
+```
+
+### Calculate Home Cluster     
+```{r}
+
+baseline_home_calc = calculate_home_night(baseline_clusters)
+intervention_home_calc = calculate_home_night(intervention_clusters)
+```
+
+#### Compare home clusters to homes
+```{r}
+baseline_home_centroids <- baseline_home_calc %>%
+  dplyr::filter(clusterID == home) %>%
+  dplyr::group_by(pid) %>%
+  dplyr::summarise(geometry = st_centroid(st_union(geometry)), .groups = "drop")
+
+# Calculate home centroids for intervention
+intervention_home_centroids <- intervention_home_calc %>%
+  dplyr::filter(clusterID == home) %>%
+  dplyr::group_by(pid) %>%
+  dplyr::summarise(geometry = st_centroid(st_union(geometry)), .groups = "drop")
+
+# Join and calculate distances
+home_distance <- baseline_home_centroids %>%
+  st_drop_geometry() %>%
+  dplyr::mutate(baseline_geom = st_geometry(baseline_home_centroids)) %>%
+  dplyr::left_join(
+    intervention_home_centroids %>%
+      st_drop_geometry() %>%
+      dplyr::mutate(intervention_geom = st_geometry(intervention_home_centroids)),
+    by = "pid"
+  ) %>%
+  dplyr::mutate(
+    home_distance_m = as.numeric(st_distance(
+      st_sfc(baseline_geom, crs = st_crs(baseline_home_calc)),
+      st_sfc(intervention_geom, crs = st_crs(baseline_home_calc)),
+      by_element = TRUE
+    ))
+  ) %>%
+  dplyr::select(pid, home_distance_m)
+
+home_distance <- home_distance %>%
+  mutate(home_distance_m = round(as.numeric(home_distance_m), 2))
+
+# View the data
+print(home_distance)
+
+# Box plot with points
+ggplot(home_distance, aes(x = "", y = home_distance_m)) +
+  geom_boxplot(fill = "steelblue", alpha = 0.5) +
+  geom_jitter(width = 0.1, alpha = 0.6, size = 2) +
+  labs(title = "Distance Between Baseline and Intervention Home Clusters",
+       x = "",
+       y = "Distance (meters)") +
+  theme_minimal()
+
+summary(home_distance$home_distance_m)
+
+# Okay so there are just a few BIG outliers here. Let's see how close the home clusters are to our defined homes
+
+# Make sure to load homes_sf from the cell at the beginning of the markdown.
+baseline_home_distance <- baseline_home_centroids %>%
+  sf::st_drop_geometry() %>%
+  dplyr::mutate(baseline_geom = st_geometry(baseline_home_centroids)) %>%
+  dplyr::left_join(
+    homes_sf %>%
+      st_drop_geometry() %>%
+      dplyr::mutate(home_geom = st_geometry(homes_sf)),
+    by = "pid"
+  ) %>%
+  dplyr::mutate(
+    baseline_distance_m = as.numeric(st_distance(
+      st_sfc(baseline_geom, crs = st_crs(baseline_home_calc)),
+      st_sfc(home_geom, crs = st_crs(homes_sf)),
+      by_element = TRUE
+    ))
+  ) %>%
+  dplyr::select(pid, baseline_distance_m)
+
+# Calculate distance between intervention home centroids and homes_sf
+intervention_home_distance <- intervention_home_centroids %>%
+  st_drop_geometry() %>%
+  dplyr::mutate(intervention_geom = st_geometry(intervention_home_centroids)) %>%
+  dplyr::left_join(
+    homes_sf %>%
+      st_drop_geometry() %>%
+     dplyr::mutate(home_geom = st_geometry(homes_sf)),
+    by = "pid"
+  ) %>%
+  dplyr::mutate(
+    intervention_distance_m = as.numeric(st_distance(
+      st_sfc(intervention_geom, crs = st_crs(intervention_home_calc)),
+      st_sfc(home_geom, crs = st_crs(homes_sf)),
+      by_element = TRUE
+    ))
+  ) %>%
+  dplyr::select(pid, intervention_distance_m)
+
+# Combine both distances
+home_distance_comparison <- baseline_home_distance %>%
+  dplyr::full_join(intervention_home_distance, by = "pid") %>%
+  dplyr::mutate(
+    baseline_distance_m = round(baseline_distance_m, 2),
+    intervention_distance_m = round(intervention_distance_m, 2)
+  )
+
+# Create summary statistics
+baseline_summary <- summary(home_distance_comparison$baseline_distance_m)
+intervention_summary <- summary(home_distance_comparison$intervention_distance_m)
+
+summary_df <- data.frame(
+  Statistic = names(baseline_summary),
+  Baseline = as.vector(baseline_summary),
+  Intervention = as.vector(intervention_summary)
+)
+
+summary_df %>%
+  kable(caption = "Distance from Home Summary Statistics (meters)",
+        digits = 2) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                full_width = FALSE) %>%
+  row_spec(0, background = "white", color = "black")
+```
+
+### Total Distance
+```{r}
+baseline_total_distance = calculate_total_distance(
+  baseline_home_calc,
+  baseline_proc,
+  baseline
+) %>%
+  # Remove duplicate lat/lon columns (keeping .x versions)
+  dplyr::select(-lat.y, -lon.y) %>%
+  # Rename remaining columns to remove .x suffix
+  dplyr::rename(lat = lat.x, lon = lon.x)
+
+baseline_avg_distance_per_day <- baseline_total_distance %>%
+  dplyr::group_by(pid) %>%
+  dplyr::summarise(
+    total_distance_m = first(distanceM),  # Get the distance value (same for all rows per pid)
+    total_distance_km = first(distanceKM),
+    n_days = n_distinct(`Notification Date`),  # Count unique days
+    avg_distance_per_day_m = total_distance_m / n_days,
+    avg_distance_per_day_km = total_distance_km / n_days
+  ) %>%
+  dplyr::mutate(
+    avg_distance_per_day_m = round(avg_distance_per_day_m, 2),
+    avg_distance_per_day_km = round(avg_distance_per_day_km, 2)
+  )
+
+intervention_total_distance = calculate_total_distance(
+  intervention_home_calc,
+  intervention_proc,
+  intervention
+) %>%
+  # Remove duplicate lat/lon columns (keeping .x versions)
+  dplyr::select(-lat.y, -lon.y) %>%
+  # Rename remaining columns to remove .x suffix
+  dplyr::rename(lat = lat.x, lon = lon.x)
+
+intervention_avg_distance_per_day <- intervention_total_distance %>%
+  dplyr::group_by(pid) %>%
+  dplyr::summarise(
+    total_distance_m = first(distanceM),  # Get the distance value (same for all rows per pid)
+    total_distance_km = first(distanceKM),
+    n_days = n_distinct(`Notification Date`),  # Count unique days
+    avg_distance_per_day_m = total_distance_m / n_days,
+    avg_distance_per_day_km = total_distance_km / n_days
+  ) %>%
+  dplyr::mutate(
+    avg_distance_per_day_m = round(avg_distance_per_day_m, 2),
+    avg_distance_per_day_km = round(avg_distance_per_day_km, 2)
+  )
+
+distance_comparison <- baseline_avg_distance_per_day %>%
+  dplyr::select(pid, 
+         baseline_avg_m = avg_distance_per_day_m,
+         baseline_avg_km = avg_distance_per_day_km) %>%
+  dplyr::full_join(
+    intervention_avg_distance_per_day %>%
+      dplyr::select(pid, 
+             intervention_avg_m = avg_distance_per_day_m,
+             intervention_avg_km = avg_distance_per_day_km),
+    by = "pid"
+  ) %>%
+  dplyr::mutate(
+    difference_m = intervention_avg_m - baseline_avg_m,
+    difference_km = intervention_avg_km - baseline_avg_km,
+    percent_change = ((intervention_avg_m - baseline_avg_m) / baseline_avg_m) * 100
+  )
+
+baseline_sum <- summary(distance_comparison$baseline_avg_km)
+intervention_sum <- summary(distance_comparison$intervention_avg_km)
+difference_sum <- summary(distance_comparison$difference_km)
+
+# Create summary statistics table
+summary_stats <- data.frame(
+  Statistic = names(baseline_sum),
+  Baseline_km = as.vector(baseline_sum),
+  Intervention_km = as.vector(intervention_sum),
+  Difference_km = as.vector(difference_sum)
+)
+
+summary_stats %>%
+  kable(col.names = c("Statistic", "Baseline (km/day)", "Intervention (km/day)", "Difference (km/day)"),
+        caption = "Average Daily Distance Comparison",
+        digits = 2) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                full_width = FALSE) %>%
+  row_spec(0, background = "white", color = "black") %>%
+  column_spec(1:4, background = "white", color = "black")
+
+# Create side-by-side boxplots
+distance_comparison %>%
+  pivot_longer(cols = c(baseline_avg_km, intervention_avg_km),
+               names_to = "period",
+               values_to = "avg_km") %>%
+  mutate(period = ifelse(period == "baseline_avg_km", "Baseline", "Intervention")) %>%
+  ggplot(aes(x = period, y = avg_km, fill = period)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = 16, outlier.size = 2) +
+  geom_jitter(width = 0.2, alpha = 0.3, size = 1.5) +
+  scale_fill_manual(values = c("Baseline" = "steelblue", "Intervention" = "coral")) +
+  labs(title = "Average Daily Distance: Baseline vs Intervention",
+       x = "Period",
+       y = "Average Daily Distance (km)") +
+  theme_minimal() +
+  theme(legend.position = "none",
+        text = element_text(size = 12),
+        plot.title = element_text(hjust = 0.5))
+```
+
+#### Total Distance by Condition/Period
+Some outliers? GR027, GR046, GR177, GR236
+```{r}
+distance_comparison = distance_comparison %>%
+  dplyr::left_join(cond, by="pid") %>%
+  dplyr::filter(! pid %in% c("GR027","GR046", "GR177", "GR236")) # Comment out to keep
+
+distance_comparison %>%
+  pivot_longer(cols = c(baseline_avg_km, intervention_avg_km),
+               names_to = "period",
+               values_to = "avg_km") %>%
+  dplyr::mutate(period = ifelse(period == "baseline_avg_km", "Baseline", "Intervention"),
+         period = factor(period, levels = c("Baseline", "Intervention")),
+         cond = factor(cond)) %>%
+  ggplot(aes(x = "", y = avg_km, fill = period)) +
+  geom_boxplot(alpha = 0.7, outlier.shape = 16) +
+  geom_jitter(width = 0.2, alpha = 0.3, size = 1.5) +
+  facet_grid(period ~ cond, labeller = label_both) +
+  scale_fill_manual(values = c("Baseline" = "steelblue", "Intervention" = "coral")) +
+  labs(title = "Average Daily Distance by Period and Condition",
+       x = "",
+       y = "Average Daily Distance (km)",
+       fill = "Period") +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        strip.text = element_text(size = 11, face = "bold"),
+        plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+
+distance_comparison %>%
+  dplyr::filter(!is.na(baseline_avg_km) & !is.na(intervention_avg_km)) %>%
+  tidyr::pivot_longer(cols = c(baseline_avg_km, intervention_avg_km),
+               names_to = "period",
+               values_to = "avg_km") %>%
+  dplyr::mutate(period = ifelse(period == "baseline_avg_km", "Baseline", "Intervention"),
+         period = factor(period, levels = c("Baseline", "Intervention")),
+         cond = factor(cond, labels = c("Condition 1", "Condition 2", "Condition 3"))) %>%
+  ggplot2::ggplot(ggplot2::aes(x = period, y = avg_km, color = cond, group = cond)) +
+  ggplot2::stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.2, size = 1) +
+  ggplot2::stat_summary(fun = mean, geom = "line", size = 1.2) +
+  ggplot2::stat_summary(fun = mean, geom = "point", size = 4) +
+  ggplot2::scale_color_brewer(palette = "Set1") +
+  ggplot2::labs(title = "Mean Average Daily Distance by Condition",
+       subtitle = "Error bars show standard error",
+       x = "",
+       y = "Average Daily Distance (km)",
+       color = "Condition") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5),
+        plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 9),
+        legend.position = "bottom")
+
+```
+
+### Calculate Places Visited
+
+```{r}
+baseline_places_visited_complete = calculate_places_visited(baseline_clusters)
+baseline_places_visited = baseline_places_visited_complete %>%
+  dplyr::select(pid, placesVisited_baseline = placesVisited) %>%
+  dplyr::distinct()
+
+intervention_places_visited_complete = calculate_places_visited(intervention_clusters) 
+intervention_places_visited = intervention_places_visited_complete %>%
+  dplyr::select(pid, placesVisited_intervention = placesVisited) %>%
+  dplyr::distinct()
+
+placesVisited = baseline_places_visited %>%
+  dplyr::full_join(intervention_places_visited, by="pid") %>%
+  dplyr::mutate(
+    difference = placesVisited_intervention - placesVisited_baseline
+  )
+
+# Add condition
+placesVisited = placesVisited %>%
+  dplyr::left_join(cond, by="pid")
+
+placesVisited %>%
+  dplyr::filter(!is.na(placesVisited_baseline) & !is.na(placesVisited_intervention)) %>%
+  dplyr::filter(!pid %in% c("GR027","GR046", "GR177", "GR236")) %>%
+  tidyr::pivot_longer(cols = c(placesVisited_baseline, placesVisited_intervention),
+               names_to = "period",
+               values_to = "n_places") %>%
+  dplyr::mutate(
+    period = ifelse(period == "placesVisited_baseline", "Baseline", "Intervention"),
+    period = factor(period, levels = c("Baseline", "Intervention")),
+    cond = factor(cond, labels = c("Condition 1", "Condition 2", "Condition 3"))
+  ) %>%
+  ggplot2::ggplot(ggplot2::aes(x = period, y = n_places, color = cond, group = cond)) +
+  ggplot2::stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.2, size = 1) +
+  ggplot2::stat_summary(fun = mean, geom = "line", size = 1.2) +
+  ggplot2::stat_summary(fun = mean, geom = "point", size = 4) +
+  ggplot2::scale_color_brewer(palette = "Set1") +
+  ggplot2::labs(title = "Mean Number of Places Visited by Condition",
+       subtitle = "Error bars show standard error",
+       x = "",
+       y = "Number of Places Visited",
+       color = "Condition") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(plot.title = ggplot2::element_text(hjust = 0.5),
+        plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 9),
+        legend.position = "bottom")
+
+summary_table <- placesVisited %>%
+  dplyr::filter(!is.na(placesVisited_baseline) & !is.na(placesVisited_intervention)) %>%
+  dplyr::group_by(cond) %>%
+  dplyr::summarise(
+    n = dplyr::n(),
+    mean_baseline = round(mean(placesVisited_baseline, na.rm = TRUE), 1),
+    mean_intervention = round(mean(placesVisited_intervention, na.rm = TRUE), 1),
+    mean_difference = round(mean(difference, na.rm = TRUE), 1),
+    median_baseline = median(placesVisited_baseline, na.rm = TRUE),
+    median_intervention = median(placesVisited_intervention, na.rm = TRUE),
+    median_difference = median(difference, na.rm = TRUE)
+  ) %>%
+  dplyr::mutate(cond = paste("Condition", cond))
+
+summary_table %>%
+  kable(col.names = c("Condition", "N", "Mean Baseline", "Mean Intervention", 
+                      "Mean Difference", "Median Baseline", "Median Intervention", "Median Difference"),
+        caption = "Summary Statistics: Places Visited by Condition") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),
+                full_width = FALSE) %>%
+  row_spec(0, background = "white", color = "black") %>%
+  column_spec(1:8, background = "white", color = "black")
+```
+
+### Calculate key locations
+```{r}
+baseline_key_locations = calculate_key_locations(baseline_home_calc %>% sf::st_drop_geometry())
+intervention_key_locations = calculate_key_locations(intervention_home_calc %>% sf::st_drop_geometry())
+```
+
+### Calculate time at home/travel
+```{r}
+baseline_time_mobility <- calculate_time_at_home(baseline_key_locations) %>%
+  calculate_travel_time()
+intervention_time_mobility <- calculate_time_at_home(intervention_key_locations) %>%
+  calculate_travel_time()
+```
+
+### Calculate centroids and entropy
+```{r}
+baseline_time_mobility <- baseline_time_mobility %>%
+  left_join(
+    baseline_home_calc %>% 
+      dplyr::select(pid, datetime, geometry),  # Select only needed columns
+    by = c("pid", "datetime")
+  ) %>%
+  st_sf()
+
+baseline_entropy = calculate_entropy(baseline_time_mobility)
+
+intervention_time_mobility <- intervention_time_mobility %>%
+  left_join(
+    intervention_home_calc %>% 
+      dplyr::select(pid, datetime, geometry),  # Select only needed columns
+    by = c("pid", "datetime")
+  ) %>%
+  st_sf()
+
+intervention_entropy = calculate_entropy(intervention_time_mobility)
+```
+
+### Calculate Routine Index
+```{r}
+baseline_routine = calculate_routine_index(baseline_entropy)
+intervention_routine = calculate_routine_index(intervention_entropy)
+```
+
+```{r}
+visualize_by_pid <- function(pid_value,
+                             intervention_proc,
+                             intervention_centroids_100m,
+                             intervention_centroids_250m) {
+  
+  
+  # Create mapview layers with different colors
+  map <- mapview(intervention_proc %>% dplyr::filter(pid == pid_value), 
+                 col.regions = "blue",
+                 color = "blue",
+                 cex = 4,
+                 layer.name = "Individual Points",
+                 legend = TRUE) +
+    mapview(intervention_centroids_100m %>% dplyr::filter(pid==pid_value),
+            col.regions = "red",
+            color = "red", 
+            cex = 8,
+            pch = 17,  # triangle
+            layer.name = "Clusters 100m",
+            legend = TRUE) +
+    mapview(intervention_centroids_250m %>% dplyr::filter(pid==pid_value),
+            col.regions = "green",
+            color = "green",
+            cex = 10,
+            pch = 15,  # square
+            layer.name = "Clusters 250m",
+            legend = TRUE)
+  
+  return(map)
+}
+
+
+visualize_by_pid("GR031",
+                 intervention_proc,
+                 intervention_centroids_100m,
+                 intervention_centroids_250m)
+```

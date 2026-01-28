@@ -1,0 +1,432 @@
+---
+title: "mediation"
+author: "Ben Muzekari"
+date: "2024-09-12"
+output: html_document
+---
+
+```{r}
+EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only <- EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only %>%
+    group_by(pid) %>%
+    mutate(
+        daily_stress_winsorized = Winsorize(daily_stress, probs = c(0.05, 0.95), na.rm = TRUE),
+        daily_average_crave_winsorized = Winsorize(daily_average_crave, probs = c(0.05, 0.95), na.rm = TRUE),
+        daily_cigs_winsorized = Winsorize(daily_cigs, probs = c(0.05, 0.95), na.rm = TRUE)
+    ) %>%
+    ungroup()
+
+#splitting stress into within and between components
+EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$exposureSplit_daily_stress_winsorized <- with(EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only, ave(daily_stress_winsorized, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+  
+#Set the grand mean
+EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$exposureGMean_daily_stress_winsorized<- mean(EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$exposureSplit_daily_stress_winsorized, na.rm = TRUE)
+
+#Subtract grand mean from the raw exposures
+EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$daily_stress_winsorized_c <- EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$daily_stress_winsorized - EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$exposureGMean_daily_stress_winsorized
+  
+#Now we create a between-subjects mean from this grand mean centered variable
+EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$daily_stress_winsorized_bw <- with(EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only, ave(daily_stress_winsorized_c, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+  
+#And then a within-subjects mean using this between-subject mean
+EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$daily_stress_winsorized_wn <- EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$daily_stress_winsorized_c- EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$daily_stress_winsorized_bw
+```
+
+
+# crave, low vs control
+```{r}
+# Ensure the 'cond' variable is correctly set as a factor with the right levels
+EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$cond <- factor(
+  EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$cond, 
+  levels = c("Control", "Low", "High")
+)
+
+# Control vs Low
+
+# Step 1: Fit the mediator model (daily_stress_winsorized as the mediator)
+model_mediator <- lmer(daily_stress_winsorized ~ cond + (1|pid), 
+                       data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only)
+
+# Step 2: Fit the outcome model (daily_cigs as the outcome)
+model_outcome <- lmer(daily_average_crave_winsorized ~ cond + daily_stress_winsorized + (1|pid), 
+                      data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only)
+
+# Step 3: Extract fixed effects and calculate the mediation effect for Low condition
+fixed_effects_mediator <- fixef(model_mediator)
+fixed_effects_outcome <- fixef(model_outcome)
+
+# Calculate indirect effect for Low (a path * b path)
+a_path <- fixed_effects_mediator["condLow"]  # Effect of 'cond' on 'daily_stress_winsorized'
+b_path <- fixed_effects_outcome["daily_stress_winsorized"]  # Effect of 'daily_stress_winsorized' on 'daily_cigs'
+indirect_effect <- a_path * b_path
+
+# Direct effect for Low (effect of 'cond' on 'daily_cigs', controlling for 'daily_stress_winsorized')
+direct_effect <- fixed_effects_outcome["condLow"]
+
+# Total effect for Low (direct + indirect)
+total_effect <- direct_effect + indirect_effect
+
+# Print results for Low vs. Control
+cat("Indirect effect (mediation):", indirect_effect, "\n")
+cat("Direct effect:", direct_effect, "\n")
+cat("Total effect:", total_effect, "\n")
+
+# Step 4: Bootstrap the indirect effect for Low vs. Control
+# Define a function to calculate indirect effects for bootstrapping
+indirect_effect_function <- function(data, indices) {
+  d <- data[indices, ]  # Resample data
+  model_mediator_boot <- lmer(daily_stress_winsorized ~ cond + (1|pid), data = d)
+  model_outcome_boot <- lmer(daily_cigs ~ cond + daily_stress_winsorized + (1|pid), data = d)
+  a_path <- fixef(model_mediator_boot)["condLow"]
+  b_path <- fixef(model_outcome_boot)["daily_stress_winsorized"]
+  a_path * b_path  # Return the indirect effect
+}
+
+# Bootstrap the indirect effect
+bootstrap_results <- boot(data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only, 
+                          statistic = indirect_effect_function, 
+                          R = 100)  # Increase bootstrap replicates to 1000 for more stable results
+
+# Get 95% confidence intervals for the indirect effect
+boot_ci <- boot.ci(bootstrap_results, type = "perc")
+print(boot_ci)
+
+# Step 5: Calculate p-value for the indirect effect (two-tailed test)
+p_value_indirect <- mean(bootstrap_results$t >= 0) * 2  # Proportion of bootstrap samples greater than or equal to 0
+cat("Bootstrap p-value for indirect effect:", format(p_value_indirect, scientific = FALSE), "\n")
+
+# Step 6: Get p-value for the direct effect from model summary
+direct_model_summary <- summary(model_outcome)
+p_value_direct <- direct_model_summary$coefficients["condLow", "Pr(>|t|)"]
+cat("p-value for direct effect:", format(p_value_direct, scientific = FALSE), "\n")
+```
+# crave, high vs control
+```{r}
+# Step 1: Fit the mediator model (daily_stress_winsorized as the mediator)
+model_mediator <- lmer(daily_stress_winsorized ~ cond + (1|pid), 
+                       data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only)
+
+# Step 2: Fit the outcome model (daily_cigs as the outcome)
+model_outcome <- lmer(daily_average_crave_winsorized ~ cond + daily_stress_winsorized + (1|pid), 
+                      data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only)
+
+# Step 3: Extract fixed effects and calculate the mediation effect for High vs. Control
+fixed_effects_mediator <- fixef(model_mediator)
+fixed_effects_outcome <- fixef(model_outcome)
+
+# Calculate indirect effect for High (a path * b path)
+a_path_high <- fixed_effects_mediator["condHigh"]  # Effect of 'cond' on 'daily_stress_winsorized' for High vs. Control
+b_path <- fixed_effects_outcome["daily_stress_winsorized"]  # Effect of 'daily_stress_winsorized' on 'daily_cigs' across conditions
+indirect_effect_high <- a_path_high * b_path
+
+# Direct effect for High (effect of 'cond' on 'daily_cigs', controlling for 'daily_stress_winsorized')
+direct_effect_high <- fixed_effects_outcome["condHigh"]
+
+# Total effect for High (direct + indirect)
+total_effect_high <- direct_effect_high + indirect_effect_high
+
+# Print results for High vs. Control
+cat("Indirect effect for High vs. Control (mediation):", indirect_effect_high, "\n")
+cat("Direct effect for High vs. Control:", direct_effect_high, "\n")
+cat("Total effect for High vs. Control:", total_effect_high, "\n")
+
+# Step 4: Bootstrap the indirect effect for High vs. Control (optional)
+# Define a function to calculate indirect effects for bootstrapping
+indirect_effect_function_high <- function(data, indices) {
+  d <- data[indices, ]  # Resample data
+  model_mediator_boot <- lmer(daily_stress_winsorized ~ cond + (1|pid), data = d)
+  model_outcome_boot <- lmer(daily_cigs ~ cond + daily_stress_winsorized + (1|pid), data = d)
+  a_path_high <- fixef(model_mediator_boot)["condHigh"]
+  b_path <- fixef(model_outcome_boot)["daily_stress_winsorized"]
+  a_path_high * b_path  # Return the indirect effect for High
+}
+
+# Bootstrap the indirect effect for High vs. Control
+bootstrap_results_high <- boot(data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only, 
+                               statistic = indirect_effect_function_high, 
+                               R = 100)  # Increase to 1000 for more stable results
+
+# Get 95% confidence intervals for the indirect effect for High
+boot_ci_high <- boot.ci(bootstrap_results_high, type = "perc")
+print(boot_ci_high)
+
+# Step 5: Calculate p-value for the indirect effect (two-tailed test)
+p_value_indirect <- mean(bootstrap_results_high$t >= 0) * 2  # Proportion of bootstrap samples greater than or equal to 0
+cat("Bootstrap p-value for indirect effect (High vs Control):", format(p_value_indirect, scientific = FALSE), "\n")
+
+# Step 6: Get p-value for the direct effect from model summary
+direct_model_summary <- summary(model_outcome)
+p_value_direct <- direct_model_summary$coefficients["condHigh", "Pr(>|t|)"]
+cat("p-value for direct effect (High vs Control):", format(p_value_direct, scientific = FALSE), "\n")
+```
+# crave, high vs low
+```{r}
+# Relevel the 'cond' variable to make 'High' the reference level
+EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$cond <- relevel(EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$cond, ref = "High")
+
+# Step 1: Fit the mediator model (daily_stress_winsorized as the mediator)
+model_mediator <- lmer(daily_stress_winsorized ~ cond + (1|pid), 
+                       data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only)
+
+# Step 2: Fit the outcome model (daily_cigs as the outcome)
+model_outcome <- lmer(daily_average_crave_winsorized ~ cond + daily_stress_winsorized + (1|pid), 
+                      data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only)
+
+# Step 3: Extract fixed effects and calculate the mediation effect
+fixed_effects_mediator <- fixef(model_mediator)
+fixed_effects_outcome <- fixef(model_outcome)
+
+# Calculate indirect effect (a path * b path)
+a_path <- fixed_effects_mediator["condLow"]  # Effect of 'Low' compared to 'High' on 'daily_stress_winsorized'
+b_path <- fixed_effects_outcome["daily_stress_winsorized"]  # Effect of 'daily_stress_winsorized' on 'daily_cigs'
+indirect_effect <- a_path * b_path
+
+# Direct effect (effect of 'Low' compared to 'High' on 'daily_cigs', controlling for 'daily_stress_winsorized')
+direct_effect <- fixed_effects_outcome["condLow"]
+
+# Total effect (direct + indirect)
+total_effect <- direct_effect + indirect_effect
+
+# Print results for Low vs High
+cat("Indirect effect (mediation, Low vs High):", indirect_effect, "\n")
+cat("Direct effect (Low vs High):", direct_effect, "\n")
+cat("Total effect (Low vs High):", total_effect, "\n")
+
+# Step 4: Bootstrap the indirect effect (optional)
+# Define a function to calculate indirect effects for bootstrapping
+indirect_effect_function <- function(data, indices) {
+  d <- data[indices, ]  # Resample data
+  model_mediator_boot <- lmer(daily_stress_winsorized ~ cond + (1|pid), data = d)
+  model_outcome_boot <- lmer(daily_cigs ~ cond + daily_stress_winsorized + (1|pid), data = d)
+  a_path <- fixef(model_mediator_boot)["condLow"]
+  b_path <- fixef(model_outcome_boot)["daily_stress_winsorized"]
+  a_path * b_path  # Return the indirect effect
+}
+
+# Bootstrap the indirect effect
+bootstrap_results <- boot(data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only, 
+                          statistic = indirect_effect_function, 
+                          R = 100)  # Increase bootstrap replicates to 1000 for more stable results
+
+# Get 95% confidence intervals for the indirect effect
+boot_ci <- boot.ci(bootstrap_results, type = "perc")
+print(boot_ci)
+
+# Step 5: Calculate p-value for the indirect effect (two-tailed test)
+p_value_indirect <- mean(bootstrap_results$t >= 0) * 2  # Proportion of bootstrap samples greater than or equal to 0
+cat("Bootstrap p-value for indirect effect (Low vs High):", format(p_value_indirect, scientific = FALSE), "\n")
+
+# Step 6: Get p-value for the direct effect from model summary
+direct_model_summary <- summary(model_outcome)
+p_value_direct <- direct_model_summary$coefficients["condLow", "Pr(>|t|)"]
+cat("p-value for direct effect (Low vs High):", format(p_value_direct, scientific = FALSE), "\n")
+```
+
+
+# cigs, low vs control
+```{r}
+# Ensure the 'cond' variable is correctly set as a factor with the right levels
+EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$cond <- factor(
+  EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$cond, 
+  levels = c("Control", "Low", "High")
+)
+
+# Control vs Low
+
+# Step 1: Fit the mediator model (daily_stress_winsorized as the mediator)
+model_mediator <- lmer(daily_stress_winsorized ~ cond + (1|pid), 
+                       data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only)
+
+# Step 2: Fit the outcome model (daily_cigs as the outcome)
+model_outcome <- lmer(daily_cigs_winsorized ~ cond + daily_stress_winsorized + (1|pid), 
+                      data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only)
+
+# Step 3: Extract fixed effects and calculate the mediation effect for Low condition
+fixed_effects_mediator <- fixef(model_mediator)
+fixed_effects_outcome <- fixef(model_outcome)
+
+# Calculate indirect effect for Low (a path * b path)
+a_path <- fixed_effects_mediator["condLow"]  # Effect of 'cond' on 'daily_stress_winsorized'
+b_path <- fixed_effects_outcome["daily_stress_winsorized"]  # Effect of 'daily_stress_winsorized' on 'daily_cigs'
+indirect_effect <- a_path * b_path
+
+# Direct effect for Low (effect of 'cond' on 'daily_cigs', controlling for 'daily_stress_winsorized')
+direct_effect <- fixed_effects_outcome["condLow"]
+
+# Total effect for Low (direct + indirect)
+total_effect <- direct_effect + indirect_effect
+
+# Print results for Low vs. Control
+cat("Indirect effect (mediation):", indirect_effect, "\n")
+cat("Direct effect:", direct_effect, "\n")
+cat("Total effect:", total_effect, "\n")
+
+# Step 4: Bootstrap the indirect effect for Low vs. Control
+# Define a function to calculate indirect effects for bootstrapping
+indirect_effect_function <- function(data, indices) {
+  d <- data[indices, ]  # Resample data
+  model_mediator_boot <- lmer(daily_stress_winsorized ~ cond + (1|pid), data = d)
+  model_outcome_boot <- lmer(daily_cigs ~ cond + daily_stress_winsorized + (1|pid), data = d)
+  a_path <- fixef(model_mediator_boot)["condLow"]
+  b_path <- fixef(model_outcome_boot)["daily_stress_winsorized"]
+  a_path * b_path  # Return the indirect effect
+}
+
+# Bootstrap the indirect effect
+bootstrap_results <- boot(data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only, 
+                          statistic = indirect_effect_function, 
+                          R = 100)  # Increase bootstrap replicates to 1000 for more stable results
+
+# Get 95% confidence intervals for the indirect effect
+boot_ci <- boot.ci(bootstrap_results, type = "perc")
+print(boot_ci)
+
+# Step 5: Calculate p-value for the indirect effect (two-tailed test)
+p_value_indirect <- mean(bootstrap_results$t >= 0) * 2  # Proportion of bootstrap samples greater than or equal to 0
+cat("Bootstrap p-value for indirect effect:", format(p_value_indirect, scientific = FALSE), "\n")
+
+# Step 6: Get p-value for the direct effect from model summary
+direct_model_summary <- summary(model_outcome)
+p_value_direct <- direct_model_summary$coefficients["condLow", "Pr(>|t|)"]
+cat("p-value for direct effect:", format(p_value_direct, scientific = FALSE), "\n")
+
+# Indirect effect (mediation): -0.0282867 
+# Direct effect: -1.169502 
+# Total effect: -1.197789 
+# BOOTSTRAP CONFIDENCE INTERVAL CALCULATIONS
+# Based on 100 bootstrap replicates
+# 
+# CALL : 
+# boot.ci(boot.out = bootstrap_results, type = "perc")
+# 
+# Intervals : 
+# Level     Percentile     
+# 95%   (-0.0674, -0.0035 )  
+# Calculations and Intervals on Original Scale
+# Some percentile intervals may be unstable
+# Bootstrap p-value for indirect effect: 0 
+# p-value for direct effect: 0.3367891 
+```
+
+# cigs, high vs control
+```{r}
+
+# Step 1: Fit the mediator model (daily_stress_winsorized as the mediator)
+model_mediator <- lmer(daily_stress_winsorized ~ cond + (1|pid), 
+                       data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only)
+
+# Step 2: Fit the outcome model (daily_cigs as the outcome)
+model_outcome <- lmer(daily_cigs_winsorized ~ cond + daily_stress_winsorized + (1|pid), 
+                      data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only)
+
+# Step 3: Extract fixed effects and calculate the mediation effect for High vs. Control
+fixed_effects_mediator <- fixef(model_mediator)
+fixed_effects_outcome <- fixef(model_outcome)
+
+# Calculate indirect effect for High (a path * b path)
+a_path_high <- fixed_effects_mediator["condHigh"]  # Effect of 'cond' on 'daily_stress_winsorized' for High vs. Control
+b_path <- fixed_effects_outcome["daily_stress_winsorized"]  # Effect of 'daily_stress_winsorized' on 'daily_cigs' across conditions
+indirect_effect_high <- a_path_high * b_path
+
+# Direct effect for High (effect of 'cond' on 'daily_cigs', controlling for 'daily_stress_winsorized')
+direct_effect_high <- fixed_effects_outcome["condHigh"]
+
+# Total effect for High (direct + indirect)
+total_effect_high <- direct_effect_high + indirect_effect_high
+
+# Print results for High vs. Control
+cat("Indirect effect for High vs. Control (mediation):", indirect_effect_high, "\n")
+cat("Direct effect for High vs. Control:", direct_effect_high, "\n")
+cat("Total effect for High vs. Control:", total_effect_high, "\n")
+
+# Step 4: Bootstrap the indirect effect for High vs. Control (optional)
+# Define a function to calculate indirect effects for bootstrapping
+indirect_effect_function_high <- function(data, indices) {
+  d <- data[indices, ]  # Resample data
+  model_mediator_boot <- lmer(daily_stress_winsorized ~ cond + (1|pid), data = d)
+  model_outcome_boot <- lmer(daily_cigs ~ cond + daily_stress_winsorized + (1|pid), data = d)
+  a_path_high <- fixef(model_mediator_boot)["condHigh"]
+  b_path <- fixef(model_outcome_boot)["daily_stress_winsorized"]
+  a_path_high * b_path  # Return the indirect effect for High
+}
+
+# Bootstrap the indirect effect for High vs. Control
+bootstrap_results_high <- boot(data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only, 
+                               statistic = indirect_effect_function_high, 
+                               R = 100)  # Increase to 1000 for more stable results
+
+# Get 95% confidence intervals for the indirect effect for High
+boot_ci_high <- boot.ci(bootstrap_results_high, type = "perc")
+print(boot_ci_high)
+
+# Step 5: Calculate p-value for the indirect effect (two-tailed test)
+p_value_indirect <- mean(bootstrap_results_high$t >= 0) * 2  # Proportion of bootstrap samples greater than or equal to 0
+cat("Bootstrap p-value for indirect effect (High vs Control):", format(p_value_indirect, scientific = FALSE), "\n")
+
+# Step 6: Get p-value for the direct effect from model summary
+direct_model_summary <- summary(model_outcome)
+p_value_direct <- direct_model_summary$coefficients["condHigh", "Pr(>|t|)"]
+cat("p-value for direct effect (High vs Control):", format(p_value_direct, scientific = FALSE), "\n")
+```
+
+# cigs, high vs low
+```{r}
+# Relevel the 'cond' variable to make 'High' the reference level
+EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$cond <- relevel(EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only$cond, ref = "High")
+
+# Step 1: Fit the mediator model (daily_stress_winsorized as the mediator)
+model_mediator <- lmer(daily_stress_winsorized ~ cond + (1|pid), 
+                       data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only)
+
+# Step 2: Fit the outcome model (daily_cigs as the outcome)
+model_outcome <- lmer(daily_cigs_winsorized ~ cond + daily_stress_winsorized + (1|pid), 
+                      data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only)
+
+# Step 3: Extract fixed effects and calculate the mediation effect
+fixed_effects_mediator <- fixef(model_mediator)
+fixed_effects_outcome <- fixef(model_outcome)
+
+# Calculate indirect effect (a path * b path)
+a_path <- fixed_effects_mediator["condLow"]  # Effect of 'Low' compared to 'High' on 'daily_stress_winsorized'
+b_path <- fixed_effects_outcome["daily_stress_winsorized"]  # Effect of 'daily_stress_winsorized' on 'daily_cigs'
+indirect_effect <- a_path * b_path
+
+# Direct effect (effect of 'Low' compared to 'High' on 'daily_cigs', controlling for 'daily_stress_winsorized')
+direct_effect <- fixed_effects_outcome["condLow"]
+
+# Total effect (direct + indirect)
+total_effect <- direct_effect + indirect_effect
+
+# Print results for Low vs High
+cat("Indirect effect (mediation, Low vs High):", indirect_effect, "\n")
+cat("Direct effect (Low vs High):", direct_effect, "\n")
+cat("Total effect (Low vs High):", total_effect, "\n")
+
+# Step 4: Bootstrap the indirect effect (optional)
+# Define a function to calculate indirect effects for bootstrapping
+indirect_effect_function <- function(data, indices) {
+  d <- data[indices, ]  # Resample data
+  model_mediator_boot <- lmer(daily_stress_winsorized ~ cond + (1|pid), data = d)
+  model_outcome_boot <- lmer(daily_cigs ~ cond + daily_stress_winsorized + (1|pid), data = d)
+  a_path <- fixef(model_mediator_boot)["condLow"]
+  b_path <- fixef(model_outcome_boot)["daily_stress_winsorized"]
+  a_path * b_path  # Return the indirect effect
+}
+
+# Bootstrap the indirect effect
+bootstrap_results <- boot(data = EMA_Covariates_Distinct_Final_Completed_Intervention_Intervention_only, 
+                          statistic = indirect_effect_function, 
+                          R = 100)  # Increase bootstrap replicates to 1000 for more stable results
+
+# Get 95% confidence intervals for the indirect effect
+boot_ci <- boot.ci(bootstrap_results, type = "perc")
+print(boot_ci)
+
+# Step 5: Calculate p-value for the indirect effect (two-tailed test)
+p_value_indirect <- mean(bootstrap_results$t >= 0) * 2  # Proportion of bootstrap samples greater than or equal to 0
+cat("Bootstrap p-value for indirect effect (Low vs High):", format(p_value_indirect, scientific = FALSE), "\n")
+
+# Step 6: Get p-value for the direct effect from model summary
+direct_model_summary <- summary(model_outcome)
+p_value_direct <- direct_model_summary$coefficients["condLow", "Pr(>|t|)"]
+cat("p-value for direct effect (Low vs High):", format(p_value_direct, scientific = FALSE), "\n")
+```

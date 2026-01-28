@@ -1,0 +1,7 @@
+"scale name","column name","reverse","min","max","transform","sum"
+"FTSD","ftsd_01",0,0,3,0,"sum"
+"FTSD","ftsd_02",0,0,1,0,"sum"
+"FTSD","ftsd_03",0,0,1,0,"sum"
+"FTSD","ftsd_04",0,0,3,0,"sum"
+"FTSD","ftsd_05",0,0,1,0,"sum"
+"FTSD","ftsd_06",0,0,1,0,"sum"

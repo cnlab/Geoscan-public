@@ -1,0 +1,17 @@
+scale name,column name,reverse,min,max,transform,marijuana_use,marijuana_freq,sud_dx,diagnosis,when_tx,sud_tx,what_treated,psych_dx,psych_diagnosis,psych_hosp,controlled_sub,meds_follow_up,meds_freq,meds_open_ended,addictive_drugs,rec_drugs
+DRUG,marijuana_use,0,1,2,0,1,,,,,,,,,,,,,,,
+DRUG,marijuana_freq,0,1,3,0,,1,,,,,,,,,,,,,,
+DRUG,sud_dx,0,1,2,0,,,1,,,,,,,,,,,,,
+DRUG,diagnosis,0,NA,NA,0,,,,I,,,,,,,,,,,,
+DRUG,when_tx,0,1,2,0,,,,,1,,,,,,,,,,,
+DRUG,sud_tx,0,1,2,0,,,,,,1,,,,,,,,,,
+DRUG,what_treated,0,NA,NA,0,,,,,,,I,,,,,,,,,
+DRUG,psych_dx,0,1,2,0,,,,,,,,1,,,,,,,,
+DRUG,psych_diagnosis,0,NA,NA,0,,,,,,,,,I,,,,,,,
+DRUG,psych_hosp,0,1,2,0,,,,,,,,,,1,,,,,,
+DRUG,controlled_sub,0,1,2,0,,,,,,,,,,,1,,,,,
+DRUG,meds_follow_up,0,NA,NA,0,,,,,,,,,,,,I,,,,
+DRUG,meds_freq,0,1,2,0,,,,,,,,,,,,,1,,,
+DRUG,meds_open_ended,0,NA,NA,0,,,,,,,,,,,,,,I,,
+DRUG,addictive_drugs,0,1,2,0,,,,,,,,,,,,,,,1,
+DRUG,rec_drugs,0,NA,NA,0,,,,,,,,,,,,,,,,I

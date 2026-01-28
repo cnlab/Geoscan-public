@@ -1,0 +1,8 @@
+scale name,column name,reverse,min,max,transform,hbt_01,hbt_02,hbt_03,hbt_04_1,hbt_04_2,hbt_04_3,hbt_04_4
+HBT,hbt_01,0,1,2,0,1,,,,,,
+HBT,hbt_02,0,1,3,0,,1,,,,,
+HBT,hbt_03,0,1,3,0,,,1,,,,
+HBT,hbt_04_1,0,1,5,0,,,,1,,,
+HBT,hbt_04_2,0,1,5,0,,,,,1,,
+HBT,hbt_04_3,0,1,5,0,,,,,,1,
+HBT,hbt_04_4,0,1,5,0,,,,,,,1

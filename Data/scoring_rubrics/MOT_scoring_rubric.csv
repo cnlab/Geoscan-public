@@ -1,0 +1,13 @@
+scale name,column name,reverse,min,max,transform,sum,mean,mot_01_1,mot_01_2,mot_01_3,mot_01_4,mot_01_5,mot_01_6,mot_01_7,mot_01_8,mot_01_9,mot_01_10,mot_02_1,mot_02_2
+MOT,mot_01_1,0,0,4,0,sum,mean,1,,,,,,,,,,,
+MOT,mot_01_2,0,0,4,0,sum,mean,,1,,,,,,,,,,
+MOT,mot_01_3,0,0,4,0,sum,mean,,,1,,,,,,,,,
+MOT,mot_01_4,0,0,4,0,sum,mean,,,,1,,,,,,,,
+MOT,mot_01_5,0,0,4,0,sum,mean,,,,,1,,,,,,,
+MOT,mot_01_6,0,0,4,0,sum,mean,,,,,,1,,,,,,
+MOT,mot_01_7,0,0,4,0,sum,mean,,,,,,,1,,,,,
+MOT,mot_01_8,0,0,4,0,sum,mean,,,,,,,,1,,,,
+MOT,mot_01_9,0,0,4,0,sum,mean,,,,,,,,,1,,,
+MOT,mot_01_10,0,0,4,0,sum,mean,,,,,,,,,,1,,
+MOT,mot_02_1,0,0,4,0,,,,,,,,,,,,,1,
+MOT,mot_02_2,0,0,4,0,,,,,,,,,,,,,,1

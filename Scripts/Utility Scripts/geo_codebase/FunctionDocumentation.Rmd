@@ -1,0 +1,2131 @@
+---
+title: "GeoRemote Project Codebase Documentation"
+author: "Michael Fichman, Emily Zhou"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: simplex
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+    code_download: yes
+editor_options:
+  markdown:
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load libraries, include=FALSE}
+
+library(tidyverse)
+library(jsonlite)
+library(kableExtra)
+library(lubridate)
+library(dplyr)
+library(geosphere)
+source("nyu_functions/radiusofgyration.R")
+source("nyu_functions/stayevent.R")
+source("nyu_functions/groupdist.R")
+source("nyu_functions/grouptime.R")
+source("nyu_functions/DataCombine/utils.R")
+source("nyu_functions/DataCombine/slide.R")
+source("nyu_functions/mergewithorder.R")
+source("nyu_functions/sdspatialdatapoints.R")
+
+```
+
+Version 4.0 \| First Created Jun 2, 2024 \| Updated Jul 22, 2024
+
+# 1. Introduction
+
+This markdown document serves as a comprehensive guide to the functions utilized in the [GeoRemote](https://www.asc.upenn.edu/research/centers/communication-neuroscience-lab/research/geoscan-smoking-study) Project, which aims to explore the impact of retail tobacco advertising exposure on smoking behaviors. Specifically, the project examines whether assigning smokers to different levels of POST-M exposure in their daily routines influences various smoking outcomes. 
+
+**Document Overview**
+
+The functions documented here are divided into four main sections: data wrangling, spatial operations, NYU Mobility (selected functions from the NYU Mobility package), and data visualizations. Functions in the data wrangling section are dedicated to loading and cleaning the data for analysis, including tasks such as transforming data formats, filtering, merging, and handling missing values. The spatial operations section covers functions related to geospatial data processing, performing tasks such as creating space time lags, buffer the retailers and joining them with people' point location, and joining retailers to census tract. The NYU Mobility section includes functions derived from the [NYU Mobility Package](https://github.com/nyu-mhealth/Mobility/tree/master), which provides tools for measuring stay event and the radius of gyration.The data visualizations section documents a variety of helper functions on making leaflet maps from the data. 
+
+Each function is documented with details on its description, usage, arguments, and value. The description provides an overview of the function's purpose and role within the project. The usage section includes instructions on how to use the function, including the function signature and example calls. The arguments section provides a detailed explanation of each parameter required by the function. The value section describes the function's output, including the structure and content of the returned data. Following that, a detailed breakdown of each line of the code within the function is provided, along with a quick demonstration of the function to show the output using test data. 
+
+**Note on Package Deprecation**
+
+It is important to note that some packages used in this project may become deprecated over time. This typically happens when the version of R (or even RStudio) is updated, when current packages are no longer maintained (this includes packages that depends on other packages), or when new packages are developed that offer better functionality. At the time of writing, the authors of this markdown have ensured that the packages used in this project are up-to-date and functional. The computational environment used for this project is ***R version 4.3.0*** and ***RStudio version 2024.04.1+748***. However, for future users of these functions, it is recommended to check for updates or alternative packages if any issues arise. It is highly recommended to 1) check the compatibility of the NYU Mobility Package and its dependencies with this project and 2) follow along the latest updates of the graphics packages to improve currently visualizations.  
+
+**Credit and Acknowledgement**
+
+The creation and development of these functions involve inputs and efforts from several individuals and teams: 
+
+- [Michael Fichman](http://michael-fichman.com/)
+
+- [Emily Zhou](https://emilyzhou112.github.io/)
+
+- [Brad Mattan](https://bmattan.github.io/)
+
+- Researchers from the [mHealth Lab](https://publichealth.nyu.edu/mhealth-lab) at NYU's School of Global Public Health: Dr.Thomas Kirchner and Hong Gao
+
+- Researchers from the [Communication Neuroscience Lab](https://www.asc.upenn.edu/research/centers/communication-neuroscience-lab) at the University of Pennsylvania's Annenberg School for Communication: Nicole Cooper, Ben Muzekari, Anthony Resnick, and Dr. Emily Falk
+
+The use of any functions from this document should be properly cited and credited to the respective authors and institutions.The NYU Mobility Package is developed by the NYU mHealth Lab and revised by Emily Zhou, while the remaining functions are developed by Michael Fichman and Brad Mattan.
+
+For any follow-up questions or further information, please contact Michael Fichman at [mfichman@upenn.edu](mfichman@upenn.edu).
+
+
+# 2. Data Wrangling
+
+The four functions documented in this section are `uploadGeodata`, `cleanDates`, `intakeRetailers`, and `intakeSummary`.
+
+1. The `uploadGeodata` function is designed to load geolocation JSON data from a specified folder, process it, and return a consolidated data frame.
+
+2. The `cleanDates` function filters and cleans the data based on specified date ranges and file names. 
+
+3. The `intakeRetailers` function processes a CSV file containing retailer data, selects relevant columns, converts date formats, and merges intervals to handle overlapping data periods. 
+
+4. The `intakeSummary` function generates a summary of the retailer data, aggregating it based on specified criteria. 
+
+## 2.1 uploadGeodata
+
+**Description**\
+
+This function load geolocation json data from a folder location and clean it.
+The json data contains the following field: `datetime`, `lat`, `lon`, `altitude`, `velocity`, and `accuracy`.
+Note that `loadJSON` is an internal function to load and process a single JSON file.
+It first simplifies the JSON structure into a data frame and flattens any nested objects.
+It then calculates the correct latitude and longitude values and converts the time stamp into date-time object.
+All json files in `filePath` will be processed with the `loadJSON` function.
+
+**Usage**\
+
+`uploadGeodata(filePath)`
+
+**Dependencies**\
+
+This function depends on the `tidyverse` and `jsonlite` packages in R.
+
+**Arguments**\
+
+`filePath`: A text string denoting the location of a folder containing json files of participant locations.
+
+**Value**\
+
+A single data frame containing the processed geospatial data from all JSON files in the specified directory.The data frame includes the following columns:
+
+- `filename`: The name of the JSON file from which the data was read.
+- `datetime`: The date and time when the geolocation data was recorded, converted to POSIXct format.
+- `lat`: The latitude of the location, converted from E7 format to standard decimal format.
+- `lon`: The longitude of the location, converted from E7 format to standard decimal format.
+- `locations.altitude`: The altitude of the location.
+- `locations.velocity`: The velocity at the location.
+- `locations.accuracy`: The accuracy of the geolocation data.
+
+**Code Breakdown**
+
+```{r uploadGeodata function, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+uploadGeodata <- function(filePath){
+  
+  require(tidyverse)
+  require(jsonlite)
+  
+# Define a nested function to load and process a single JSON file
+loadJSON <- function(jsonFilename){
+  jsonlite::fromJSON(jsonFilename, 
+          simplifyDataFrame = TRUE, # Simplify the json structure to a data frame
+          flatten = TRUE) %>% # Flatten nested structures
+    .[1] %>% # Select the first element (the relevant data)
+    as.data.frame() %>%
+    # Convert latitude from E7 format to standard decimal format
+    # Convert longitude from E7 format to standard decimal format
+    # Convert timestamp from milliseconds to POSIXct datetime
+    mutate(lat = locations.latitudeE7 / 1e7, 
+           lon = locations.longitudeE7 / 1e7, 
+           datetime = as.POSIXct(as.numeric(locations.timestampMs)/1000, 
+                                 origin = "1970-01-01")) %>% 
+    # Select relevant columns for the final data frame
+    select(datetime, lat, lon, locations.altitude, 
+           locations.velocity, locations.accuracy) 
+  
+}
+
+# List all JSON files in the directory specified by filePath
+paths <- dir(filePath, pattern = "\\.json$", full.names = TRUE)
+names(paths) <- basename(paths)
+
+# Apply the loadJSON function to each JSON file and combine the results
+myData <- map_dfr(paths, loadJSON, .id = "filename")
+
+return(myData)
+}
+```
+
+**Demo**
+
+Because the actual participant's location data is stored on Annenberg's server and therefore not available to the public, we generated some test data here with the same structure as the original data.
+These data are only used here for demonstration purposes.
+The `multi_json_test` folder contains two json files, each refers to the geolocation tracking of "one participant".
+Below is the structure of one of the files.
+
+```{r raw json, message=FALSE, warning=FALSE}
+
+original_json <- jsonlite::fromJSON("multi_json_test/file1.json")
+original_json %>% 
+  as.data.frame() %>% 
+  head(10) %>% 
+  kable(align = "r") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+Below is the structure of the output of the `uploadGeodata` function.
+
+```{r processed json, message=FALSE, warning=FALSE}
+
+processed_json <- uploadGeodata("multi_json_test")
+processed_json %>% 
+  head(10) %>% 
+  kable(align = "r") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+```
+
+**Common Errors**
+
+1.  Missing or Incorrect File Path
+- Message: `Error in dir(filePath, pattern = "\\.json$", full.names = TRUE) : cannot open file`
+- Cause: The specified `filePath` does not exist or is incorrect.
+- Solution: Ensure the `filePath` points to the correct directory containing JSON files. Note that the root directory here points to the location of your own R Script/Markdown where this function is called. 
+
+2. Invalid JSON Structure
+- Message: `Error in fromJSON(jsonFilename, simplifyDataFrame = TRUE, flatten = TRUE) : parse error`
+- Cause: The JSON file does not conform to the expected structure.
+- Solution: Verify that the JSON files have the correct structure and format as specified above. 
+
+3. Missing Data Fields
+- Message: `Error in mutate(lat = locations.latitudeE7.....) : object 'locations.latitudeE7' not found`
+- Cause: The JSON file does not contain the expected fields (`latitudeE7`, `longitudeE7`, `timestampMs`).
+- Solution:  Ensure that the JSON files contain the necessary fields. At the least, it needs to have the following columns: `filename`, `datetime`, `lat`, `lon`, `locations.altitude`, `locations.velocity`, and `locations.accuracy`. 
+
+
+
+## 2.2 cleanDates
+
+**Description**\
+
+This function is designed to clean and filter a data frame of geolocation data based on specified date ranges and conditions.
+The function can also add flags to indicate whether certain datetime values fall within specified periods.
+
+**Usage**\
+
+`cleanDates(df, dateRangeMin, dateRangeMax, addFlags, fileName)`
+
+**Dependencies**\
+
+This function depends on the `tidyverse` and `lubridate` packages in R.
+
+**Arguments**\
+
+`df`: A data frame containing geolocation data with columns `filename`, `datetime`, `end1`, `start2`, and `period_flag`.\
+`dateRangeMin`: A minimum datetime value for filtering.\
+`dateRangeMax`: A maximum datetime value for filtering.\
+`addFlags`: A logical value (TRUE or FALSE) indicating whether to add flags based on additional periods.\
+`fileName`: A text string specifying the file name to which the date range filter should be applied.\
+
+**Value**\
+
+A cleaned data frame with rows filtered based on the specified date ranges and conditions.
+If `addFlags` is set to TRUE, an additional column is updated to indicate whether the datetime values fall within specified periods. 
+The data frame includes the following columns:
+
+- `filename`: The name of the file from which the data was sourced.
+- `datetime`: The datetime value of the record.
+- `lat`: The latitude of the location, converted from E7 format to standard decimal format.
+- `lon`: The longitude of the location, converted from E7 format to standard decimal format.
+- `locations.altitude`: The altitude of the location.
+- `locations.velocity`: The velocity at the location.
+- `locations.accuracy`: The accuracy of the geolocation data.
+- `period_flag`: A flag indicating whether the datetime falls within a specified period.
+
+**Code Breakdown**
+
+```{r cleanDates, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+cleanDates <- function(df, dateRangeMin, dateRangeMax, addFlags, fileName){
+  
+  require(tidyverse)
+  require(lubridate)
+  
+  # Add a new column 'keep' to the data frame. The keep column is set to 1 for rows where:
+  # filename matches fileName
+  # datetime is greater than dateRangeMin
+  # 'datetime is less than dateRangeMax
+  cleaned.df <- df %>%
+    mutate(keep = case_when(filename == fileName & 
+                            datetime > dateRangeMin & 
+                            datetime < dateRangeMax ~ 1)) %>%
+    # Keep rows where keep is not NA and filename matches fileName
+    filter((is.na(keep) == FALSE & filename == fileName) | filename != fileName) %>%
+    dplyr::select(-keep)
+  
+  # If addFlags is TRUE, add or update the period_flag column
+  if (addFlags==TRUE) {
+    start <- unique(df$end1[df$filename==fileName])
+    end <- unique(df$start2[df$filename==fileName])
+    # Set period_flag to 0 if 
+    # filename matches fileName and 
+    # datetime falls within the interval from start to end
+    cleaned.df <- cleaned.df %>%
+      mutate(period_flag = case_when(filename == fileName &
+                                     datetime %within% (start %--% end) ~ 0,
+                                     TRUE ~ as.numeric(period_flag)))
+  }
+  
+  return(cleaned.df)
+}
+
+```
+
+**Demo**
+
+We will be using the sample data here again. 
+
+```{r sample cleandates, message=FALSE, warning=FALSE}
+
+processed_json_clean <- cleanDates(processed_json, "2019-04-22 21:30:45", "2019-08-05 15:17:47",addFlags=FALSE, "file1.json")
+
+processed_json_clean %>% 
+  head(10) %>% 
+  kable(align = "r") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+```
+
+**Common Errors**
+
+1. Incorrect Data Frame Structure
+- Message: `Error in mutate(keep = case_when(...)) : object 'filename' not found`
+- Cause: The input data frame does not contain the expected columns (e.g., `filename`, `datetime`).
+- Solution: Ensure that the input data frame contains the necessary columns with the correct names. It needs to have the following columns: `filename`, `datetime`, `lat`, `lon`, `locations.altitude`, `locations.velocity`, and `locations.accuracy`.
+
+2. Invalid Date Range
+- Message: `Error in filter((is.na(keep) == FALSE &.......)) : object 'filename' not found`
+- Cause: The `filename` column contains missing values.
+- Solution: Ensure that the `filename` column does not contain NA values or handle the missing values appropriately.
+
+## 2.3 intakeRetailers
+
+**Description**\
+
+This function loads and processes retailer data from a CSV file.
+The CSV file contains information about retailers, including their geographic location and license details.
+The function reads the data, cleans it, and merges overlapping intervals of license validity to ensure that each retailer has non-overlapping periods of activity.
+
+To elaborate on this, the `merge_intervals` is an internal function specifically dedicated to merge date range for each individual retailer. Date range, in this context, is defined by the `publish_date` (start date) and `expiration_date` (end date) of a retailer's license. Overlapping intervals occur when a retailer has multiple periods of license validity that intersect or touch. The purpose is to combine these overlapping periods into single, continuous intervals. 
+
+On a technical side, the `merge_intervals` function works by first sorting the data by `publish_date` to ensure the intervals are processed chronologically. It then creates lagged versions of the `publish_date` and `expiration_date` columns to facilitate comparisons between consecutive rows. By comparing each row's `publish_date` with the previous row's `expiration_date`, the function identifies which intervals overlap and should be merged. It groups these intervals together and calculates the earliest `publish_date` and the latest `expiration_date` within each group.
+
+**Usage**\
+
+`intakeRetailers(filepath)`
+
+**Dependencies**\
+
+This function depends on the `tidyverse`, `lubridate`, and `dplyr` packages in R.
+
+**Arguments**\
+
+`filepath`: A text string denoting the location of the CSV file containing retailer data.
+
+**Value**\
+
+A single data frame containing the processed and cleaned retailer data, with non-overlapping intervals of license validity.
+The data frame includes the following columns:
+
+- `lat`: Latitude of the retailer.
+- `lon`: Longitude of the retailer.
+- `publish_date`: The start date of the retailer's license validity.
+- `expiration_date`: The end date of the retailer's license validity.
+
+**Code Breakdown**
+
+```{r intakeRetailers function, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+intakeRetailers <- function(filepath){
+  
+  require(tidyverse)
+  require(lubridate)
+  require(dplyr)
+  
+  # Define the canonical column names expected in the input CSV file
+  canonical_names <- c("county", "trade_name", "account", "license_type",
+                       "expiration_date", "lat", "lon", "address_full",
+                       "publish_date", "state", "expired_y_n")
+  
+  # Read the CSV file and select only the columns specified in canonical_names
+  df <- read.csv(filepath) %>%
+    dplyr::select(all_of(canonical_names)) %>%
+    # Convert any factor columns to character type
+    mutate_if(is.factor, as.character) %>%
+    mutate(account = as.character(account)) %>%
+    # Convert publish and expiration date to the "YYYY-MM-DD" format
+    mutate(publish_date = format(strptime(publish_date, format = "%m/%d/%y"), format = "%Y-%m-%d")) %>% 
+    mutate(expiration_date = format(strptime(expiration_date, format = "%m/%d/%y"), format = "%Y-%m-%d")) %>%
+    dplyr::select(c(lat, lon, publish_date, expiration_date)) %>%
+    # Convert publish and expiration date to Date objects
+    # Ensure lat and lon are characters. 
+    # Not doing so would lead to error when grouping by locations
+    mutate(publish_date = ymd(publish_date),
+           expiration_date = ymd(expiration_date),
+           lat = as.character(lat),
+           lon = as.character(lon)) %>% 
+    # Filter out rows where 'publish_date' or 'expiration_date' are NA
+    filter(!is.na(publish_date) & !is.na(expiration_date)) %>%
+    arrange(lat, lon, expiration_date, publish_date) 
+  
+  # Nested function to merge publish and expiration date for the same location
+  merge_intervals <- function(data) {
+    data %>%
+      # Sort the data by publish date
+      arrange(publish_date) %>% 
+      # Create a lagged version of publish and expiration date for comparison
+      mutate(lag_expiration_date = lag(expiration_date),
+             lag_publish_date = lag(publish_date)) %>%
+      # Groups rows based on whether the current publish date is after the previous expiration date.
+      group_by(group = cumsum(is.na(lag_expiration_date) | publish_date > lag_expiration_date)) %>%
+      # Summarizes each group to merge intervals by taking the earliest publish and latest expiration date.
+      summarize(lat = first(lat),
+                lon = first(lon),
+                publish_date = min(publish_date),
+                expiration_date = max(expiration_date)) %>%
+      # Summarize the data for each group to merge the intervals
+      ungroup() %>%
+      # Drop the temporary 'group' column
+      select(-group)
+  }
+  # Apply the merge_intervals function to each retailer location
+  result <- df %>%
+    group_by(lat, lon) %>%
+    do(merge_intervals(.)) %>% 
+    # Apply the merge_intervals function again to ensure all intervals are merged
+    do(merge_intervals(.)) %>% 
+    ungroup()
+  
+  return(result)
+  
+}
+```
+
+**Demo**\
+
+The test data used here are different scenarios of retailers (extracted from the original retailer database) with duplicated or overlapping occurrences of publish and expiration dates that need to be merged.
+Below is a brief explanation of each scenario:
+
+```{r scenarios, echo=FALSE}
+# Create a data frame with the scenarios
+scenarios <- data.frame(
+  Location = c("1", "2", "3", "4", "5", "6"),
+  Scenario = c(
+    "A fuzzy case where we have multiple publish-expiration date ranges, among which some of them overlap with each other and others do not.",
+    "The same publish-expiration date ranges occurred twice.",
+    "The first publish-expiration date range falls entirely within the second one.",
+    "The two publish-expiration date ranges do not overlap with each other.",
+    "The expiration date is the same, but the publish date is different, or vice versa.",
+    "Overlapping periods between two publish-expiration date ranges."
+  ),
+  Solutions = c(
+    "Drop duplicate occurrences of the same publish-expiration date pairs and merge occurrences with the same expiration date but different publish dates.",
+    "Simply keep one occurrence of this publish and expiration date range.",
+    "Only keep the second date range.",
+    "Keep both date ranges.",
+    "Merge the publish dates (or expiraiton dates) and keep only one occurrence.",
+    "Pick the smallest publish date and latest expiration date."
+  )
+)
+
+# Display the table
+kable(scenarios, col.names = c("Location", "Scenario", "Solutions"), caption = "Explanation of Each Scenario") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+Based on these six scenarios, we generated a sample data frame consist of six different locations. 
+
+```{r sample dataframe, message=FALSE, warning=FALSE}
+
+sample_merge <- data.frame(
+  lat = c("1", "1", "1", "1", "1", "2", "2", "3", "3", "4", "4", "5", "5", "6", "6"),
+  lon = c("1", "1", "1", "1", "1", "2", "2", "3", "3", "4", "4", "5", "5", "6", "6"),
+  publish_date = as.Date(c("2020-01-29", "2020-01-29", "2018-08-14", "2018-06-14", "2018-04-11", "2023-01-01", "2023-01-01", "2023-01-01", "2022-01-01", "2023-01-01", "2022-01-01", "2020-01-01", "2020-01-31", "2022-01-01", "2021-01-01")),
+  expiration_date = as.Date(c("2020-02-29", "2020-02-29", "2019-02-28", "2019-02-28", "2019-02-28", "2023-12-31", "2023-12-31", "2023-12-31", "2024-12-31", "2023-12-31", "2022-12-31", "2020-01-31", "2020-01-31", "2024-12-31", "2023-12-31"))
+)
+
+sample_merge %>% 
+  kable(align = "r") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+```
+
+Note that the function we used here only contains the merge date part for demonstration purposes.
+It assumes that we already have a pre-processed data frame consists of the `lat`, `lon`, `publish_date`, and `expiration_date`.
+
+```{r demo function, message=FALSE, warning=FALSE, include=FALSE}
+
+intakeRetailers_demo <- function(df){
+  
+  # initial data preparation, same as before
+  df <- df %>%
+    select(lat, lon, publish_date, expiration_date) %>%
+    mutate(
+      publish_date = ymd(publish_date),
+      expiration_date = ymd(expiration_date),
+      lat = as.character(lat),
+      lon = as.character(lon)
+    ) %>%
+    filter(!is.na(publish_date) & !is.na(expiration_date)) %>%
+    arrange(lat, lon, publish_date, expiration_date)
+  
+  merge_intervals <- function(data) {
+    data %>%
+      arrange(publish_date) %>% # sort the data by publish date
+      mutate(
+        lag_expiration_date = lag(expiration_date),
+        lag_publish_date = lag(publish_date)
+      ) %>%
+      # Groups rows based on whether the current publish date is after the previous expiration date.
+      group_by(group = cumsum(is.na(lag_expiration_date) | publish_date > lag_expiration_date)) %>%
+      # Summarizes each group to merge intervals by taking the earliest publish date and the latest expiration date.
+      summarize(
+        lat = first(lat),
+        lon = first(lon),
+        publish_date = min(publish_date),
+        expiration_date = max(expiration_date)
+      ) %>%
+      ungroup() %>%
+      select(-group) # Removes the temporary group column. 
+  }
+  
+  result <- df %>%
+    group_by(lat, lon) %>%
+    do(merge_intervals(.)) %>%
+    ungroup()
+  
+  return(result)
+}
+
+```
+
+
+```{r merging dataset, message=FALSE, warning=FALSE}
+
+merged_df <- intakeRetailers_demo(sample_merge)
+merged_df %>% 
+  kable(align = "r") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+**Common Errors**
+
+1. Incorrect File Path
+- Message: `Error in file(file, "rt") : cannot open the connection`
+- Cause: The specified `filepath` does not exist or is incorrect.
+- Solution: Ensure the `filepath` points to the correct CSV file location. In our study in particular, because the data is stored on a private server, ensuring proper connection to the server with a VPN set up would resolve this error. 
+
+2. Missing or Incorrect Column Names
+- Message: `Error in dplyr::select(all_of(canonical_names)) : unknown column 'X'`
+- Cause: The CSV file does not contain all the expected columns specified in `canonical_names`.
+- Solution: Verify that the CSV file contains the necessary columns with the correct names. That said, the original retailer data need to have those columns specified in the canonical names at least. 
+
+3. Incorrect Date Format
+- Message: `Error in strptime(publish_date, format = "%m/%d/%y") : input string is too long or incorrect format`
+- Cause: The publish and expiration date columns do not match the expected date format (month-day-year). 
+- Solution: Check the date format in the CSV file and adjust the `strptime` format string accordingly.
+
+
+## 2.4 intakeSummary
+
+**Description**\
+
+This function processes a dataset to generate a summary of geolocation data, grouped by file names. 
+It calculates several summary statistics, including the number of records, the number of missing values for datetime and latitude/longitude, the earliest and latest datetime entries, and the number of distinct stay events.
+
+**Usage**\
+
+`intakeSummary(dataSet)`
+
+**Dependencies**\
+
+This function depends on the `tidyverse` and `lubridate` packages in R.
+
+**Arguments**\
+
+`dataSet`: A data frame containing geolocation data. The data frame should include columns named `filename`, `datetime`, `lat`, and `stayeventgroup`. 
+This means that this function should be called after `stayevent` has been calculated. 
+
+**Value**\
+
+A data frame summarizing the input dataset. The data frame should include the following columns: 
+
+- `filename`: The name of the file.
+- `n`: The number of records in the file.
+- `na_datetime`: The number of records with missing datetime values.
+- `na_lat_lon`: The number of records with missing latitude/longitude values.
+- `begin_datetime`: The earliest datetime in the file.
+- `end_datetime`: The latest datetime in the file.
+- `stayEvents`: The number of distinct stay events in the file.
+
+**Code Breakdown**
+
+```{r intakeSummary function, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+intakeSummary <- function(dataSet){
+  
+  require(tidyverse)
+  require(lubridate)
+  
+  # Create a summary data frame from the input dataset
+  summary <- dataSet %>% 
+    as.data.frame() %>%
+    ungroup() %>%
+    # Group the data by the 'filename' column
+    group_by(filename) %>% 
+    summarize(n = n(), #n
+              na_datetime = sum(is.na(datetime)), # number of NA datetime
+              na_lat_lon = (sum(is.na(lat))), # number of NA lat/lon
+              begin_datetime = min(datetime), # the earliest 'datetime' value
+              end_datetime = max(datetime), # the latest 'datetime' value
+              stayEvents = n_distinct(stayeventgroup)) # the number of distinct stayevent groups
+
+  return(summary)
+}
+```
+
+**Demo**
+
+```{r demo summary function, message=FALSE, warning=FALSE}
+
+data_summary <- uploadGeodata("multi_json_test") %>%
+  cleanDates(., "2019-04-22 21:30:45", "2019-08-05 15:17:47", addFlags = FALSE, "file1.json") %>% 
+  cleanDates(., "2019-04-22 21:30:45", "2019-08-05 15:17:47", addFlags = FALSE, "file2.json") %>% 
+  stayevent(., 
+            coor = c("lon","lat"), 
+            time = "datetime", 
+            dist.threshold = 100/3.28084, # conversion to feet PARAMETER
+            time.threshold = 5, # PARAMETER
+            time.units = "mins", 
+            groupvar = "filename") %>%
+  intakeSummary(.)
+
+data_summary %>% 
+  kable(align = "r") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+**Common Errors**
+
+1. Incorrect Data Frame Structure
+- Message: `Error in group_by(filename) : object 'filename' not found`
+- Cause: The input data frame does not contain the expected `filename` column.
+- Solution: Ensure that the input data frame contains the necessary columns with the correct names.
+
+2. Missing or NA Values in Key Columns
+- Message: `Error in summarize(n = n(), na_datetime = sum(is.na(datetime)).....)) : object 'datetime' not found`
+- Cause: The datetime or lat/lon columns contain missing or NA values.
+- Solution: Ensure that the datetime and lat/lon columns do not contain NA values or handle the missing values appropriately.
+
+3. Missing Column
+- Message: `Error in n_distinct(stayeventgroup) : object 'stayeventgroup' not found`
+- Cause: The `stayeventgroup` column is missing from the input data frame.
+- Solution: This function is designed to run after `stayevent` is calculated. Run the stayevent function first.
+
+
+# 3. Spatial Operations
+
+The three functions documented in this section are `spaceTimeLags`, `bufferAndJoin`, and `joinTracts`.
+
+1. The `spaceTimeLags` function calculates the spatial and temporal lags for each record in a data set of geolocated time stamps.
+
+2. The `bufferAndJoin` function creates a buffer around retailers and joins them with people's point locations.
+
+3. The `joinTracts` function joins retailers to census tracts based on their geographic coordinates.
+
+## 3.1 spaceTimeLags
+
+**Description**\
+
+The function calculates the spatial and temporal lags for each record in a data set of geolocated times tamps. 
+It transforms the geographic coordinates into a specified coordinate reference system (CRS) and computes lag and lead distances, times, and speeds.
+
+**Usage**\
+
+`spaceTimeLags(dataframe, myCRS)`
+
+
+**Dependencies**\
+
+This function depends on the `tidyverse`, `sf`, and `lubridate` packages in R.
+
+**Arguments**\
+
+`dataframe`: A data frame containing geolocation data with columns `filename`, `datetime`, `latitude`, `longitude`, and `stayevent` group.\
+`myCRS`: The coordinate reference system (CRS) to which the geographic coordinates should be transformed. This should be provided as an EPSG code (e.g., 4326).
+
+**Value**\
+
+A data frame with the following added columns in addition to the columns already in the processed json file cleaned dates and participants' geolocation data: 
+
+- `lagDist_ft`: Distance in feet between the current point and the previous point.
+- `lagTime`: Time difference between the current point and the previous point.
+- `lagmph`: Speed in miles per hour between the current point and the previous point.
+- `leadTime`: Time difference between the current point and the next point.
+- `lead_lag_avg_mph`: Average speed in miles per hour considering both the leading and lagging points.
+- `mean_3_lagDist_ft`: Mean distance of the last three lags.
+
+
+**Code Breakdown**
+
+
+```{r lag function, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+spaceTimeLags <- function(dataframe, myCRS){
+
+require(tidyverse)
+require(sf)
+require(lubridate)
+
+  # Check for poorly arranged data
+  sortdata <- dataframe %>% arrange(filename, datetime)
+  # Check for missing values separately
+  if (sum(is.na(dataframe$datetime)) > 0 || sum(is.na(sortdata$datetime)) > 0) {
+    # Handle missing values as per your requirements
+    # Error in if (sum(dataframe$datetime != sortdata$datetime) > 0) { :
+    # Missing value where TRUE/FALSE needed
+  } else {
+    # Perform the comparison and continue with your code
+    if (sum(dataframe$datetime != sortdata$datetime) > 0) {
+    message("Data were not sorted first by participant ID and then by date/time. spaceTimeLags has now sorted the data accordingly.")
+    dataframe <- dataframe %>% arrange(filename, datetime)
+  }}
+  
+  # Convert data frame to sf
+  dataframe <- dataframe %>%
+    # Remove rows with missing lat/lon
+    filter(is.na(lat) == FALSE & is.na(lon) == FALSE) %>%
+    # Convert to sf object with WGS84 CRS
+    st_as_sf(., coords = c("lon", "lat"), crs = 4326, remove = FALSE) %>%
+    ungroup() %>%
+    # Transform to the specified CRS
+    st_transform(crs = myCRS) %>%
+    # Calculate the coordinates in feet using st_centroid
+    mutate(y_ft=map_dbl(geometry, ~st_centroid(.x)[[1]]),
+           x_ft=map_dbl(geometry, ~st_centroid(.x)[[2]])) %>%
+    group_by(filename) %>%
+    # Calculate lag/lead distances, times, and speeds
+    mutate(lagDist_ft = sqrt(((lag(x_ft) - x_ft)^2) + ((lag(y_ft) - y_ft)^2)),
+           lagTime = abs(datetime - lag(datetime)), 
+           lagmph = (lagDist_ft/5280) / (as.numeric(lagTime) / (60*60)),
+           leadDist_ft = sqrt(((lead(x_ft) - x_ft)^2) + ((lead(y_ft) - y_ft)^2)),
+           leadTime = abs(datetime - lead(datetime)), 
+           leadmph = (leadDist_ft/5280) / (as.numeric(leadTime) / (60*60)),
+           lead_lag_avg_mph = (leadmph + lagmph)/2,
+           mean_3_lagDist_ft = (lag(lagDist_ft, 1) + lag(lagDist_ft, 2) + lag(lagDist_ft, 3))/3) %>%
+    dplyr::select(-c(x_ft, y_ft, leadDist_ft, leadmph)) %>%
+    ungroup()
+
+return(dataframe)
+}
+```
+
+
+**Demo**\
+
+We will be using the sample data again. Because this function is designed to run after the `uploadGeodata` and `cleanDates` functions, we will use the `processed_json_clean` data frame from the previous examples.
+
+```{r demo lag function, message=FALSE, warning=FALSE}
+
+lag_demo <- spaceTimeLags(processed_json_clean, 2272)
+lag_demo %>% 
+  dplyr::select(filename, datetime, lagDist_ft, lagTime, lagmph, leadTime, lead_lag_avg_mph, mean_3_lagDist_ft) %>%
+  head(10) %>% 
+  kable(align = "r") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+**Common Errors**
+
+1. Incorrect Data Frame Structure
+- Message: `Error in arrange(filename, datetime) : object 'filename' not found`
+- Cause: The input data frame does not contain the required columns.
+- Solution: Ensure that the input data frame contains the necessary columns with the correct names. Note that this function is designed to run after the `uploadGeodata` and `cleanDates` functions. Failing to run these two functions first can lead to this error as well. 
+
+2. Coordinate Transformation Issues
+- Message: `Error in st_transform(crs = myCRS) : object 'myCRS' not found`
+- Cause: The `myCRS` argument is not provided or is invalid.
+- Solution: Ensure that the `myCRS` argument is provided and is a valid EPSG code.
+
+3. Geometric Calculation Errors
+- Message: `Error in mutate(y_ft=map_dbl(geometry, ~st_centroid(.x)[[1]])) : object 'geometry' not found`
+- Cause: The conversion to sf object failed or the geometry column is missing.
+- Solution: Verify that the data frame has been correctly converted to an sf object and that the geometry column exists.
+
+## 3.2 bufferAndJoin
+
+**Description**\
+
+This function creates buffer zones around retail locations and joins geotracking data to these buffers. It ensures spatial joins between retailers and geotracking points based on specified distances, handling invalid shapes in the process.
+
+**Usage**\
+
+`bufferAndJoin(retailersData, geotrackingData, inputCRS, inputDistance)`
+
+**Dependencies**\
+
+This function depends on the `tidyverse` and `sf` packages in R.
+
+**Arguments**\
+
+`retailersData`: A data frame containing information about retailers, including their geographic coordinates.\
+`geotrackingData`: A data frame containing geotracking data points.\
+`inputCRS`: The coordinate reference system (CRS) to which the geographic coordinates should be transformed.\
+`inputDistance`: The distance in feet to create a buffer around the retailers, in the native linear unit of the coordinate system.
+
+**Value**\
+
+An sf object consisting of each observation joined to retailers whose buffers they intersect. Observations which join two multiple overlapping retailers will appear multiple times
+
+**Code Breakdown**
+
+```{r bufferAndJoin function, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+bufferAndJoin <- function(retailersData, geotrackingData, inputCRS, inputDistance){
+  
+  require(sf)
+  require(dplyr)
+  require(tidyverse)
+
+  retailers_buffer <- retailersData %>%
+    filter(is.na(lat) == FALSE) %>%
+    # Convert to sf object with original CRS 4326
+    st_as_sf(., coords = c("lon", "lat"), crs = 4326) %>% 
+    st_transform(crs = inputCRS) %>% 
+    # Create buffer zones around retailers
+    st_buffer(., inputDistance) 
+  
+  # Check for invalid shapes in the buffer
+  invalidShapes <- retailers_buffer %>%
+    mutate(valid_shape = st_is_valid(.)) %>%
+    filter(is.na(valid_shape) == TRUE) %>%
+    nrow()
+  
+  # Perform spatial join between geotracking data and retailer buffers
+  cleanData_join_buffers <- st_join(geotrackingData %>%
+                                      ungroup() %>%
+                                      st_transform(crs = 4326), # Transform geotracking to CRS 4326
+                                    retailers_buffer %>%
+                                    st_transform(crs = 4326), # Transform retailers to CRS 4326
+                                    join = st_intersects, 
+                                    left = TRUE)
+
+  return(cleanData_join_buffers)
+}
+
+```
+
+**Demo**\
+
+We will be using a random selection of retailers from PA, NJ, and DE. The full data is stored on 
+Annenberg's server and therefore not available to the public. We will keep using the sample geotracking data here as before. 
+
+```{r load retailers, message=FALSE, warning=FALSE, include=FALSE}
+
+sample_retailers <- read.csv("sample_retailers.csv")
+
+```
+
+We will need to use the `lag_demo` as the input of geotracking data here because this function already transforms the geolocation data to an sf object.Note that if the geolocation does not fall into a retailer buffer, most of the output dataframe will return NA values. For demonstration purposes, we will filter out the NA values here to only show the attributes that are successfully joined.
+
+```{r buffer and join demo, message=FALSE, warning=FALSE}
+
+testBuffers <- bufferAndJoin(sample_retailers, lag_demo, 2272, 100)
+testBuffers %>% 
+  filter(!is.na(trade_name)) %>%
+  dplyr::select(c("filename", "datetime", "lat", "lon", "trade_name", "license_type")) %>%
+  kable(align = "r") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+
+```
+
+
+**Common Errors**
+
+1. NA Values in Key Columns
+- Message: `Warning in min(cc[[1]], na.rm = TRUE): no non-missing arguments to min; returning Inf`
+- Cause: The dataset contains NA values in columns that are critical for spatial operations.
+- Solution: Pre-process the data to remove or handle NA values before performing spatial operations. Another thing is to check if the retailers data is correctly loaded. 
+
+2. Non-SF Object for Join
+- Message: `Error in UseMethod("st_join"): no applicable method for 'st_join' applied to an object of class "c('tbl_df', 'tbl', 'data.frame')`
+- Cause: The geotracking data is not converted to an sf object properly.
+- Solutions: Simply run the `spaceTimeLags` function before running this function. This function already converts the geolocation data to an sf object. Alternatively, add checks and transformations to handle this.
+
+3. Invalid CRS or Buffer Distance
+- Message: `Error in st_transform: cannot transform sf object`
+- Cause: The `inputCRS` provided is not a valid CRS code, or `inputDistance` is not a numeric value.
+- Solution: Verify that `inputCRS` is a valid CRS code (e.g., EPSG code like 4326) and `inputDistance` is a numeric value.
+
+## 3.3 joinTracts
+
+**Description**\
+
+This function performs a spatial join to attach Census Tract information to geotracking data points. This allows the geotracking data to be associated with demographic and economic data based on census tracts. By default, it uses data from 2010-2019 if no specific year is provided.
+
+**Usage**\
+
+`joinedData <- joinTracts(pointData, year)`
+
+**Dependencies**\
+
+This function depends on the `tidyverse`, `sf`, and `tigris` packages in R.
+
+**Arguments**\
+
+`pointData`: An sf object containing geotracking point data. \
+`year`: The year for which census tracts are requested.
+
+**Value**\
+
+The function returns an sf object that includes the original geotracking data points with additional columns for the census tract `GEOID` and `NAMELSAD`. It should at least have the following columns:
+- `filename`: The name of the file from which the data was sourced.
+- `datetime`: The datetime value of the record.
+- `lat`: The latitude of the location, converted from E7 format to standard decimal format.
+- `lon`: The longitude of the location, converted from E7 format to standard decimal format.
+- `GEOID`: The `GEOID` to which the point belongs.
+- `NAMELSAD`: The name and legal/statistical area description of the census tract.
+- `geometry`: The geometry column containing the spatial information of the point.
+
+
+**Code Breakdown**
+
+```{r joinTracts function, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+joinTracts <- function(pointData, year){
+  
+  require(tidyverse)
+  require(tigris)
+  require(sf)
+  
+  # Check if pointData is an sf object, if not, print a message
+  ifelse(class(pointData) %>% 
+           as.list() %>% 
+           .[1] != "sf", print("pointData is not an sf object and must be converted."),
+         "pointData is an sf object")
+  
+  # Set tigris to return sf objects
+  options(tigris_class = "sf")
+  
+  # Load all states using tigris for the specified year
+  allStates <- states(year = year)%>%
+    st_as_sf() %>%
+    st_transform(crs=4326)
+  
+  # Spatial join to determine which states need to be called
+  # for tract spatial data, return only unique State GEOIDs
+  myStates <- st_join(pointData %>% st_transform(crs = 4326), 
+                      allStates %>% dplyr::select(GEOID) %>% st_transform(crs = 4326), 
+                      join = st_intersects, 
+                      left = TRUE) %>%
+    as.data.frame() %>% 
+    dplyr::select(GEOID) %>% 
+    unique() %>% 
+    na.omit()
+  
+  # lapply the tracts function from tigris to each unique GEOID,
+  # bind_rows to create a single sf object
+  stateTracts <- lapply(myStates$GEOID, tracts) %>% bind_rows(.)
+  
+  # Join points to tracts, return points with only
+  # the tract GEOID and NAMELSAD attached.
+  pointData_Tracts <- st_join(pointData %>% st_transform(crs = 4326), 
+                              stateTracts %>% dplyr::select(GEOID, NAMELSAD) %>% st_transform(crs = 4326), 
+                              join = st_intersects, 
+                              left = TRUE)
+  
+  return(pointData_Tracts)
+    
+}
+
+```
+
+**Demo**\
+
+We will be using the `lag_demo` data frame from the previous example again because our input dataframe needs to be an sf object. If you are starting from scratch, make sure you run at least the `uploadGeodata` and `cleanDates` function, while also transforming the geolocation data to an sf object before proceed. 
+
+```{r joining tracts demo,  message=FALSE, warning=FALSE, echo=FALSE, results='hide'}
+
+location_w_tracts <- joinTracts(pointData = lag_demo, year = 2019)
+```
+
+
+```{r show result}
+location_w_tracts %>% 
+  head(10) %>% 
+  dplyr::select(filename, datetime, lat, lon, GEOID, NAMELSAD, geometry) %>% 
+  kable(align = "r") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+**Common Errors**
+
+1. Incorrect Data Frame Structure
+- Message: `pointData is not an sf object and must be converted.`
+- Cause: The input data frame is not an sf object.
+- Solution: Ensure `pointData` is an sf object. Convert a dataframe with latitude and longitude columns to an sf object using `st_as_sf(df, coords = c("lon", "lat"), crs = 4326)`. Typically, this won't be an issue if you run this function after running the `spaceTimeLag` function, which already converts the data to an sf object.
+
+2. Incorrect Year
+- Message: `Error in tracts(year = year) : object 'year' not found`
+- Cause: The year argument is not provided or is invalid. Or,the year argument provided is not supported by the `tigris` package or the `GEOID` values are incorrect.
+- Solution: Ensure that the year argument is provided and is a valid year for which census tracts are available. Also, verify that the `GEOID` values are correct and correspond to the expected format.
+
+3. Connection Error
+- Message: `Error in download.file(url, destfile, mode = "wb"): cannot open URL`
+- Cause: Issues with loading state or tract data from the `tigris` package due to internet connectivity issues or the Census Bureau's servers being down.
+- Solution: Check internet connectivity and try again later. Ensure that the `tigris` package is up-to-date. Retry after some time if the server is down.
+
+# 4. NYU Mobility
+
+The NYU Mobility functions are designed to analyze mobility data, including spatial and temporal aspects of movement. 
+These functions are used in this study to identify stay events, calculate the radius of gyration, group spatial data points, and analyze group movement patterns.
+Note that this package is not published on CRAN. The original documentations of those functions are available on this [GitHub](https://github.com/nyu-mhealth/Mobility) Repo. Users may install the package using the following command: `devtools::install_github("nyu-mhealth/Mobility")`
+
+However, because some of the packages that these functions depend on will soon deprecate, we have made additional modifications to the functions to ensure they run smoothly. We are loading the functions from the source code directly in our study. Doing so avoid us from encountering deprecation issues when relying on the GitHub repository and provide us with the flexibility to make necessary modifications to the functions should there be any issues with the package in the future. 
+
+```{r nyu mobility functions, message=FALSE, warning=FALSE, include=FALSE, class.source='fold-show'}
+
+source("nyu_functions/radiusofgyration.R")
+source("nyu_functions/stayevent.R")
+source("nyu_functions/groupdist.R")
+source("nyu_functions/grouptime.R")
+source("nyu_functions/mergewithorder.R")
+source("nyu_functions/sdspatialdatapoints.R")
+
+```
+
+The four functions documented in this section are `radiusofgyration`, `stayevent`, `groupdist`, `grouptime`, and `sdspatialdatapoints`.
+
+1. The `radiusofgyration` function calculates the radius of gyration for each individual in a dataset of geolocated timestamps.
+
+2. The `stayevent` function identifies stay events in geolocation data based on spatial and temporal criteria.
+
+3. The `groupdist` function groups geographic coordinates in a data frame based on their proximity. It is used within the `stayevent` function.
+
+4. The `grouptime` function groups temporal data points based on their proximity in time. It is used within the `stayevent` function.
+
+5. The `sdspatialdatapoints` function measures the distribution of spatial points by calculating standard deviation of the distance between points and their centroid. It is used within the `radiusofgyration` function.
+
+## 4.1 Compute Stay Event
+
+The functions in this sub-section are used to identify stay events in geolocation data. Stay events are periods when an individual remains in a specific location for an extended period. These functions help identify and analyze these events based on spatial and temporal criteria. The major function here, `stayevent`, uses two sub-functions, `groupdist` and `grouptime`, to group spatial data points and analyze group movement patterns. 
+
+### 4.1.1 groupdist
+
+**Description**\
+
+This function groups geographic coordinates in a data frame based on their proximity. 
+It assigns a group identifier to each data point, grouping points that are within a specified distance threshold of each other. 
+If distance is smaller than a threshold, points are considered in the same group. 
+Group number for points outside the threshold is NA. 
+
+**Usage**\
+
+`groupdist(df, coor = NULL, threshold = NULL, groupvar = NULL)`
+
+**Dependencies**\
+
+This function depends on the `dplyr`, `geosphere`, and `tidyverse` packages in R.
+
+**Arguments**\
+
+`df`: A data frame containing geolocation data.\
+`coor`: A vector of two character strings specifying the column names for the longitude and latitude coordinates.\
+`threshold`: A distance threshold used to determine if points are in the same group. The format is numeric. Unit is meters.\
+`groupvar`: Optional. Character vector specifying the column(s) used to define groups within which distances are calculated. If NULL, all data points are treated as a single group.
+
+**Value**\
+
+A vector of group identifiers added to the original data frame, with each identifier corresponding to a group of points within the specified distance threshold. Points not meeting the distance criteria will be assigned NA.
+
+**Code Breakdown**
+
+```{r groupdist function, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+
+groupdist<- function(df, coor = NULL, threshold = NULL, groupvar = NULL) {
+  
+  require(geosphere)
+  require(dplyr)
+  require(tidyverse)
+
+  # Check if df is a simple vector and convert to data frame if necessary
+  if (is.atomic(df)) {
+    df <- data.frame(x = df)
+  }
+  
+  # Check if coordinates are provided
+  if (is.null(coor)) {
+    stop("Geographic coordinates must be supplied.")
+  }
+  
+  # Check if distance threshold is provided
+  if (is.null(threshold)) {
+    stop("A threshold must be specified.")
+  }
+  
+  # If no grouping variable is provided, treat all data as a single group
+  if (is.null(groupvar)) {
+    group<- rep(1, nrow(df))
+    df2<- cbind(df[,coor], group)
+    # Add lag and lead columns for coordinates
+    suppressMessages(
+      df2 <- slide(df2, Var = coor[1], slideBy = -1)
+    )
+    suppressMessages(
+      df2 <- slide(df2, Var = coor[2], slideBy = -1)
+    )
+    suppressMessages(
+      df2 <- slide(df2, Var = coor[1], slideBy = 1)
+    )
+    suppressMessages(
+      df2 <- slide(df2, Var = coor[2], slideBy = 1)
+    )
+    message("groupvar is not specified, treating all the data as one group.")
+  }
+  
+  # If a grouping variable is provided, process data within each group
+  if (!is.null(groupvar)) {
+    group<- rep(1, nrow(df))
+    df2<- cbind(df[,coor], df[groupvar], group)
+    # Add lag columns for coordinates within each group
+    suppressMessages(
+      df2 <- slide(df2, Var = coor[1], GroupVar = groupvar, slideBy = 1)
+    )
+    suppressMessages(
+      df2 <- slide(df2, Var = coor[2], GroupVar = groupvar, slideBy = 1)
+    )
+  }
+  
+  # Create new column names for lagged coordinates
+  coor2<- paste0(coor, "1")
+  # Extract coordinates and their lagged values
+  latlon<- df2[,coor]
+  latlonlag2<- df2[,coor2]
+  # Calculate distances between each point and its lagged value
+  dist2<- distVincentyEllipsoid(latlon, latlonlag2, a=6378137, b=6356752.3142, f=1/298.257223563) 
+  df2<- cbind(df2, dist2)
+  # Create a binary column indicating if the distance is within the threshold
+  df2$disttestgroup<- ifelse(df2$dist2<= threshold, 1, 0)
+  # Replace NA values in disttestgroup with 2
+  df2$disttestgroup<- ifelse(is.na(df2$disttestgroup), 2, df2$disttestgroup)
+  
+  # Custom function to create sequential groups based on a variable
+  seqgroup_custom <- function(df, var) {
+    df %>% 
+      mutate(group = cumsum(lag(!!sym(var), default = first(!!sym(var))) != !!sym(var)))
+  }
+  
+  # Apply grouping logic to data frame
+  df2 <- df2 %>%
+    group_by(group) %>%
+    arrange(group, .by_group = TRUE) %>%
+    mutate(distgroup = seqgroup_custom(df2, "disttestgroup")$group) %>%
+    ungroup() %>%
+    mutate(distgroup = ifelse(disttestgroup != 1, NA, distgroup)) %>%
+    mutate(distgroup = coalesce(distgroup, lag(distgroup, order_by = row_number())))
+  
+  # Return the group identifiers
+  return(df2$distgroup)
+}
+
+
+```
+
+**Demo**\
+
+We will be using the sample data again. Because this function is designed to run after the `uploadGeodata` and `cleanDates` functions, we will use the `processed_json_clean` data frame from the previous examples.
+
+```{r groupdist demo,  message=FALSE, warning=FALSE}
+
+processed_json_clean$distgroup<- groupdist(processed_json_clean, coor = c("lon","lat"), threshold =  100/3.28084, groupvar = "filename")
+processed_json_clean %>% 
+  dplyr::select(filename, datetime, lat, lon, distgroup) %>% 
+  head(10) %>% 
+  kable(align = "r") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+
+**Common Errors**
+
+Because this function is used within the `stayevent` function, the error message might be slightly different than the error message we see here when running the function independently. 
+
+1. Package Conflict
+- Message: `Error in loadNamespace(name) : there is no package called tidyverse`
+- Cause：One or more of the required packages (`geosphere`, `dplyr`, `tidyverse`) is not installed or not loaded correctly. This could also happen if there is a conflict between `plyr` and `dplyr` packages.
+- Solution: Ensure that all required packages are installed and loaded properly. Check to see if `plyr` and `dplyr` are both loaded, as they can conflict with each other.
+
+2. Missing Coordinates
+- Message: `Error in groupdist(df, coor = NULL, threshold = 100): Geographic coordinates must be supplied.`
+- Cause: The `coor` argument is not provided or is NULL.
+- Solution: Ensure that you provide a valid character vector of length 2 for the `coor` argument, specifying the latitude and longitude column names.
+
+3. Missing Threshold
+- Message: `Error in groupdist(df, coor = c("lon", "lat"), threshold = NULL): A threshold must be specified.`
+- Cause: The threshold argument is not provided or is NULL.
+- Solution: Specify a numeric value for the threshold argument, indicating the distance threshold in meters.
+
+
+### 4.1.2 grouptime
+
+**Description**\
+
+This function groups data points in a data frame based on the temporal proximity of their time stamps. It assigns a group identifier to each data point, grouping points that are within a specified time threshold of each other. If a `groupvar` is specified, the function will respect these groups and only compare `timestamps` within each group.
+
+**Usage**\
+
+`grouptime(df, time = NULL, units = c("auto", "secs", "mins", "hours", "days", "weeks"), threshold = NULL, groupvar = NULL)`
+
+**Dependencies**\
+
+This function depends on the `lubridate`, `dplyr`, and `tidyverse` packages in R. It also uses a custom function `mergewithorder` to merge data frames while preserving the original order of rows. This function is included in the source code but not documented here. 
+
+**Arguments**\
+
+`df`: A data frame containing geolocation data.\
+`time`: A character string specifying the column name for the datetime values.\
+`units`: A character string specifying the time units for the time threshold. Options are "auto", "secs", "mins", "hours", "days", "weeks".\
+`threshold`: A numeric value specifying the time threshold for grouping spatial locations.\
+`groupvar`: Optional. A character string specifying the column name for the group variable.
+
+**Value**\
+
+A vector of group identifiers added to the original data frame, with each identifier corresponding to a group of points within the specified time threshold. Points not meeting the time criteria will be assigned NA.
+
+**Code Breakdown**
+
+```{r grouptime function, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+grouptime<- function(df, time = NULL, units = c("auto", "secs", "mins", "hours", "days", "weeks"),
+                     threshold = NULL, groupvar = NULL) {
+  
+  require(lubridate)
+  require(dplyr)
+  require(tidyverse)
+  
+  # Check if df is a simple vector and convert to data frame if necessary
+  if (is.atomic(df)) {
+    df <- data.frame(x = df)
+  }
+  # Check if the time column is in POSIXct format
+  if (!is.POSIXct(df[time][[1]])){
+    stop("Time variable must be POSIXct format.")
+  }
+  # Check if a time threshold is provided
+  if (is.null(threshold)){
+    stop("A threshold must be supplied to generate time groups.")
+  }
+  # If no grouping variable is provided, treat all data as a single group
+  if (is.null(groupvar)){
+    # Calculate the time difference for the entire data frame
+    timediff<- as.numeric(difftime(df[nrow(df),time], df[1,time], units = units))
+    # Create a binary time group based on the threshold
+    df$timegroup<- ifelse(timediff>=threshold, 1, 0)
+    return(df$timediff)
+  }
+  
+  # If a grouping variable is provided, process data within each group
+  if (!is.null(groupvar)){
+    df3 <- df %>%
+      # Group data by the specified grouping variable and calculate time differences
+      group_by(!!sym(groupvar)) %>%
+      summarize(timediff = as.numeric(difftime(last(!!sym(time)), first(!!sym(time)), units = "min")))
+    # Create a binary time group based on the threshold
+    df3$timegroup<- ifelse(df3$timediff>=threshold, 1, 0)
+    names(df3)<- c(groupvar, "timediff","timegroup")
+    df3<- subset(df3, !is.na(get(groupvar)))
+    # Merge the original data frame with the time groups
+    df<- mergewithorder(df, df3, by=groupvar)
+    
+    return(df$timegroup)
+  }
+}
+```
+
+**Demo**\
+
+We will be using the sample data again. Because this function is designed to run after the `uploadGeodata` and `cleanDates` functions, we will use the `processed_json_clean` data frame from the previous examples.
+
+```{r grouptime demo,  message=FALSE, warning=FALSE}
+
+processed_json_clean$timegroup<- grouptime(processed_json_clean, time = "datetime", units = "mins", threshold = 5, groupvar = "filename")
+processed_json_clean %>% 
+  dplyr::select(filename, datetime, lat, lon, timegroup) %>% 
+  head(10) %>% 
+  kable(align = "r") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+
+**Common Errors**
+
+Because this function is used within the `stayevent` function, the error message might be slightly different than the error message we see here when running the function independently. 
+
+1. Missing or Incorrect time Argument
+- Message: `Error in !is.POSIXct(df[time][[1]]) : Time variable must be POSIXct format.`
+- Cause: The time argument is not provided or is not in the correct format.
+- Solution: Ensure that the time argument is specified and that the datetime column is in POSIXct format. Typically, this won't be an issue if you run this function after the `uploadGeodata` and `cleanDates` functions.
+
+2. Missing Threshold
+- Message: `Error in grouptime(processed_json_clean, time = "datetime", units = "mins", threshold = NULL, groupvar = "filename") : A threshold must be supplied to generate time groups.`
+- Cause: The threshold argument is not provided or is NULL.
+- Solution: Specify a numeric value for the threshold argument, indicating the time threshold in the specified units.
+
+3. Invalid Time Units
+- Message: `Error in as.numeric(difftime(df[nrow(df), time], df[1, time], units = units)): invalid 'units' argument`
+- Cause: The units argument is not one of the valid options ("auto", "secs", "mins", "hours", "days", "weeks").
+- Solution: Ensure that the units argument is one of the valid options specified in the function documentation.
+
+
+### 4.1.3 stayevent
+
+**Description**\
+
+This function calculates stay events based on spatial locations and time stamps of mobility data. The algorithm for identifying stay events involves 2 steps. First, distance between two sequential points Pn and Pn+1 is calculated and compared to a preset threshold. If the distance is smaller than the threshold, both points are put in a stay event candidate set. Then the distance between Pn+1 and Pn+2 is calculated to identify more points in the candidate set. Second, when the distance becomes larger than the threshold, the time difference between the first point in the candidate set, Pn, and the last point, Pn+m, is calculated. If the time difference is larger than a time threshold, the centroid of all the points in candidate set is taken as the stay event's location *(NYU Mobility Original Documentation)*.
+
+
+**Usage**\
+
+`stayevent(df, coor, time, dist.threshold, time.threshold, time.units, groupvar)`
+
+**Dependencies**\
+
+The `stayevent` function itself only replies on the baseR package. However, the two functions that it calls, `groupdist` and `grouptime`, depend on the `geosphere`, `dplyr`, `tidyverse`, and `lubridate` packages. It also uses a custom function `mergewithorder` to merge data frames while preserving the original order of rows. This function is included in the source code but not documented here. 
+
+
+**Arguments**\
+
+`df`: A data frame containing geolocation data.\
+`coor`: A vector of two character strings specifying the column names for the longitude and latitude coordinates.\
+`time`: A character string specifying the column name for the datetime values.\
+`dist.threshold`: A distance threshold used to determine if points are in the same group. The format is numeric. Unit is meters.\
+`time.threshold`: A numeric value specifying the time threshold for grouping spatial locations.\
+`time.units`: A character string specifying the time units for the time threshold. Options are "auto", "secs", "mins", "hours", "days", "weeks".\
+`groupvar`: A character string specifying the column name for the group variable.
+
+**Value**\
+
+A data frame with the spatial location of stay events. The data frame should include the following additional columns showing stay events and locations:
+- `stayeventgroup`: The group number of the stay event.
+- `stayeventlon`: The longitude of the stay event.
+- `stayeventlat`: The latitude of the stay event.
+
+**Code Breakdown**
+
+```{r stayevent function, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+stayevent<- function (df, coor = NULL, time = NULL, dist.threshold = NULL, time.threshold = NULL, 
+                      time.units = c("auto", "secs", "mins", "hours", "days", "weeks"), 
+                      groupvar = NULL, ...) {
+  
+  # Calculate distance-based groups using the groupdist function
+  # This groups the data points based on geographic proximity (dist.threshold)
+  df$distgroup<- groupdist(df, coor = coor, threshold = dist.threshold, groupvar = groupvar)
+  # Calculate time-based groups using the grouptime function
+  # This groups the data points based on temporal proximity (time.threshold)
+  df$timegroup<- grouptime(df, time = time, units = time.units, threshold = time.threshold, groupvar = "distgroup")
+  df$stayeventgroup<- ifelse(!is.na(df$distgroup) & df$timegroup == 1, df$distgroup, NA)
+  
+  # Aggregate the coordinates for each stayeventgroup
+  # Calculate the mean latitude and longitude for each group
+  stayevents<- aggregate(cbind(get(coor[1]), get(coor[2]))~stayeventgroup, df, mean)
+  
+  # Rename the columns for clarity
+  names(stayevents)<- c("stayeventgroup", "stayeventlon", "stayeventlat")
+  
+  # Merge the original dataframe with the aggregated stayevent data
+  # Remove the intermediate grouping variables as they are no longer needed
+  df<- mergewithorder(df, stayevents, by="stayeventgroup")
+  df$distgroup<- NULL
+  df$timegroup<- NULL
+  
+  return(df)
+}
+
+```
+
+
+**Demo**\
+
+We will be using the sample data again for demonstration. This function is designed to run after the  `uploadGeodata` and `cleanDates` functions so that we have the correct datetime and location information ready to compute stay events. See how it generates three additional columns at the end of the original dataframe. 
+
+```{r show stayevent, message=FALSE, warning=FALSE}
+
+stay_event <- uploadGeodata("multi_json_test") %>%
+  cleanDates(., "2019-04-22 21:30:45", "2019-08-05 15:17:47", addFlags = FALSE, "file1.json") %>% 
+  cleanDates(., "2019-04-22 21:30:45", "2019-08-05 15:17:47", addFlags = FALSE, "file2.json") %>% 
+  stayevent(., 
+            coor = c("lon","lat"), 
+            time = "datetime", 
+            dist.threshold = 100/3.28084, # conversion to feet PARAMETER
+            time.threshold = 5, # PARAMETER
+            time.units = "mins", 
+            groupvar = "filename")
+
+stay_event %>% 
+  head(10) %>% 
+  dplyr::select(filename, datetime, lat, lon, stayeventgroup, stayeventlon, stayeventlat) %>% 
+  kable(align = "r") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+
+**Common Errors**
+
+1. Function Definition Error
+- Message: `Error in groupdist(df, coor = coor, threshold = dist.threshold, groupvar = groupvar): object 'groupdist' not found`
+- Cause: The `groupdist` function is not defined or not loaded in the environment.
+- Solution: Ensure that the `groupdist` function (as well as the `grouptime` function) is defined and properly sourced or loaded in your environment before calling `stayevent`.
+
+2. Parameter Error
+- Message: `Error in aggregate(cbind(get(coor[1]), get(coor[2])) ~ stayeventgroup, df, mean): object 'coor' not found`
+- Cause: The `coor` parameter is not provided or incorrectly specified.
+- Solution: Provide a valid vector of coordinate column names (e.g., `coor = c("longitude", "latitude")`) when calling `stayevent`.
+
+3. Package Conflict Error (Warning)
+- Message: `The following objects are masked from package:plyr` or `The following objects are masked from package:dplyr`
+- Cause: The `plyr` package is loaded after `dplyr`, causing namespace conflicts. This could happen because the original version of the `groupdist` and `grouptime` functions were sourced from the `plyr` package. It is likely that the `plyr` package is loaded after the `dplyr` package, causing the masking of functions.
+- Solution: Detach the `plyr` package using `detach("package:plyr", unload = TRUE)` and then reload the `dplyr` package using `library(dplyr)`.
+
+## 4.2 Radius of Gyration
+
+The functions in this sub-section are used to calculate the radius of gyration for each individual in a dataset of geolocated time stamps. The radius of gyration is a measure of the spatial dispersion of points around their centroid. The `radiusofgyration` function calculates this metric based on the geographic coordinates of the points. The `sdspatialpoints` function is used within the `radiusofgyration` function to calculate the standard deviation of the distance between points and their centroid.
+
+### 4.2.1 sdspatialpoints
+
+**Description**\
+
+This function measures the distribution of spatial points by calculating standard deviation of the distance between points and their centroid. Centroid is the mean longitude and latitude of all the points provided. Distance is calculated based on Vincenty's great circle distance formula with default unit as meters.
+
+**Usage**\
+
+`sdspatialpoints(df, coor = NULL)`
+
+**Dependencies**\
+
+This function depends on the `geosphere` package in R.
+
+**Arguments**\
+
+`df`: A data frame containing geolocation data.\
+`coor`: A vector of two character strings specifying the column names for the longitude and latitude coordinates.
+
+**Value**\
+
+A numeric value representing the standard deviation of the distance between points and their centroid.
+
+**Code Breakdown**
+
+```{r sdspatialpoints function, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+sdspatialpoints<- function(df, coor = NULL, ...){
+  
+  require(geosphere)
+  
+  # Check if df is a simple vector and convert to data frame if necessary
+  if (is.atomic(df)) {
+    df <- data.frame(x = df)
+  }
+  # Check if geographic coordinates are provided
+  if (is.null(coor)) {
+    stop("Geographic coordinates must be supplied.")
+  }
+  # Calculate the standard deviation of spatial points
+  if (!is.null(coor)) {
+    # Calculate the mean coordinates (centroid) of the provided points
+    meancoor <- c(mean(df[[coor[1]]]), mean(df[[coor[2]]]))
+    # Combine the coordinate columns into a matrix
+    latlon<- cbind(df[,coor])
+    # Calculate the distance from each point to the centroid
+    latlon$dist<- distVincentyEllipsoid(latlon, meancoor, a=6378137, b=6356752.3142, f=1/298.257223563)
+    # Calculate the square of each distance
+    latlon$dist2<- latlon$dist^2
+    N<- nrow(latlon)
+    distsum<- sum(latlon$dist2)
+    # Calculate the standard deviation of distances
+    sd<- sqrt(distsum/N)
+    return(sd)
+  }
+}
+```
+
+**Demo**\
+
+Given that this is a sub-function buried deep in the main `radiusofgyration` function, we will be using a sample pseudo data frame for demonstration here, rather than the `processed_json_clean` data that we've used throughout.
+
+```{r sdspatialpoints demo,  message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+df <- data.frame(
+  longitude = c(-122.4194, -122.4195, -122.4196, -122.4197, -122.4198),
+  latitude = c(37.7749, 37.7750, 37.7751, 37.7752, 37.7753)
+)
+
+# Specify the coordinate columns
+coor <- c("longitude", "latitude")
+
+# Run the sdspatialpoints function and print the output
+sd <- sdspatialpoints(df, coor)
+```
+
+**Common Errors**
+
+Because this function is used within the `radiusofgyration` function, the error message might be slightly different than the error message we see here when running the function independently.
+
+1. Missing Coordinates
+- Message: `Error in sdspatialpoints(df, coor = NULL) : Geographic coordinates must be supplied.`
+- Cause: The coor argument is not provided or is NULL.
+- Solution: Ensure that you provide a valid vector of coordinate column names 
+
+2. Incorrect Data Frame Structure
+- Message: `Error in df[[coor[1]]] : subscript out of bounds`
+- Cause: The `coor` argument refers to column names that do not exist in the data frame.
+- Solution: Check that the column names specified in the `coor` argument match the column names in the data frame.
+
+3. Geometry Calculation Error
+- Message: `Error in distVincentyEllipsoid(latlon, meancoor, a = 6378137, b = 6356752.3142, f = 1/298.257223563) : object 'latlon' not found`
+- Cause: The `distVincentyEllipsoid` function is called with invalid arguments, possibly due to incorrect data types or structures.
+- Solution: Check that `latlon` is a matrix with numeric columns and that `meancoor` is a numeric vector.
+
+### 4.2.2 radiusofgyration
+
+**Description**\
+
+This function calculates radius of gyration, defined as the distance moved within a certain time period, grouped by time and optionally by another grouping variable.
+
+**Usage**\
+
+`radiusofgyration(df, coor = c("longitude", "latitude"), time = "timestamp", time.units = "hour", groupvar = "id")`
+
+**Dependencies**\
+
+This function depends on the `dplyr`, `tidyverse`, `lubridate`, and `geosphere` packages in R. It also uses a custom function `sdspatialpoints`. 
+
+**Arguments**\
+
+`df`: A data frame containing geolocation data.\
+`coor`: A vector of two character strings specifying the column names for the longitude and latitude coordinates.\
+`time`: A character string specifying the column name for the datetime values.\
+`time.units`: A character string specifying the time units for the time grouping. Options are "hour", "date", "month".\
+`groupvar`: Optional. A character string specifying the column name for the group variable.
+
+**Value**\
+
+A vector list of radius of gyration value matching to each spatial point in data frame. Points in the same time period specified in time.units have the same radius of gyration.
+ 
+**Code Breakdown**
+
+```{r radiusofgyration function, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+radiusofgyration<- function(df, coor = NULL, time = NULL, time.units = c("hour", "date", "month"), groupvar = NULL) {
+  
+  require(lubridate)
+  require(dplyr)
+  require(geosphere)
+  require(tidyverse)
+  
+  # Check if df is a simple vector and convert to data frame if necessary
+  if (is.atomic(df)) {
+    df <- data.frame(x = df)
+  }
+  # Check if geographic coordinates are provided
+  if (is.null(coor)) {
+    stop("Geographic coordinates must be supplied.")
+  }
+  # Check if time column is provided
+  if (is.null(time)) {
+    stop("A time object must be supplied.")
+  }
+  # Check if the time column is in POSIXct format
+  if (!is.POSIXct(df[time][[1]])){
+    stop("Time variable must be POSIXct format.")
+  }
+  # Ensure that time.units is a single value
+  if (length(time.units)!=1) {
+    stop("time.units must be a single value.")
+  }
+  # Ensure that time.units is one of "hour", "date", or "month"
+  if (!time.units %in% c("hour", "date", "month")) {
+    stop("time.units must be hour, date, or month. ")
+  }
+  
+  # Apply the function corresponding to time.units to the time column
+  df[[time.units]] <- switch(
+    time.units,
+    hour = hour(df[[time]]),
+    date = as.Date(df[[time]]),
+    month = month(df[[time]])
+  )
+  
+  # Group the data based on the provided groupvar and time.units
+  if (is.null(groupvar)) {
+    df <- df %>%
+      arrange(!!sym(time)) %>%
+      mutate(group = cumsum(c(1, diff(!!sym(time.units))) != 0))
+    message("groupvar is not provided, using time.units as grouping variable.")
+  } else {
+    df <- df %>%
+      arrange(!!sym(groupvar), !!sym(time)) %>%
+      group_by(!!sym(groupvar)) %>%
+      mutate(newid = interaction(!!sym(groupvar), !!sym(time.units), drop = TRUE)) %>%
+      ungroup() %>%
+      mutate(group = as.numeric(newid))
+  }
+  
+  # Calculate the radius of gyration for each group using dplyr
+  df3 <- df %>%
+    group_by(group) %>%
+    group_modify(~ data.frame(rg = sdspatialpoints(.x, coor = coor)))
+  
+  df <- df %>%
+    left_join(df3, by = "group")
+  
+  return(df$rg)
+}
+
+```
+
+**Demo**\
+
+We will be using the sample data again for demonstration. This function is designed to run after the `uploadGeodata`, `cleanDates`, and ideally `stayevent` functions so that we have the correct datetime and location information ready to compute the radius of gyration.
+
+```{r radius of gyration demo,  message=FALSE, warning=FALSE}
+
+gyration <- uploadGeodata("multi_json_test") %>%
+  cleanDates(., "2019-04-22 21:30:45", "2019-08-05 15:17:47", addFlags = FALSE, "file1.json") %>% 
+  cleanDates(., "2019-04-22 21:30:45", "2019-08-05 15:17:47", addFlags = FALSE, "file2.json") %>% 
+  stayevent(., 
+            coor = c("lon","lat"), 
+            time = "datetime", 
+            dist.threshold = 100/3.28084, 
+            time.threshold = 5, 
+            time.units = "mins", 
+            groupvar = "filename") %>%
+  mutate(rg_hr = radiusofgyration(., 
+                                  coor = c("lon","lat"), 
+                                  time = "datetime", 
+                                  time.units = "hour", 
+                                  groupvar = "filename")) 
+
+gyration %>% 
+  head(10) %>% 
+  dplyr::select(filename, datetime, lat, lon, stayeventgroup, stayeventlon, stayeventlat, rg_hr) %>% 
+  kable(align = "r") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) 
+```
+
+**Common Errors**
+
+1. Function Output Error
+- Message: `Unknown or uninitialised column: rg.`
+- Cause: The radius of gyration column (rg) is not present in the output data frame.
+- Solution: Ensure that the `sdspatialpoints` function returns a data frame with a column named `rg` that contains the radius of gyration values. Check the implementation of `sdspatialpoints`.
+
+2. Time Units Error
+- Message: `Error in switch(time.units, hour = hour(df[[time]]), date = as.Date(df[[time]]), : EXPR must be a length 1 vector`
+- Cause: The time.units argument is not a single value.
+- Solution: Ensure that the `time.units` argument is a single value (e.g., "hour", "date", "month") when calling the `radiusofgyration` function.
+
+3. Data Type Error
+- Message: `Error in as.POSIXct.default(df[time][[1]]) : do not know how to convert 'df[time][[1]]' to class “POSIXct”`
+- Cause: The time column is not in POSIXct format.
+- Solution: Ensure that the time column is in POSIXct format. You may need to convert the time column to POSIXct format before calling the `radiusofgyration` function.
+
+# 5. Visualization
+
+The code documented in this section are mainly used for visualization purposes. Specifically, the functions are used to create interactive maps and plots to visualize geolocation data, exposure data, and retailer data. The functions are designed to work with the `leaflet` package in R to create interactive maps and plots. 
+
+Note that at the time when the functions were written, the `leaflet` package was a popular choice for creating interactive maps in R. However, there are some excellent functions that now come with the tidyverse/ggplot2 suite that might be better to use for certain tasks. While leaflet is still a strong choice for spatial data visualizations, it is recommended that future users integrate these newer packages and functions from tidyverse to explore various visualization capabilities. 
+
+
+The four functions documented in this section are `retailersLeaflet`, `exposureLeaflet`, `geotrackingLeaflet`, and `graphicsFunctions`.
+
+1. The `graphicsFunctions` contains custom templates for creating plots and maps. 
+
+2. The `geotrackingleaflet` function creates an interactive map of geolocations subdivided by subjects.
+
+3. The `retailersLeaflet` function creates an interactive map of retailers with their license status.
+
+4. The `exposureLeaflet` function visualizes a random 5% sample of geotracking observations subdivided by subject with stay events visualized by size and exposures in red
+
+## 5.1 graphicsFunctions
+
+**Description**\
+
+The graphics functions R script file contains two templates for visualizing data: `plotTheme` for enhancing the visual appearance of plots and `mapTheme` for stylizing maps. 
+The `plotTheme` template adjusts various text elements, setting the plot title size to 12, subtitle size to 8, and caption size to 6. The x-axis text is sized at 10 and rotated 45 degrees for readability, while the y-axis text and title are also set to size 10. The entire chart and plot regions are given a blank background to remove any default styling. Major grid lines are formatted with a specific color and size, and axis ticks are removed for a cleaner look.
+The `mapTheme` template modifies the text elements similarly to `plotTheme`, with the title, subtitle, and caption sizes set to 12, 8, and 6 respectively. It removes axis lines, texts, ticks, and titles to declutter the map, ensuring a minimalist design. The panel background and border are set to blank, with major grid lines made transparent and minor grid lines removed. The legend is positioned vertically on the right, with specified margins and key dimensions to enhance the map's readability and aesthetics.
+
+**Usage**\
+
+`ggplot(data, aes(x, y)) + geom_point() + plotTheme`
+
+`ggplot(data, aes(x, y)) + geom_point() + mapTheme`
+
+**Dependencies**\
+
+This function depends on the `ggplot2` package in R. 
+
+**Arguments**\
+
+These scripts do not take any arguments directly as they define themes to be applied to ggplot2 objects.
+
+**Value**\
+
+The `plotTheme` and `mapTheme` scripts return ggplot2 theme objects that can be added to ggplot2 plots to apply the specified customization.
+
+**Code Breakdown**
+
+```{r plotting and mapping, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+plotTheme <- theme(
+  plot.title =element_text(size=12), # title
+  plot.subtitle = element_text(size=8), # subtitle
+  plot.caption = element_text(size = 6), # caption text
+  axis.text.x = element_text(size = 10, angle = 45, hjust = 1), # x-axis text
+  axis.text.y = element_text(size = 10), # y-axis text
+  axis.title.y = element_text(size = 10), # y-axis title text size
+  panel.background=element_blank(), # panel background
+  plot.background=element_blank(), # plot background
+  panel.grid.major=element_line(colour="#D0D0D0",size=.75), # major grid lines
+  axis.ticks=element_blank()) # axis ticks
+
+mapTheme <- theme(
+  plot.title =element_text(size=12), # title
+  plot.subtitle = element_text(size=8), # subtitle
+  plot.caption = element_text(size = 6), # caption text
+  axis.line=element_blank(), # axis lines
+  axis.text.x=element_blank(), # x-axis text
+  axis.text.y=element_blank(), # y-axis text
+  axis.ticks=element_blank(), # axis ticks
+  axis.title.x=element_blank(), # x-axis title
+  axis.title.y=element_blank(), # y-axis title
+  panel.background=element_blank(), # panel background
+  panel.border=element_blank(), # panel border
+  panel.grid.major=element_line(colour = 'transparent'), # major grid lines
+  panel.grid.minor=element_blank(), # minor grid lines
+  legend.direction = "vertical", # legend direction
+  legend.position = "right", # legend position
+  plot.margin = margin(1, 1, 1, 1, 'cm'), # plot margins
+  legend.key.height = unit(1, "cm"), legend.key.width = unit(0.2, "cm")) # legend key dimensions
+
+palette <- c("#10142A", "#47E9B9", "#F55D60", "#71EA48", "#C148EA", "#EAC148" )
+
+```
+
+**Demo**\
+
+The following code snippets demonstrate how the `plotTheme` and `mapTheme` templates can be applied to ggplot2 plots and maps to enhance their visual appearance. We will be using our processed sample data, `processed_json_clean`, to create a time series plot and a map of geolocation observations.
+
+```{r plotTheme demo,  message=FALSE, warning=FALSE}
+
+ggplot(processed_json_clean, aes(as.Date(datetime)))+
+    geom_freqpoly(bins = 50) +
+    scale_x_date((date_breaks = "1 month"))+
+    facet_wrap(~filename, scales = "free")+
+    labs(
+        title = "Time series of geo-location hits by subject",
+        y = "Number of observations",
+        x = "Date (1 month bins)")+
+    plotTheme
+
+```
+
+We will download county geometries for Pennsylvania, New Jersey, and Delaware and plot them along with the geolocation observations on a map using the `mapTheme` template.
+
+
+```{r download some county data, message=FALSE, warning=FALSE, include = FALSE, results='hide'}
+
+countyList <- c('Philadelphia', 'Delaware', 'Bucks', 'Montgomery',
+                'Chester', 'New Castle', 'Burlington', 'Camden',
+                'Gloucester', 'Salem', 'Cumberland', 'Berks',
+                'Lancaster', 'Mercer', 'Salem', 'Atlantic', 'Monmouth',
+                'Kent')
+
+counties <- counties(c('PA', 'NJ', 'DE')) %>%
+  st_as_sf()%>%
+  st_transform(crs=4326) %>%
+  filter(NAME %in% countyList)
+
+```
+
+
+```{r mapTheme demo, message=FALSE, warning=FALSE}
+
+ggplot()+
+  geom_sf(data = counties) +
+  geom_sf(data = location_w_tracts, alpha = 0.75, size = 0.5)+
+  labs(
+    title = "Demo geolocation observations",
+    subtitle = "Geometries represent selected PA/NJ/DE counties")+
+  facet_wrap(~filename)+
+  mapTheme
+
+```
+
+
+**Common Errors**\
+
+These custom theme functions, `plotTheme` and `mapTheme`, are designed to customize the appearance of plots created with ggplot2. When correctly defined and applied, there should not be many errors. However, these themes must be added to a ggplot object using the + operator. If you encounter errors, it is likely due to not applying these themes properly to a ggplot object or due to minor issues such as missing libraries or typos. Ensuring the themes are added correctly will help avoid most errors.
+
+## 5.2 geotrackingLeaflet
+
+**Description**\
+
+This function visualizes geolocation data on an interactive map using the `leaflet` package in R. It also allows for the visualization of multiple subjects' geolocation data on the same map, with the option to group stay events together.
+
+**Usage**\
+
+`geotrackingLeaflet(dataSet, stayEvents = FALSE)`
+
+**Dependencies**\
+
+This function depends on the `tidyverse`, `leaflet`, and `leaflet.providers` packages in R. It also uses the `leaflet.extras` package for additional functionality.
+
+**Arguments**\
+
+`dataSet`: A data frame containing geolocation data.\
+`stayEvents`: A logical value indicating whether to group stay events together. Default is FALSE.
+
+**Value**\
+
+The function returns an interactive Leaflet map object.
+
+
+**Code Breakdown**
+
+```{r geotrackingLeaflet function, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+geotrackingLeaflet <- function(dataSet, stayEvents = FALSE){
+  
+  require(tidyverse)
+  require(leaflet)
+  require(leaflet.providers)
+  require(leaflet.extras)
+  
+  # Filter dataset to include only rows with stayeventgroup information if not NA
+  stayeventgroup <- filter(dataSet,
+                       is.na(stayeventgroup) == FALSE)
+  
+  # Split the dataset based on the value of stayEvents flag
+  if(stayEvents == TRUE) {dataSet.df = split(stayeventgroup %>% as.data.frame(), stayeventgroup$filename)}
+  if(stayEvents == FALSE) {dataSet.df = split(dataSet %>% as.data.frame(), dataSet$filename)}
+
+  # Create a Leaflet map object
+  l <- leaflet() %>% 
+    addProviderTiles(providers$Esri.WorldTopoMap) %>%
+    setView(lng = mean(dataSet$lon, na.rm = TRUE), mean(dataSet$lat, na.rm = TRUE), zoom = 07) %>%
+    addScaleBar(position = "topleft")
+  
+  # Iterate through each dataset split by filename
+  names(dataSet.df) %>%
+    purrr::walk( function(df) {
+      l <<- l %>%
+        addCircleMarkers(data=dataSet.df[[df]],
+                   lng=~lon, 
+                   lat=~lat,
+                   radius =~ 1, 
+                   fillOpacity =~ 1,
+                   color =~ "blue",
+                   label=~paste("datetime:", datetime, ", rg_hr:", rg_hr ),
+                   group = df)
+    })
+  
+  # Add a layer control to toggle visibility of different datasets
+  l %>%
+    addLayersControl(
+      overlayGroups = names(dataSet.df),
+      options = layersControlOptions(collapsed = FALSE))
+}
+
+```
+
+**Demo**\
+
+The following code snippet demonstrates how the `geotrackingLeaflet` function can be used to visualize geolocation data on an interactive map. We will use the processed sample data, `gyration`, to create an interactive map of geolocation observations.
+
+
+```{r geotrackingLeaflet demo,  message=FALSE, warning=FALSE}
+
+geotrackingLeaflet(dataSet = gyration, stayEvents = TRUE)
+
+```
+
+**Common Errors**\
+
+1. Incorrect Data Format
+- Message: `Error in filter(dataSet, is.na(stayeventgroup) == FALSE): object 'stayeventgroup' not found`
+- Cause: The stayeventgroup column is not present in the dataset.
+- Solution: Ensure that the stayeventgroup column is present in the dataset before calling the `geotrackingLeaflet` function. Make sure you have run the `stayevent` and `radiusofgyration` functions before making this plot. 
+
+2. NA Values in Coordinates
+- Message: `Error in mean.default(dataSet$lon, na.rm = TRUE): 'x' must be numeric`
+- Cause: The longitude or latitude columns contain NA values.
+- Solution: Ensure that the longitude and latitude columns do not contain NA values before calling the `geotrackingLeaflet` function. May need to clean the data to remove or impute missing values.
+
+3. Incorrect Zoom Level
+- Message: Map appears zoomed out or inappropriately scaled.
+- Cause: The zoom level is not set correctly in the `setView` function.
+- Solution: Adjust the zoom level in the `setView` function to focus on the desired area and scale the map appropriately.
+
+## 5.3 retailersLeaflet
+
+**Description**\
+
+This function generates an interactive map using the Leaflet library to visualize the locations of active and expired retailers. It distinguishes between active and expired retailers using different marker colors and allows toggling between these groups.
+
+**Usage**\
+
+`retailersLeaflet(dataSet)`
+
+**Dependencies**\
+
+This function depends on the `leaflet` and `tidyverse`package in R.
+
+**Arguments**\
+
+`dataSet`: A data frame containing retailer data with columns for longitude, latitude, trade name, address, and expiration status.
+
+**Value**\
+
+The function returns an interactive Leaflet map object with active and expired retailers displayed as markers.
+
+**Code Breakdown**
+
+```{r retailersLeaflet function, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+retailersLeaflet <- function(dataSet){
+  
+  require(leaflet)
+  
+  # Filter the dataset to get active retailers
+  active <- dataSet %>%
+    filter(expired_y_n == "ACTIVE")
+  
+  # Filter the dataset to get expired retailers
+  expired <- dataSet %>%
+    filter(expired_y_n != "ACTIVE")
+  
+  # Initialize a leaflet map centered at specific coordinates with a specified zoom level
+  m4 <- leaflet() %>%
+    setView(lng = -77.475127, lat = 40.726604, zoom = 07) %>%
+    addProviderTiles(providers$Esri.WorldTopoMap) %>%
+    # Add markers for active retailers
+    addCircleMarkers(lng= as.numeric(active$lon), 
+                     lat= as.numeric(active$lat), 
+                     radius = 1,
+                     fillOpacity = 1,
+                     color= "red",
+                     label = paste(active$trade_name, "|", active$address_full),
+                     group = "Active Retailers") %>%
+    # Add markers for expired retailers
+    addCircleMarkers(lng= as.numeric(expired$lon), 
+                     lat= as.numeric(expired$lat), 
+                     radius = 0.5,
+                     fillOpacity = 1,
+                     color= "blue",
+                     label = paste(expired$trade_name, "|",
+                                   expired$address_full),
+                     group = "Expired Retailers") %>%
+   # Add a layer control to toggle visibility of active and expired retailers
+   addLayersControl(
+     overlayGroups = c("Active Retailers", 
+                      "Expired Retailers"),
+     options = layersControlOptions(collapsed = TRUE)) %>%
+     # Add legends for active and expired retailers
+     addLegend(color = "blue", 
+               labels = "Expired Retailers",
+               group = "Expired Retailers",
+               position = "topright") %>%
+     addLegend(color = "red", 
+               labels = "Active Retailers",
+               group = "Active Retailers",
+               position = "topright")  %>% 
+     # Add a scale bar
+     addScaleBar(position = "topleft")
+  
+   m4 
+}
+```
+
+**Demo**\
+
+```{r retailersLeaflet demo,  message=FALSE, warning=FALSE}
+
+retailersLeaflet(sample_retailers)
+
+```
+
+**Common Errors**\
+
+1. Incorrect Data Format
+- Message: `Error in filter(dataSet, expired_y_n == "ACTIVE"): object 'expired_y_n' not found`
+- Cause: The expired_y_n column is not present in the dataset.
+- Solution: Ensure that the expired_y_n column is present in the dataset before calling the `retailersLeaflet` function. Check the column names and data structure of the dataset. If you run this function after the `intakeRetailers` function, this would typically avoid such error from happening again. 
+
+2. Invalid Coordinates
+- Message: `Error in leaflet::addCircleMarkers: invalid longitude/latitude`
+- Cause: The longitude or latitude values are out of range or not valid.
+- Solution: Check the longitude and latitude values in the dataset to ensure they are within the valid range for geographic coordinates: longitude values are between -180 and 180 and the latitude values are between -90 and 90.
+
+## 5.4 exposureLeaflet 
+
+**Description**\
+
+This function generates an interactive leaflet map visualizes exposures based on specific criteria such as speed thresholds and event conditions.
+
+**Usage**\
+
+`exposureLeaflet(dataSet, mph_thresh)`
+
+**Dependencies**\
+
+This function depends on the `tidyverse`, `leaflet`, `leaflet.providers`, and `leaflet.extras` packages in R.
+
+**Arguments**\
+
+`dataSet`: A data frame containing geolocation data with columns for filename, latitude, longitude, datetime, trade name, lagmph, expiration_date, and stayeventgroup.\
+`mph_thresh`: A numeric value representing the speed threshold for exposures.
+
+**Value**\
+
+The function returns an interactive Leaflet map object with exposures visualized based on the specified criteria.
+
+**Code Breakdown**
+
+```{r exposureLeaflet function, message=FALSE, warning=FALSE, class.source='fold-show', results='hide'}
+
+exposureLeaflet <- function(dataSet, mph_thresh){
+  
+  require(tidyverse)
+  require(leaflet)
+  require(leaflet.providers)
+  require(leaflet.extras)
+  
+  # Helper function to calculate the mode of a vector
+  getmode <- function(v) {
+    uniqv <- na.omit(unique(v)) 
+    uniqv[which.max(tabulate(match(v, uniqv)))] 
+  }
+  
+  dataSet <- dataSet %>% 
+    as.data.frame() %>% ungroup() %>% # Convert to dataframe and ungroup
+    mutate(filename = as.factor(filename)) # Convert filename to factor
+  dataSet.df <- dataSet %>% 
+    # Filter data based on trade_name and lagmph
+    filter(is.na(trade_name) == FALSE & lagmph < mph_thresh) %>% 
+    group_by(filename, lat, lon, datetime) %>% 
+    slice(1) %>% 
+    ungroup() %>% 
+    # Determine stay events and active exposures
+    mutate(is_stay_event = ifelse(grepl("NA", stayeventgroup) == FALSE, 1, 0),
+           likely_active_exposure = ifelse(datetime < expiration_date, 1, 0)) %>%
+    rbind(., dataSet %>%
+            # Include data with NA trade_name
+            filter(is.na(trade_name)== TRUE) %>%
+            mutate(is_stay_event = ifelse(grepl("NA", stayeventgroup) == FALSE, 1, 0),
+                   likely_active_exposure = 0)) %>%
+    group_by(filename) %>%
+    # For large datasets, trim down to a more workable number of observations.
+    slice_sample(prop = .05) %>% 
+    ungroup()
+  
+  # Initialize leaflet map
+  l <- leaflet() %>% 
+    addProviderTiles(providers$Esri.WorldTopoMap) %>%
+    setView(lng = getmode(dataSet.df$lon), lat = getmode(dataSet.df$lat), zoom = 11) %>%
+    addScaleBar(position = "topleft")
+  # Split data by filename for grouping in the map
+  dataSet.df2 = split(dataSet.df, dataSet.df$filename)
+  
+  # Add data points to the map
+  names(dataSet.df2) %>%
+    purrr::walk( function(df) {
+      
+      pal <- colorFactor(c("navy", "red"), domain = c(1, 0))
+      
+      l <<- l %>%
+        addCircleMarkers(data=dataSet.df2[[df]],
+                         lng=~lon, 
+                         lat=~lat,
+                         radius = ~ifelse(is_stay_event == 1, 8, 3), 
+                         fillOpacity =~ .5,
+                         color =~pal(likely_active_exposure),
+                         label=~paste("datetime:", datetime, ", Active (0/1)", likely_active_exposure, trade_name ),
+                         group = df)
+    })
+  
+  # Add layer control to the map
+  l %>%
+    addLayersControl(
+      overlayGroups = names(dataSet.df2),
+      options = layersControlOptions(collapsed = TRUE)) #%>%
+   # hideGroup(names(dataSet.df2))
+}
+```
+
+**Demo**\
+
+```{r exposureLeaflet data,  message=FALSE, warning=FALSE, include=FALSE}
+
+exposure <- uploadGeodata("multi_json_test") %>%
+  cleanDates(., "2019-04-22 21:30:45", "2019-08-05 15:17:47", addFlags = FALSE, "file1.json") %>% # parameter
+  cleanDates(., "2019-04-22 21:30:45", "2019-08-05 15:17:47", addFlags = FALSE, "file2.json") %>% # parameter
+  stayevent(., 
+            coor = c("lon","lat"), 
+            time = "datetime", 
+            dist.threshold = 100/3.28084, # conversion to feet PARAMETER
+            time.threshold = 5, # PARAMETER
+            time.units = "mins", 
+            groupvar = "filename") %>%
+  mutate(rg_hr = radiusofgyration(., 
+                                  coor = c("lon","lat"), 
+                                  time = "datetime", 
+                                  time.units = "hour", # PARAMETER
+                                  groupvar = "filename")) %>%
+  spaceTimeLags(., 2272) %>% 
+  bufferAndJoin(sample_retailers, ., 2272, 100) 
+
+```
+
+To successfully run this function, the input dataframe need to have the following columns: `filename`, `latitude`, `longitude`, `datetime`, `trade_name`, `lagmph`, `expiration_date`, and `stayeventgroup`.This means that we need to run through at least the `cleanDates`, `stayevent`, `spaceTimeLags`, and `bufferAndJoin` functions before running this function. 
+
+```{r exposureLeaflet demo,  message=FALSE, warning=FALSE}
+
+exposureLeaflet(exposure, 20)
+
+```
+
+
+**Common Errors**\
+
+1. Incorrect Data Format
+- Message: `Error in mutate: object 'filename' not found`
+- Cause: The input `dataSet` does not contain the expected columns such as `filename`, `lat`, `lon`, `datetime`, `trade_name`, `lagmph`, `stayeventgroup`, `expiration_date`.
+- Solution: Ensure that the input `dataSet` contains the required columns before calling the `exposureLeaflet` function. The quick way is to run all required functions before calling this function. 
+2. Invalid Threshold Value
+- Message: `Error in filter: comparison (6) is possible only for atomic and list types`
+- Cause: The `mph_thresh` argument is not a numeric value.
+- Solution: Ensure that the `mph_thresh` argument is a numeric value representing the speed threshold for exposures. Check the data type of the `mph_thresh` argument before calling the function.
+
+3. Non-SF Object for Map
+- Message: `Error in leaflet: no applicable method for 'leaflet' applied to an object of class "data.frame"`
+- Cause: The `dataSet` is not properly converted to an sf object or the required columns are missing.
+- Solution: Ensure that the `dataSet` is properly formatted as an sf object with the required columns before calling the `exposureLeaflet` function. Check the data structure and column names of the `dataSet`.
+
+
+

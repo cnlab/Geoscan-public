@@ -1,0 +1,11 @@
+scale name,column name,reverse,min,max,transform,sum,mean
+cesd,cesd_1,0,0,3,0,sum,mean
+cesd,cesd_2,0,0,3,0,sum,mean
+cesd,cesd_3,0,0,3,0,sum,mean
+cesd,cesd_4,0,0,3,0,sum,mean
+cesd,cesd_5,1,0,3,0,sum,mean
+cesd,cesd_6,0,0,3,0,sum,mean
+cesd,cesd_7,0,0,3,0,sum,mean
+cesd,cesd_8,1,0,3,0,sum,mean
+cesd,cesd_9,0,0,3,0,sum,mean
+cesd,cesd_10,0,0,3,0,sum,mean

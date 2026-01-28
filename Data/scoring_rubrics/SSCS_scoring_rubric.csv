@@ -1,0 +1,7 @@
+scale name,column name,reverse,min,max,transform,sum,mean,sscs_1,sscs_2,sscs_3,sscs_4,sscs_5,sscs_6
+SSCS,sscs_1,0,1,7,0,sum,mean,1,,,,,
+SSCS,sscs_2,0,1,7,0,sum,mean,,1,,,,
+SSCS,sscs_3,0,1,7,0,sum,mean,,,1,,,
+SSCS,sscs_4,0,1,7,0,sum,mean,,,,1,,
+SSCS,sscs_5,0,1,7,0,sum,mean,,,,,1,
+SSCS,sscs_6,0,1,7,0,sum,mean,,,,,,1

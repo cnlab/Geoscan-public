@@ -1,0 +1,66 @@
+# Setup {.tabset}
+## Set scripts directory
+```{r, echo=FALSE}
+if ("Scripts" %in% unlist(strsplit(normalizePath("."), "/"))) {
+  scripts_directory = paste(unlist(strsplit(normalizePath("."), "/"))[1:which(unlist(strsplit(normalizePath("."), "/"))=="Scripts")],collapse="/")
+} else {
+  print("Select any file within Scripts to set up the path")
+  temp = file.choose()
+  scripts_directory = paste(unlist(strsplit(temp, "/"))[1:which(unlist(strsplit(temp, "/"))=="Scripts")],collapse="/")
+}
+```
+
+## Load analysis functions
+```{r}
+source(file.path(scripts_directory, 
+                 "Utility Scripts", 
+                 "geo_analysis2.r")) # <- Change the file to load different scripts, e.g. "geo_lifedata.r"
+
+source(file.path(scripts_directory, 
+                 "Utility Scripts", 
+                 "geo_lifedata.r"))
+```
+
+Load ema
+```{r}
+ema = load_lifedata()
+ema_wide = load_lifedata(format = "wide")
+```
+
+## Load EMA, and covariate data
+```{r}
+EMA_Baseline_Covariates_Distinct = load_ema_with_covs(Type="Baseline",
+                                                      ema_variables = c("day", "daily_average_crave", "daily_cigs", "daily_stress"),
+                        redcap_variables = c("pid","age","gender","ethnicity","race")) %>%
+  add_survey_measure("FTND", session=1) %>%
+  add_descriptives(vars="platformType") %>%
+  distinct()
+```
+
+```{r, echo=FALSE}
+# Load in geo data
+geo_data_baseline_exposures = load_geo_exposures(Type="Baseline")
+```
+
+## Join Data
+```{r}
+All_data <- left_join(geo_data_baseline_exposures, EMA_Baseline_Covariates_Distinct, by = c("pid", "day"))
+```
+
+## Writing models
+```{r}
+## Define models
+exposure_model_500ft_wins = create_model_function(
+  "daily_exposures_500ft_100ft_wins_wn + daily_exposures_500ft_100ft_wins_bw + day + (1|pid)"
+  )
+
+# Use the model with covariates
+lme_craving_1000ft_100ft = 
+  exposure_model_1000ft_wins(
+    data = Final_df, 
+    dv = "daily_average_crave_wins",
+    covs ="age")
+summary(lme_craving_1000ft_100ft)
+```
+
+

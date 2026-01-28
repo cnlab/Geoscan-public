@@ -1,0 +1,665 @@
+---
+title: "aim_3_preprocessing"
+author: "Ben Muzekari"
+date: "2025-10-09"
+output: html_document
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,      # Show code by default
+  message = FALSE,  # Suppress messages by default
+  warning = FALSE   # Suppress warnings by default
+)
+```
+
+# Setup {.tabset}
+## Set scripts directory
+```{r, echo=FALSE}
+if ("Scripts" %in% unlist(strsplit(normalizePath("."), "/"))) {
+  scripts_directory = paste(unlist(strsplit(normalizePath("."), "/"))[1:which(unlist(strsplit(normalizePath("."), "/"))=="Scripts")],collapse="/")
+} else {
+  print("Select any file within Scripts to set up the path")
+  temp = file.choose()
+  scripts_directory = paste(unlist(strsplit(temp, "/"))[1:which(unlist(strsplit(temp, "/"))=="Scripts")],collapse="/")
+}
+```
+
+## Load analysis functions
+```{r}
+source(file.path(scripts_directory, 
+                 "Utility Scripts", 
+                 "geo_analysis2.r"))
+```
+
+## Load baseline data
+## Survey
+```{r}
+EMA_Baseline_Covariates_Distinct = load_ema_with_covs(Type="Baseline",
+                                                      ema_variables = c("day", "Type", "daily_average_crave", "daily_cigs", "daily_stress", "daily_average_pos", "daily_average_neg"),
+                        redcap_variables = c("pid","age","gender","ethnicity","race","cond", "intervention_complete", "num_receipts")) %>%
+  add_survey_measure("FTND", session=1) %>%
+  add_descriptives(vars="platformType") %>%
+  distinct()
+```
+
+```{r}
+# load in the qualtrics data
+source(file.path(scripts_directory, "Utility Scripts/geo_qualtrics.r"))
+qualtrics <- load_qualtrics_survey_measures()
+```
+
+```{r}
+qualtrics_subset <- qualtrics %>%
+  select(pid, bhv_01_new_1_1_1, bhv_01_new_1_1_1, sm_session) %>%
+  filter(sm_session == 1)
+```
+
+```{r}
+EMA_Baseline_Covariates_Distinct <- EMA_Baseline_Covariates_Distinct %>%
+  left_join(qualtrics_subset %>% select(pid, bhv_01_new_1_1_1),
+            by = "pid")
+```
+
+# Geo
+```{r}
+geo_data_baseline_exposures = load_geo_exposures(Type="Baseline")
+```
+
+# Join survey and geo
+```{r}
+EMA_Baseline_all <- left_join(EMA_Baseline_Covariates_Distinct, geo_data_baseline_exposures, by = c("pid", "day"))
+```
+
+
+```{r}
+Baseline_Observations <- read_csv("/Volumes/cnlab/GeoRemote/Data/RetailerExposure/ConditionalBuffer/Baseline/1000ft_100ft_nExposures_nObservations.csv")
+```
+
+```{r}
+EMA_Baseline_all <- left_join(EMA_Baseline_all, Baseline_Observations, by = c("pid", "day"))
+```
+
+
+## Load intervention data
+## Survey
+```{r}
+EMA_Intervention_Covariates_Distinct = load_ema_with_covs(Type="Intervention",
+                                                      ema_variables = c("day", "Type", "daily_average_crave", "daily_cigs", "daily_stress", "daily_average_pos", "daily_average_neg"),
+                        redcap_variables = c("pid","age","gender","ethnicity","race","cond", "intervention_complete")) %>%
+  add_survey_measure("FTND", session=1) %>%
+  add_descriptives(vars="platformType") %>%
+  distinct()
+```
+
+# Geo
+```{r}
+geo_data_intervention_exposures = load_geo_exposures(Type="Intervention")
+```
+
+# Join survey and geo
+```{r}
+EMA_Intervention_all <- left_join(EMA_Intervention_Covariates_Distinct, geo_data_intervention_exposures, by = c("pid", "day"))
+```
+
+```{r}
+Intervention_Observations <- read_csv("/Volumes/cnlab/GeoRemote/Data/RetailerExposure/ConditionalBuffer/Intervention/1000ft_100ft_nExposures_nObservations.csv")
+```
+
+```{r}
+EMA_Intervention_all <- left_join(EMA_Intervention_all, Intervention_Observations, by = c("pid", "day"))
+```
+
+
+## combine baseline and intervention data
+```{r}
+EMA_combined <- bind_rows(
+  EMA_Baseline_all,
+  EMA_Intervention_all
+)
+```
+
+# Recode condition variable, set as factor, and set control group as the reference
+```{r, echo=FALSE}
+EMA_combined <- EMA_combined %>%
+  mutate(
+    cond = case_when(
+      cond == 1 ~ "Low",
+      cond == 2 ~ "High",
+      cond == 3 ~ "Control",
+      TRUE ~ as.character(cond) 
+    ),
+    cond = factor(cond, levels = c("Control", "Low", "High"))
+  )
+```
+
+# Rename Type to phase
+```{r}
+EMA_combined <- EMA_combined %>%
+  rename(phase = Type)
+```
+
+# get participant count and check how many participants are assigned a condition
+```{r}
+length(unique(EMA_combined$pid))
+# [1] 302
+
+EMA_combined %>%
+  filter(!is.na(cond)) %>%
+  summarise(n_unique_pid = n_distinct(pid))
+# 288	
+```
+
+# drop participants who are not assigned a condition
+```{r}
+EMA_combined <- EMA_combined %>%
+  filter(!is.na(cond))
+
+print(length(unique(EMA_combined$pid)))
+#[1] 288
+```
+
+# Remove 6 ppts who were not actually assigned to a condition
+```{r}
+pids_to_remove <- c("GR095", "GR153", "GR242", "GR258", "GR312", "GR316")
+
+EMA_combined <- EMA_combined %>%
+  filter(!pid %in% pids_to_remove)
+
+print(length(unique(EMA_combined$pid)))
+#[1] 282
+```
+
+# Add in geo data so we look at alternative metrics of exposure and mobility
+```{r}
+# baseline
+geo_data_stay_events_baseline <- read_csv("/Volumes/cnlab/GeoRemote/Data/Geodata/clean/stay_events/baseline/stay_events_baseline.csv")
+```
+
+```{r}
+# load US statess
+all_states <- states(cb = FALSE) 
+
+# convert df to sf object and match coordinate reference system
+gps_sf_baseline <- geo_data_stay_events_baseline %>%                     
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
+  st_transform(st_crs(all_states))
+
+# spatial join all states
+gps_with_states_baseline <- st_join(
+  gps_sf_baseline,
+  all_states["STUSPS"],
+  join = st_within   
+)
+
+# define study states
+study_states <- c("PA", "NJ", "DE")
+
+# add col that tells us whether the point is within the study area
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  mutate(in_study_area = STUSPS %in% study_states)    
+```
+
+```{r}
+# add col that tells us whether the participant has at least point is outside the study area by day
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  group_by(pid, day) %>%
+  mutate(
+    at_least_point_outside_by_day = any(!in_study_area | is.na(in_study_area))
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# add col that tells us percent of points inside study area by pid and by day
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  group_by(pid, day) %>%
+  mutate(
+    at_least_point_outside_by_day = any(!in_study_area | is.na(in_study_area)),
+    percent_of_points_inside = 100 * mean(in_study_area, na.rm = TRUE)
+  ) %>%
+  ungroup()
+```
+
+now let's get counts consecutive days when participants are entirely out of the study area
+```{r}
+# use distinct to avoid duplicates
+day_flags_zero <- gps_with_states_baseline %>%
+  distinct(pid, day, percent_of_points_inside)
+```
+
+```{r}
+# define all points outside
+day_flags_zero <- day_flags_zero %>%
+  mutate(all_points_outside = percent_of_points_inside == 0)
+```
+
+```{r}
+# define function to calculate streak 
+calc_streak <- function(x) {
+  streak <- integer(length(x))
+  count <- 0L
+  for (i in seq_along(x)) {
+    if (isTRUE(x[i])) {
+      count <- count + 1L
+      streak[i] <- count
+    } else {
+      count <- 0L
+      streak[i] <- 0L
+    }
+  }
+  streak
+}
+
+# apply function
+day_flags_zero <- day_flags_zero %>%
+  arrange(pid, day) %>%
+  group_by(pid) %>%
+  mutate(
+    consec_all_outside_days = calc_streak(all_points_outside)
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# join back to main df
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  left_join(
+    day_flags_zero %>% select(pid, day, all_points_outside, consec_all_outside_days),
+    by = c("pid", "day")
+  )
+```
+
+```{r}
+# get distance traveled including all points
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_all_points_included =
+      sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including all points under 125 mph
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  filter(is.na(lagmph) | lagmph < 125) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_all_points_included_under_125_mph =
+      sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including all points under 100 mph
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  filter(is.na(lagmph) | lagmph < 100) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_all_points_included_under_100_mph =
+      sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including all points under 75 mph
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  filter(is.na(lagmph) | lagmph < 75) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_all_points_included_under_75_mph =
+      sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including all points under 50 mph
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  filter(is.na(lagmph) | lagmph < 50) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_all_points_included_under_50_mph =
+      sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including all points under 25 mph
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  filter(is.na(lagmph) | lagmph < 25) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_all_points_included_under_25_mph =
+      sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including only points in study area
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_only_points_in_study_area =
+      sum(lagDist_ft * if_else(in_study_area %in% TRUE, 1, 0), na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including only points in study area under 125 mph
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  filter(is.na(lagmph) | lagmph < 125) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_only_points_in_study_area_under_125_mph =
+      sum(lagDist_ft * if_else(in_study_area %in% TRUE, 1, 0), na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including only points in study area under 100 mph
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  filter(is.na(lagmph) | lagmph < 100) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_only_points_in_study_area_under_100_mph =
+      sum(lagDist_ft * if_else(in_study_area %in% TRUE, 1, 0), na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including only points in study area under 75 mph
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  filter(is.na(lagmph) | lagmph < 75) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_only_points_in_study_area_under_75_mph =
+      sum(lagDist_ft * if_else(in_study_area %in% TRUE, 1, 0), na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including only points in study area under 50 mph
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  filter(is.na(lagmph) | lagmph < 50) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_only_points_in_study_area_under_50_mph =
+      sum(lagDist_ft * if_else(in_study_area %in% TRUE, 1, 0), na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including only points in study area under 25 mph
+gps_with_states_baseline <- gps_with_states_baseline %>%
+  filter(is.na(lagmph) | lagmph < 25) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_only_points_in_study_area_under_25_mph =
+      sum(lagDist_ft * if_else(in_study_area %in% TRUE, 1, 0), na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# create day-level summary df
+day_level_geo_df_baseline <- gps_with_states_baseline %>%
+  distinct(pid, day, at_least_point_outside_by_day, percent_of_points_inside,
+           distance_traveled_day_miles_all_points_included,
+           distance_traveled_day_miles_all_points_included_under_125_mph,
+           distance_traveled_day_miles_all_points_included_under_100_mph,
+           distance_traveled_day_miles_all_points_included_under_75_mph,
+           distance_traveled_day_miles_all_points_included_under_50_mph,
+           distance_traveled_day_miles_all_points_included_under_25_mph,
+           distance_traveled_day_miles_only_points_in_study_area,
+           distance_traveled_day_miles_only_points_in_study_area_under_125_mph,
+           distance_traveled_day_miles_only_points_in_study_area_under_100_mph,
+           distance_traveled_day_miles_only_points_in_study_area_under_75_mph,
+           distance_traveled_day_miles_only_points_in_study_area_under_50_mph,
+           distance_traveled_day_miles_only_points_in_study_area_under_25_mph)
+
+day_level_geo_df_baseline <- day_level_geo_df_baseline %>%
+  mutate(phase = "Baseline")
+```
+
+# Let's do the same, but for intervention
+```{r}
+# intervention
+geo_data_stay_events_intervention <- read_csv("/Volumes/cnlab/GeoRemote/Data/Geodata/clean/stay_events/intervention/stay_events_intervention.csv")
+```
+
+```{r}
+# convert df to sf object and match coordinate reference system
+gps_sf_intervention <- geo_data_stay_events_intervention %>%                     
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
+  st_transform(st_crs(all_states))
+
+# spatial join all states
+gps_with_states_intervention <- st_join(
+  gps_sf_intervention,
+  all_states["STUSPS"],
+  join = st_within   
+)
+
+# add col that tells us whether the point is within the study area
+gps_with_states_intervention <- gps_with_states_intervention %>%
+  mutate(in_study_area = STUSPS %in% study_states)    
+```
+
+```{r}
+# add col that tells us whether the participant has at least point is outside the study area by day
+gps_with_states_intervention <- gps_with_states_intervention %>%
+  group_by(pid, day) %>%
+  mutate(
+    at_least_point_outside_by_day = any(!in_study_area | is.na(in_study_area))
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# add col that tells us percent of points inside study area by pid and by day
+gps_with_states_intervention <- gps_with_states_intervention %>%
+  group_by(pid, day) %>%
+  mutate(
+    at_least_point_outside_by_day = any(!in_study_area | is.na(in_study_area)),
+    percent_of_points_inside = 100 * mean(in_study_area, na.rm = TRUE)
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including all points
+gps_with_states_intervention <- gps_with_states_intervention %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_all_points_included =
+      sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including all points under 125 mph
+gps_with_states_intervention <- gps_with_states_intervention %>%
+  filter(is.na(lagmph) | lagmph < 125) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_all_points_included_under_125_mph =
+      sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including all points under 100 mph
+gps_with_states_intervention <- gps_with_states_intervention %>%
+  filter(is.na(lagmph) | lagmph < 100) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_all_points_included_under_100_mph =
+      sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including all points under 75 mph
+gps_with_states_intervention <- gps_with_states_intervention %>%
+  filter(is.na(lagmph) | lagmph < 75) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_all_points_included_under_75_mph =
+      sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including all points under 50 mph
+gps_with_states_intervention <- gps_with_states_intervention %>%
+  filter(is.na(lagmph) | lagmph < 50) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_all_points_included_under_50_mph =
+      sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including all points under 25 mph
+gps_with_states_intervention <- gps_with_states_intervention %>%
+  filter(is.na(lagmph) | lagmph < 25) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_all_points_included_under_25_mph =
+      sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including only points in study area
+gps_with_states_intervention <- gps_with_states_intervention %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_only_points_in_study_area =
+      sum(lagDist_ft * if_else(in_study_area %in% TRUE, 1, 0), na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including only points in study area under 125 mph
+gps_with_states_intervention <- gps_with_states_intervention %>%
+  filter(is.na(lagmph) | lagmph < 125) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_only_points_in_study_area_under_125_mph =
+      sum(lagDist_ft * if_else(in_study_area %in% TRUE, 1, 0), na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including only points in study area under 100 mph
+gps_with_states_intervention <- gps_with_states_intervention %>%
+  filter(is.na(lagmph) | lagmph < 100) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_only_points_in_study_area_under_100_mph =
+      sum(lagDist_ft * if_else(in_study_area %in% TRUE, 1, 0), na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including only points in study area under 75 mph
+gps_with_states_intervention <- gps_with_states_intervention %>%
+  filter(is.na(lagmph) | lagmph < 75) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_only_points_in_study_area_under_75_mph =
+      sum(lagDist_ft * if_else(in_study_area %in% TRUE, 1, 0), na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including only points in study area under 50 mph
+gps_with_states_intervention <- gps_with_states_intervention %>%
+  filter(is.na(lagmph) | lagmph < 50) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_only_points_in_study_area_under_50_mph =
+      sum(lagDist_ft * if_else(in_study_area %in% TRUE, 1, 0), na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# get distance traveled including only points in study area under 25 mph
+gps_with_states_intervention <- gps_with_states_intervention %>%
+  filter(is.na(lagmph) | lagmph < 25) %>%
+  group_by(pid, day) %>%
+  mutate(
+    distance_traveled_day_miles_only_points_in_study_area_under_25_mph =
+      sum(lagDist_ft * if_else(in_study_area %in% TRUE, 1, 0), na.rm = TRUE) / 5280
+  ) %>%
+  ungroup()
+```
+
+```{r}
+# create day-level summary df
+day_level_geo_df_intervention <- gps_with_states_intervention %>%
+  distinct(pid, day, at_least_point_outside_by_day, percent_of_points_inside,
+           distance_traveled_day_miles_all_points_included,
+           distance_traveled_day_miles_all_points_included_under_125_mph,
+           distance_traveled_day_miles_all_points_included_under_100_mph,
+           distance_traveled_day_miles_all_points_included_under_75_mph,
+           distance_traveled_day_miles_all_points_included_under_50_mph,
+           distance_traveled_day_miles_all_points_included_under_25_mph,
+           distance_traveled_day_miles_only_points_in_study_area,
+           distance_traveled_day_miles_only_points_in_study_area_under_125_mph,
+           distance_traveled_day_miles_only_points_in_study_area_under_100_mph,
+           distance_traveled_day_miles_only_points_in_study_area_under_75_mph,
+           distance_traveled_day_miles_only_points_in_study_area_under_50_mph,
+           distance_traveled_day_miles_only_points_in_study_area_under_25_mph)
+
+day_level_geo_df_intervention <- day_level_geo_df_intervention %>%
+  mutate(phase = "Intervention")
+```
+
+```{r}
+# combine
+day_level_geo_df <- bind_rows(
+  day_level_geo_df_baseline,
+  day_level_geo_df_intervention
+)
+```
+
+```{r}
+# join ema and geo data
+EMA_geo_combined <- EMA_combined %>%
+  left_join(
+    day_level_geo_df,
+    by = c("pid", "day", "phase")
+  )
+```
+
+# write out df
+```{r}
+write.csv(EMA_geo_combined, "/Volumes/cnlab/GeoRemote/Output/aim_3/EMA_geo_combined.csv", row.names = FALSE)
+```
+

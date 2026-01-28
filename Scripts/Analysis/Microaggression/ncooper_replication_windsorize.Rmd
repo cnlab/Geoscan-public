@@ -1,0 +1,265 @@
+---
+title: "baseline_analysis"
+author: "Ben Muzekari"
+date: "2024-08-02"
+output: html_document
+---
+
+### requires that ncooper_replication has already been run 
+
+```{r}
+library(robustHD)
+winsorizedDF <- All_data %>% group_by(pid) %>%
+ mutate(exposures = (Winsorize(exposures, na.rm = TRUE)),
+         daily_average_crave = (Winsorize(daily_average_crave, na.rm = TRUE)),
+         daily_average_neg = (Winsorize(daily_average_neg, na.rm = TRUE)),
+         stress_rating = (Winsorize(stress_rating, na.rm = TRUE)),
+         microagg = (Winsorize(microagg, na.rm = TRUE)),
+         daily_cigs = Winsorize(daily_cigs, na.rm = TRUE))
+```
+
+
+
+
+## Calculate within and between exposure, microaggression, stress, and negative mood measures
+```{r}
+#splitting exposures into within and between components
+winsorizedDF$exposureSplit <- with(winsorizedDF, ave(exposures, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+winsorizedDF$discrim_any_split <- with(winsorizedDF, ave(microagg, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+winsorizedDF$discrim_count_split <- with(winsorizedDF, ave(microagg_count, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+winsorizedDF$neg_split <- with(winsorizedDF, ave(daily_average_neg, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+winsorizedDF$stress_split <- with(winsorizedDF, ave(stress_rating, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+
+#Set the grand mean
+winsorizedDF$exposureGMean <- ave(winsorizedDF$exposureSplit, na.rm = TRUE)
+winsorizedDF$discrim_any_GMean <- ave(winsorizedDF$discrim_any_split, na.rm = TRUE)
+winsorizedDF$discrim_count_GMean <- ave(winsorizedDF$discrim_count_split, na.rm = TRUE)
+winsorizedDF$neg_GMean <- ave(winsorizedDF$neg_split, na.rm = TRUE)
+winsorizedDF$stress_GMean <- ave(winsorizedDF$stress_split, na.rm = TRUE)
+
+#Subtract grand mean from the raw exposures
+winsorizedDF$exposurec <- winsorizedDF$exposures - winsorizedDF$exposureGMean
+winsorizedDF$discrim_any_c <- winsorizedDF$microagg - winsorizedDF$discrim_any_GMean
+winsorizedDF$discrim_count_c <- winsorizedDF$microagg_count - winsorizedDF$discrim_count_GMean
+winsorizedDF$neg_c <- winsorizedDF$daily_average_neg - winsorizedDF$neg_GMean
+winsorizedDF$stress_c <- winsorizedDF$stress_rating - winsorizedDF$stress_GMean
+
+#Now we create a between-subjects mean from this grand mean centered variable
+winsorizedDF$exposurebw <- with(winsorizedDF, ave(exposurec, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+winsorizedDF$discrim_any_bw <- with(winsorizedDF, ave(discrim_any_c, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+winsorizedDF$discrim_count_bw <- with(winsorizedDF, ave(discrim_count_c, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+winsorizedDF$neg_bw <- with(winsorizedDF, ave(neg_c, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+winsorizedDF$stress_bw <- with(winsorizedDF, ave(stress_c, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+
+#And then a within-subjects mean using this between-subject mean
+winsorizedDF$exposurewn <- winsorizedDF$exposurec - winsorizedDF$exposurebw
+winsorizedDF$discrim_any_wn <- winsorizedDF$discrim_any_c - winsorizedDF$discrim_any_bw
+winsorizedDF$discrim_count_wn <- winsorizedDF$discrim_count_c - winsorizedDF$discrim_count_bw
+winsorizedDF$neg_wn <- winsorizedDF$neg_c - winsorizedDF$neg_bw
+winsorizedDF$stress_wn <- winsorizedDF$stress_c - winsorizedDF$stress_bw
+
+```
+
+# correlation of negative affect variables
+```{r}
+cor(winsorizedDF$daily_average_neg, winsorizedDF$stress_rating, use = "complete.obs")
+library(rmcorr)
+rmcorr(pid, neg_wn, stress_wn, winsorizedDF)
+
+```
+# Hypotheses & Research Questions
+(switched all models from lme to lmer becuase lme was getting errors when I tried adding random effects)
+
+##Stress as an outcome
+
+### Hypothesis 1:
+On days when smokers experience interpersonal discrimination, they will feel more stressed and negative than they will on days when they don’t experience interpersonal discrimination 
+```{r}
+H1a <- lmer(stress_rating ~ 1 + discrim_any_wn + discrim_any_bw + day + (1 + discrim_any_wn | pid), 
+            data = winsorizedDF)
+summary(H1a)
+
+summary(lmer(stress_rating ~ 1 + discrim_count_wn + discrim_count_bw + day + (1 + discrim_count_wn | pid), 
+            data = winsorizedDF))
+
+
+winsorizedDFNA <- winsorizedDF[complete.cases(winsorizedDF$stress_rating),]
+winsorizedDFNA <- winsorizedDFNA[complete.cases(winsorizedDFNA$microagg),]
+#winsorizedDFNA <- winsorizedDFNA[complete.cases(winsorizedDFNA$daysCrave),]
+#winsorizedDFNA <- winsorizedDFNA[complete.cases(winsorizedDFNA$regSpeedStayEvent_100ft),]
+
+H1aplot <- lmer(stress_rating ~ 1 + microagg + day + (1  | pid), 
+            data = winsorizedDFNA)
+summary(H1aplot)
+```
+###Plot/Viz
+```{r}
+winsorizedDFNA$predH1 <- predict(H1aplot)
+
+ggplot(data=winsorizedDFNA, aes(x=microagg, y=predH1, group=factor(pid), color="gray"), legend=FALSE) +
+  geom_smooth(method=lm, se=FALSE, fullrange=FALSE, lty=1, linewidth=.5, color="gray40") +
+  geom_smooth(aes(group=1), method=lm, se=FALSE, fullrange=FALSE, lty=1, size=2, color="green3") +
+  xlab("Interpersonal Discrimination") + ylab("Predicted Stress") +
+  theme_classic() +
+  theme(axis.title=element_text(size=18),
+        axis.text=element_text(size=14),
+        plot.title=element_text(size=18, hjust=.5)) +
+  ggtitle("Interpersonal discrimination makes people more stresed")
+```
+
+
+### main effect of exposure
+```{r}
+Slow.Stress<- lmer(stress_rating ~ 1 + exposurewn + exposurebw + day + (1 | pid), 
+             data=winsorizedDF) #model failed to converge so took out random effects 
+summary(Slow.Stress)
+```
+### H4 interactions on stress outcome
+```{r}
+#only main effect of wn and bw discrim
+H4aSlow.Stress<- lmer(stress_rating ~ 1 + discrim_any_wn + discrim_any_bw + exposurewn + exposurebw + discrim_any_wn*exposurewn + day + (1 | pid), 
+             data=winsorizedDF) #model failed to converge so took out random effects 
+
+summary(H4aSlow.Stress)
+```
+
+##Negative mood as an outcome
+
+### Hypothesis 1:
+On days when smokers experience interpersonal discrimination, they will feel more stressed and negative than they will on days when they don’t experience interpersonal discrimination 
+```{r}
+H1a_neg <- lmer(daily_average_neg ~ 1 + discrim_any_wn + discrim_any_bw + day + (1 + discrim_any_wn | pid), 
+            data = winsorizedDF)
+summary(H1a_neg)
+
+
+# following model is rank deficient with or without random effects
+summary(lmer(daily_average_neg ~ 1 + discrim_count_wn + discrim_count_bw + day + (1  | pid), 
+            data = winsorizedDF))
+
+```
+
+
+### main effect of exposure
+```{r}
+Slow.Neg<- lmer(daily_average_neg ~ 1 + exposurewn + exposurebw + day + (1 | pid), 
+             data=winsorizedDF) #model failed to converge so took out random effects 
+summary(Slow.Neg)
+```
+### H4 interactions on neg mood outcome
+```{r}
+#only main effect of wn and bw discrim
+H4aSlow.Neg<- lmer(daily_average_neg ~ 1 + microagg + exposurewn + exposurebw + microagg*exposurewn + day + (1 | pid), 
+             data=winsorizedDF) #model failed to converge so took out random effects 
+
+summary(H4aSlow.Neg)
+```
+
+## Cig craving as an outcome
+```{r}
+H2 <- lmer(daily_average_crave ~ 1 + discrim_any_wn + discrim_any_bw + day + (1  | pid), 
+            data = winsorizedDF)
+summary(H2)
+
+summary(lmer(daily_average_crave ~ 1 + discrim_count_wn + discrim_count_bw + day + (1 + discrim_count_wn | pid), 
+            data = winsorizedDF))
+
+
+H2 <- lmer(daily_average_crave ~ 1 + microagg +  day + (1  | pid), 
+            data = winsorizedDF)
+summary(H2)
+```
+
+```{r}
+winsorizedDFNA <- winsorizedDF[complete.cases(winsorizedDF$stress_rating),]
+winsorizedDFNA <- winsorizedDFNA[complete.cases(winsorizedDFNA$microagg),]
+winsorizedDFNA <- winsorizedDFNA[complete.cases(winsorizedDFNA$daily_average_crave),]
+```
+
+```{r}
+H2a_plot <- lmer(daily_average_crave ~ 1 + microagg + day + (1  | pid), 
+            data = winsorizedDFNA)
+summary(H2a_plot)
+```
+
+###Plot/Viz
+```{r}
+winsorizedDFNA$predH2 <- predict(H2a_plot)
+
+ggplot(data=winsorizedDFNA, aes(x=microagg, y=predH2, group=factor(pid), color="gray"), legend=FALSE) +
+  geom_smooth(method=lm, se=FALSE, fullrange=FALSE, lty=1, linewidth=.5, color="gray40") +
+  geom_smooth(aes(group=1), method=lm, se=FALSE, fullrange=FALSE, lty=1, size=2, color="green3") +
+  xlab("Interpersonal Discrimination") + ylab("Predicted Craving") +
+  theme_classic() +
+  theme(axis.title=element_text(size=18),
+        axis.text=element_text(size=14),
+        plot.title=element_text(size=18, hjust=.5)) +
+  ggtitle("Interpersonal discrimination increases cigarette craving")
+``````
+
+
+```{r}
+winsorizedDFNA <- winsorizedDF[complete.cases(winsorizedDF$stress_rating),]
+winsorizedDFNA <- winsorizedDFNA[complete.cases(winsorizedDFNA$microagg),]
+winsorizedDFNA <- winsorizedDFNA[complete.cases(winsorizedDFNA$daily_average_crave),]
+winsorizedDFNA <- winsorizedDFNA[complete.cases(winsorizedDFNA$daily_cigs),]
+
+```
+
+```{r}
+H3a_plot <- lmer(daily_cigs ~ 1 + microagg + day + (1  | pid), 
+            data = winsorizedDFNA)
+summary(H3a_plot)
+```
+
+###Plot/Viz
+```{r}
+winsorizedDFNA$predH3 <- predict(H3a_plot)
+
+ggplot(data=winsorizedDFNA, aes(x=microagg, y=predH3, group=factor(pid), color="gray"), legend=FALSE) +
+  geom_smooth(method=lm, se=FALSE, fullrange=FALSE, lty=1, linewidth=.5, color="gray40") +
+  geom_smooth(aes(group=1), method=lm, se=FALSE, fullrange=FALSE, lty=1, size=2, color="green3") +
+  xlab("Interpersonal Discrimination") + ylab("Predicted Smoking") +
+  theme_classic() +
+  theme(axis.title=element_text(size=18),
+        axis.text=element_text(size=14),
+        plot.title=element_text(size=18, hjust=.5)) +
+  ggtitle("Interpersonal discrimination increases cigarette smoking")
+``````
+
+###Craving, exposure, microaggression
+```{r}
+H4crave <- lmer(daily_average_crave ~ 1 + microagg + exposurewn + exposurebw + microagg*exposurewn + day + (1  | pid), data = winsorizedDF, na.action = na.omit) #took out discrim_any_wn and discrim_any_wn*regSpeedExpo_100ft_wn random effects to to singularity error; also exposurewn
+
+summary(H4crave)
+
+
+Hnew <- lmer(exposures ~ 1 + microagg + daily_average_crave + day + (1  | pid), data = winsorizedDF, na.action = na.omit) #took out discrim_any_wn and discrim_any_wn*regSpeedExpo_100ft_wn random effects to to singularity error; also exposurewn
+
+summary(Hnew)
+
+
+Hnew <- lmer(daily_cigs ~ 1 + exposurewn + exposurebw + microagg + day + (1  | pid), data = winsorizedDF, na.action = na.omit) #took out discrim_any_wn and discrim_any_wn*regSpeedExpo_100ft_wn random effects to to singularity error; also exposurewn
+summary(Hnew)
+```
+
+
+H4aSlow.Neg<- lmer(daily_average_neg ~ 1 + discrim_any_wn + discrim_any_bw + exposurewn + exposurebw + discrim_any_wn*exposurewn + day + (1 | pid), 
+             data=winsorizedDF) #model failed to converge so took out random effects 
+
+
+####plotting interaction 
+```{r}
+library(ggiraph)
+library(ggiraphExtra)
+library(ggeffects)
+
+# Define the variables for the interaction plot
+terms <- c("discrim_any_wn", "exposurewn")
+
+# Use ggpredict to calculate and plot the interaction
+interact_plot_primary1 <- ggpredict(H4aSlow.Neg, terms)
+
+# Print the interaction plot
+plot(interact_plot_primary1)
+```

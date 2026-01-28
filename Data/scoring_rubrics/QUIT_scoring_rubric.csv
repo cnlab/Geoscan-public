@@ -1,0 +1,9 @@
+scale name,column name,reverse,min,max,transform,quit_01,quit_02,quit_03,quit_04,quit_05_1,quit_05_2,quit_05_3,quit_05_4
+QUIT,quit_01,0,1,5,0,1,,,,,,,
+QUIT,quit_02,0,1,2,0,,1,,,,,,
+QUIT,quit_03,0,1,2,0,,,1,,,,,
+QUIT,quit_04,0,1,3,0,,,,1,,,,
+QUIT,quit_05_1,0,1,5,0,,,,,1,,,
+QUIT,quit_05_2,0,1,5,0,,,,,,1,,
+QUIT,quit_05_3,0,1,5,0,,,,,,,1,
+QUIT,quit_05_4,0,1,5,0,,,,,,,,1

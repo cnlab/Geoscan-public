@@ -1,0 +1,3793 @@
+---
+title: "Intervention Analysis"
+output: html_document
+---
+
+This document contains plots and statistics for the intervention data from the GeoSmoking Study.
+
+The data used in this script is from *"/Volumes/cnlab/GeoRemote/Output/aim_3/all_data.csv"*. This data file was generated via *"/GeoRemote/Scripts/Analysis/aim_3_preprocessing.Rmd"* which serves to preproccess and export the data so it could then imported in this script in ready-to-analyze form.
+
+The subject-by-condition breakdown is the following:
+
+**Intent-to-treat (N = 282)**
+
+Control: 70 Low Exposure: 105 High Exposure: 107
+
+**Subjects with full compliance (N = 167)**
+
+Control: 66
+Low Exposure: 57 
+High Exposure: 44
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,     
+  message = FALSE,  
+  warning = FALSE   
+)
+```
+
+```{r, echo=FALSE}
+# Set scripts directory
+if ("Scripts" %in% unlist(strsplit(normalizePath("."), "/"))) {
+  scripts_directory = paste(unlist(strsplit(normalizePath("."), "/"))[1:which(unlist(strsplit(normalizePath("."), "/"))=="Scripts")],collapse="/")
+} else {
+  print("Select any file within Scripts to set up the path")
+  temp = file.choose()
+  scripts_directory = paste(unlist(strsplit(temp, "/"))[1:which(unlist(strsplit(temp, "/"))=="Scripts")],collapse="/")
+}
+```
+
+```{r}
+# Load analysis functions
+library(ggplot2) # having trouble loading this is in with the utility scripts, so loading alone
+source(file.path(scripts_directory, 
+                 "Utility Scripts", 
+                 "geo_analysis2.r"))
+```
+
+```{r}
+# Read data
+itt <-read.csv("/Volumes/cnlab/GeoRemote/Output/aim_3/EMA_geo_combined.csv")
+```
+
+```{r}
+# I am winsorizng and splitting variables in this script because we will have to do this twice: once for intent-to-treat and once for completers
+
+# Winsorize variables
+itt = winsorize_variables(itt, 
+                               c("daily_average_crave",
+                                 "daily_cigs", 
+                                 "daily_stress",
+                                 "daily_average_neg",
+                                 "daily_average_pos",
+                                 "daily_exposures_500ft_100ft",
+                                 "daily_exposures_1000ft_100ft"))
+
+# Split variables
+itt <- split_within_between(itt,
+                                 c("daily_average_crave",
+                                 "daily_cigs", 
+                                 "daily_stress",
+                                 "daily_average_neg",
+                                 "daily_average_pos",
+                                 "daily_exposures_500ft_100ft",
+                                 "daily_exposures_1000ft_100ft"))
+```
+
+```{r}
+# set factor levels in particular order so they are presented in this order when for analysis
+itt$cond <- factor(itt$cond,
+                       levels = c("Control", "Low", "High"))
+```
+
+```{r}
+#print(length(unique(itt$pid)))
+#[1] 282
+```
+
+```{r}
+# itt %>%
+#   group_by(cond) %>%
+#   summarise(n = n_distinct(pid))
+# 1 Control    70
+# 2 Low       105
+# 3 High      107
+```
+
+```{r}
+# read the data in again, but this time call it completers
+completers <-read.csv("/Volumes/cnlab/GeoRemote/Output/aim_3/EMA_geo_combined.csv")
+```
+
+```{r}
+# Subset to those who only completed all 20 store visits
+completers <- completers[completers$intervention_complete == 1, ]
+#print(length(unique(completers$pid)))
+#[1] 168
+
+### check NUMBERS ####
+```
+
+```{r}
+# Winsorize variables
+completers = winsorize_variables(completers, 
+                               c("daily_average_crave",
+                                 "daily_cigs", 
+                                 "daily_stress",
+                                 "daily_average_neg",
+                                 "daily_average_pos",
+                                 "daily_exposures_500ft_100ft",
+                                 "daily_exposures_1000ft_100ft"))
+
+# Split variables
+completers <- split_within_between(completers,
+                                 c("daily_average_crave",
+                                 "daily_cigs", 
+                                 "daily_stress",
+                                 "daily_average_neg",
+                                 "daily_average_pos",
+                                 "daily_exposures_500ft_100ft",
+                                 "daily_exposures_1000ft_100ft"))
+```
+
+```{r}
+# set factor levels in particular order so they are presented in this order when for analysis
+completers$cond <- factor(completers$cond,
+                       levels = c("Control", "Low", "High"))
+```
+
+```{r}
+# completers %>%
+#   group_by(cond) %>%
+#   summarise(n = n_distinct(pid))
+# 
+# 1 Control    66
+# 2 Low        44
+# 3 High       57
+# 4 NA          1
+
+###### note to deal with NA here ##########
+```
+
+```{r}
+# create a function to calculate the mean and standard error
+calc_mean_se <- function(data, var, group_by_phase = TRUE, pid_col = "pid",
+                         output = c("summary", "pid")) {
+  output <- match.arg(output)
+  v   <- rlang::ensym(var)
+  pid <- rlang::sym(pid_col)
+
+  if (group_by_phase) {
+    pid_level <- data %>%
+      dplyr::group_by(!!pid, phase, cond) %>%
+      dplyr::summarise(pid_mean = mean(!!v, na.rm = TRUE), .groups = "drop") %>%
+      dplyr::filter(!is.nan(pid_mean))
+
+    summary <- pid_level %>%
+      dplyr::group_by(phase, cond) %>%
+      dplyr::summarise(
+        n_pids = dplyr::n(),
+        mean   = mean(pid_mean),
+        se     = if (dplyr::n() > 1) stats::sd(pid_mean) / sqrt(dplyr::n()) else NA_real_,
+        .groups = "drop"
+      )
+  } else {
+    pid_level <- data %>%
+      dplyr::group_by(!!pid, cond) %>%
+      dplyr::summarise(pid_mean = mean(!!v, na.rm = TRUE), .groups = "drop") %>%
+      dplyr::filter(!is.nan(pid_mean))
+
+    summary <- pid_level %>%
+      dplyr::group_by(cond) %>%
+      dplyr::summarise(
+        n_pids = dplyr::n(),
+        mean   = mean(pid_mean),
+        se     = if (dplyr::n() > 1) stats::sd(pid_mean) / sqrt(dplyr::n()) else NA_real_,
+        .groups = "drop"
+      )
+  }
+
+  if (output == "pid") pid_level else summary
+}
+```
+
+```{r}
+# Palette for phase comparisons
+palette_phase <- c(
+  "Baseline"     = "#79C3BC",  
+  "Intervention" = "#C37980"   
+)
+
+# Palette for condition comparisons
+palette_condition <- c(
+  "Control" = "#C29B5B",  # deep teal
+  "Low"     = "#5BC29B",
+  "High"    = "#9B5BC2"   # rust
+)
+```
+
+# Plots and models of primary outcomes {.tabset}
+
+```{r}
+# create dfs that have 2 rows per subject, like we preregistered: https://osf.io/acbje/overview
+
+model_df_itt <- itt %>%
+  group_by(pid, phase, cond) %>%
+  summarize(
+    mean_crave_wins = mean(daily_average_crave_wins, na.rm = TRUE),
+    mean_cigs_wins  = mean(daily_cigs_wins, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+model_df_completers <- completers %>%
+  group_by(pid, phase, cond) %>%
+  summarize(
+    mean_crave_wins = mean(daily_average_crave_wins, na.rm = TRUE),
+    mean_cigs_wins  = mean(daily_cigs_wins, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+## Craving {.tabset}
+
+### Intent-to-treat
+
+```{r}
+craving_summary_itt <- calc_mean_se(
+  itt,
+  "daily_average_crave_wins",
+  group_by_phase = TRUE,
+  output = "summary"
+)
+
+ggplot(craving_summary_itt, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(position = position_dodge(0.6), color = "black", width = 0.6) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                position = position_dodge(0.6), width = 0.2) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Mean daily craving", fill = "Phase",
+       title = "Mean daily craving by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+
+# plot distributions 
+craving_pid_means_itt <- calc_mean_se(itt, daily_average_crave, TRUE, output = "pid")
+
+ggplot(craving_pid_means_itt,
+       aes(x = pid_mean)) +
+  geom_histogram(bins = 20, color = "black", fill = "#79C3BC") +
+  facet_grid(phase ~ cond) +
+  labs(
+    title = "Distribution of mean daily craving by condition and phase",
+    x = "Mean daily craving",
+    y = "Count"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+# preregistered
+craving_lme <- lmer(mean_crave_wins ~ phase * cond + (1|pid), data = model_df_itt)
+summary(craving_lme)
+
+# using repeated measures approach
+craving_lme_by_row <- lmer(daily_average_crave_wins ~ phase * cond + (phase|pid), data = itt)
+summary(craving_lme_by_row)
+
+# using repeated measures approach, no random slope
+craving_lme_by_row_no_slope <- lmer(daily_average_crave_wins ~ phase * cond + (1|pid), data = itt)
+summary(craving_lme_by_row_no_slope)
+```
+
+
+### Completers
+
+```{r}
+craving_summary_completers <- calc_mean_se(completers, "daily_average_crave_wins", group_by_phase = TRUE, output = "summary")
+
+ggplot(craving_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(position = position_dodge(0.6), color = "black", width = 0.6) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                position = position_dodge(0.6), width = 0.2) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Mean daily craving", fill = "Phase",
+       title = "Mean daily craving by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+
+# plot distributions 
+craving_pid_means_completers <- calc_mean_se(completers, daily_average_crave, TRUE, output = "pid")
+
+ggplot(craving_pid_means_completers,
+       aes(x = pid_mean)) +
+  geom_histogram(bins = 20, color = "black", fill = "#79C3BC") +
+  facet_grid(phase ~ cond) +
+  labs(
+    title = "Distribution of mean daily craving by condition and phase",
+    x = "Mean daily craving",
+    y = "Count"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+# preregistered
+craving_lme <- lmer(mean_crave_wins ~ phase * cond + (1|pid), data = model_df_completers)
+summary(craving_lme)
+
+# using repeated measures approach
+craving_lme_by_row <- lmer(daily_average_crave_wins ~ phase * cond + (phase|pid), data = completers)
+summary(craving_lme_by_row)
+
+# using repeated measures approach, no random slope
+craving_lme_by_row_no_slope <- lmer(daily_average_crave_wins ~ phase * cond + (1|pid), data = completers)
+summary(craving_lme_by_row_no_slope)
+
+
+##### why are there only 167 subjects, but 168 when counting above? ###### CHECK
+```
+
+### Completers: covariates
+
+# FTND
+```{r}
+# using repeated measures approach
+craving_lme_by_row <- lmer(daily_average_crave_wins ~ phase * cond + FTND_score + (phase|pid), data = completers)
+summary(craving_lme_by_row)
+
+# using repeated measures approach, no random slope
+craving_lme_by_row_no_slope <- lmer(daily_average_crave_wins ~ phase * cond + FTND_score + (1|pid), data = completers)
+summary(craving_lme_by_row_no_slope)
+```
+
+# Age
+```{r}
+# using repeated measures approach
+craving_lme_by_row <- lmer(daily_average_crave_wins ~ phase * cond + age + (phase|pid), data = completers)
+summary(craving_lme_by_row)
+
+# using repeated measures approach, no random slope
+craving_lme_by_row_no_slope <- lmer(daily_average_crave_wins ~ phase * cond + age + (1|pid), data = completers)
+summary(craving_lme_by_row_no_slope)
+```
+
+# Gender
+```{r}
+# using repeated measures approach
+craving_lme_by_row <- lmer(daily_average_crave_wins ~ phase * cond + gender + (phase|pid), data = completers)
+summary(craving_lme_by_row)
+
+# using repeated measures approach, no random slope
+craving_lme_by_row_no_slope <- lmer(daily_average_crave_wins ~ phase * cond + gender + (1|pid), data = completers)
+summary(craving_lme_by_row_no_slope)
+```
+
+# Ethnicity
+```{r}
+# using repeated measures approach
+craving_lme_by_row <- lmer(daily_average_crave_wins ~ phase * cond + ethnicity + (phase|pid), data = completers)
+summary(craving_lme_by_row)
+
+# using repeated measures approach, no random slope
+craving_lme_by_row_no_slope <- lmer(daily_average_crave_wins ~ phase * cond + ethnicity + (1|pid), data = completers)
+summary(craving_lme_by_row_no_slope)
+```
+
+# Race
+```{r}
+# using repeated measures approach
+craving_lme_by_row <- lmer(daily_average_crave_wins ~ phase * cond + race + (phase|pid), data = completers)
+summary(craving_lme_by_row)
+
+# using repeated measures approach, no random slope
+craving_lme_by_row_no_slope <- lmer(daily_average_crave_wins ~ phase * cond + race + (1|pid), data = completers)
+summary(craving_lme_by_row_no_slope)
+```
+
+# Stress
+```{r}
+# using repeated measures approach
+craving_lme_by_row <- lmer(daily_average_crave_wins ~ phase * cond + daily_stress_wins + (phase|pid), data = completers)
+summary(craving_lme_by_row)
+
+# using repeated measures approach, no random slope
+craving_lme_by_row_no_slope <- lmer(daily_cigs_wins ~ phase * cond + daily_stress_wins + (1|pid), data = completers)
+summary(craving_lme_by_row_no_slope)
+```
+
+# Negative mood
+```{r}
+# using repeated measures approach
+craving_lme_by_row <- lmer(daily_average_crave_wins ~ phase * cond + daily_average_neg_wins + (phase|pid), data = completers)
+summary(craving_lme_by_row)
+
+# using repeated measures approach, no random slope
+craving_lme_by_row_no_slope <- lmer(daily_average_crave_wins ~ phase * cond + daily_average_neg_wins + (1|pid), data = completers)
+summary(craving_lme_by_row_no_slope)
+```
+
+# Positive mood
+```{r}
+# using repeated measures approach
+craving_lme_by_row <- lmer(daily_average_crave_wins ~ phase * cond + daily_average_pos_wins + (phase|pid), data = completers)
+summary(craving_lme_by_row)
+
+# using repeated measures approach, no random slope
+craving_lme_by_row_no_slope <- lmer(daily_average_crave_wins ~ phase * cond + daily_average_pos_wins + (1|pid), data = completers)
+summary(craving_lme_by_row_no_slope)
+```
+
+# Exposure
+```{r}
+# using repeated measures approach
+craving_lme_by_row <- lmer(daily_average_crave_wins ~ phase * cond + daily_exposures_1000ft_100ft + (phase|pid), data = completers)
+summary(craving_lme_by_row)
+
+# using repeated measures approach, no random slope
+craving_lme_by_row_no_slope <- lmer(daily_average_crave_wins ~ phase * cond + daily_exposures_1000ft_100ft + (1|pid), data = completers)
+summary(craving_lme_by_row_no_slope)
+```
+
+# All covariates
+```{r}
+# using repeated measures approach
+craving_lme_by_row <- lmer(daily_average_crave_wins ~ phase * cond + FTND_score + age + gender + ethnicity + race + daily_stress_wins + daily_average_neg_wins + daily_average_pos_wins + daily_exposures_1000ft_100ft + (phase|pid), data = completers)
+summary(craving_lme_by_row)
+
+# using repeated measures approach, no random slope
+craving_lme_by_row_no_slope <- lmer(daily_average_crave_wins ~ phase * cond + FTND_score + age + gender + ethnicity + race + daily_stress_wins + daily_average_neg_wins + daily_average_pos_wins + daily_exposures_1000ft_100ft + (1|pid), data = completers)
+summary(craving_lme_by_row_no_slope)
+```
+
+## Smoking {.tabset}
+
+### Intent-to-treat
+
+```{r}
+smoking_summary_itt <- calc_mean_se(itt, "daily_cigs_wins", group_by_phase = TRUE, output = "summary")
+
+ggplot(smoking_summary_itt, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(position = position_dodge(0.6), color = "black", width = 0.6) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                position = position_dodge(0.6), width = 0.2) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Daily cigarettes", fill = "Phase",
+       title = "Daily cigarettes by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+
+# plot distributions 
+smoking_pid_means_itt <- calc_mean_se(itt, daily_cigs, TRUE, output = "pid")
+
+ggplot(smoking_pid_means_itt,
+       aes(x = pid_mean)) +
+  geom_histogram(bins = 20, color = "black", fill = "#79C3BC") +
+  facet_grid(phase ~ cond) +
+  labs(
+    title = "Distribution of daily cigarettes by condition and phase",
+    x = "Mean daily cigarettes",
+    y = "Count"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+# preregistered
+smoking_lme <- lmer(mean_cigs_wins ~ phase * cond + (1|pid), data = model_df_itt)
+summary(smoking_lme)
+
+# using repeated measures approach
+smoking_lme_by_row <- lmer(daily_cigs_wins ~ phase * cond + (phase|pid), data = itt)
+summary(smoking_lme_by_row)
+
+# using repeated measures approach, no random slope
+smoking_lme_by_row_no_slope <- lmer(daily_cigs_wins ~ phase * cond + (1|pid), data = itt)
+summary(smoking_lme_by_row_no_slope)
+```
+
+### Completers
+
+```{r}
+smoking_summary_completers <- calc_mean_se(completers, "daily_cigs_wins", group_by_phase = TRUE,  output = "summary")
+
+ggplot(smoking_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(position = position_dodge(0.6), color = "black", width = 0.6) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                position = position_dodge(0.6), width = 0.2) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Daily cigarettes", fill = "Phase",
+       title = "Daily cigarettes by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+
+# plot distributions 
+smoking_pid_means_completers <- calc_mean_se(completers, daily_cigs, TRUE, output = "pid")
+
+ggplot(smoking_pid_means_completers,
+       aes(x = pid_mean)) +
+  geom_histogram(bins = 20, color = "black", fill = "#79C3BC") +
+  facet_grid(phase ~ cond) +
+  labs(
+    title = "Distribution of daily cigarettes by condition and phase",
+    x = "Mean daily cigarettes",
+    y = "Count"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+# preregistered
+smoking_lme <- lmer(mean_cigs_wins ~ phase * cond + (1|pid), data = model_df_completers)
+summary(smoking_lme)
+
+# using repeated measures approach
+smoking_lme_by_row <- lmer(daily_cigs_wins ~ phase * cond + (phase|pid), data = completers)
+summary(smoking_lme_by_row)
+
+# using repeated measures approach, no random slope
+smoking_lme_by_row_no_slope <- lmer(daily_cigs_wins ~ phase * cond + (1|pid), data = completers)
+summary(smoking_lme_by_row_no_slope)
+```
+### Completers: covariates
+
+# FTND
+```{r}
+# using repeated measures approach
+smoking_lme_by_row <- lmer(daily_cigs_wins ~ phase * cond + FTND_score + (phase|pid), data = completers)
+summary(smoking_lme_by_row)
+
+# using repeated measures approach, no random slope
+smoking_lme_by_row_no_slope <- lmer(daily_cigs_wins ~ phase * cond + FTND_score + (1|pid), data = completers)
+summary(smoking_lme_by_row_no_slope)
+```
+
+# Age
+```{r}
+# using repeated measures approach
+smoking_lme_by_row <- lmer(daily_cigs_wins ~ phase * cond + age + (phase|pid), data = completers)
+summary(smoking_lme_by_row)
+
+# using repeated measures approach, no random slope
+smoking_lme_by_row_no_slope <- lmer(daily_cigs_wins ~ phase * cond + age + (1|pid), data = completers)
+summary(smoking_lme_by_row_no_slope)
+```
+
+# Gender
+```{r}
+# using repeated measures approach
+smoking_lme_by_row <- lmer(daily_cigs_wins ~ phase * cond + gender + (phase|pid), data = completers)
+summary(smoking_lme_by_row)
+
+# using repeated measures approach, no random slope
+smoking_lme_by_row_no_slope <- lmer(daily_cigs_wins ~ phase * cond + gender + (1|pid), data = completers)
+summary(smoking_lme_by_row_no_slope)
+```
+
+# Ethnicity
+```{r}
+# using repeated measures approach
+smoking_lme_by_row <- lmer(daily_cigs_wins ~ phase * cond + ethnicity + (phase|pid), data = completers)
+summary(smoking_lme_by_row)
+
+# using repeated measures approach, no random slope
+smoking_lme_by_row_no_slope <- lmer(daily_cigs_wins ~ phase * cond + ethnicity + (1|pid), data = completers)
+summary(smoking_lme_by_row_no_slope)
+```
+
+# Race
+```{r}
+# using repeated measures approach
+smoking_lme_by_row <- lmer(daily_cigs_wins ~ phase * cond + race + (phase|pid), data = completers)
+summary(smoking_lme_by_row)
+
+# using repeated measures approach, no random slope
+smoking_lme_by_row_no_slope <- lmer(daily_cigs_wins ~ phase * cond + race + (1|pid), data = completers)
+summary(smoking_lme_by_row_no_slope)
+```
+
+# Stress
+```{r}
+# using repeated measures approach
+smoking_lme_by_row <- lmer(daily_cigs_wins ~ phase * cond + daily_stress_wins + (phase|pid), data = completers)
+summary(smoking_lme_by_row)
+
+# using repeated measures approach, no random slope
+smoking_lme_by_row_no_slope <- lmer(daily_cigs_wins ~ phase * cond + daily_stress_wins + (1|pid), data = completers)
+summary(smoking_lme_by_row_no_slope)
+```
+
+# Negative mood
+```{r}
+# using repeated measures approach
+smoking_lme_by_row <- lmer(daily_cigs_wins ~ phase * cond + daily_average_neg_wins + (phase|pid), data = completers)
+summary(smoking_lme_by_row)
+
+# using repeated measures approach, no random slope
+smoking_lme_by_row_no_slope <- lmer(daily_cigs_wins ~ phase * cond + daily_average_neg_wins + (1|pid), data = completers)
+summary(smoking_lme_by_row_no_slope)
+```
+
+# Positive mood
+```{r}
+# using repeated measures approach
+smoking_lme_by_row <- lmer(daily_cigs_wins ~ phase * cond + daily_average_pos_wins + (phase|pid), data = completers)
+summary(smoking_lme_by_row)
+
+# using repeated measures approach, no random slope
+smoking_lme_by_row_no_slope <- lmer(daily_cigs_wins ~ phase * cond + daily_average_pos_wins + (1|pid), data = completers)
+summary(smoking_lme_by_row_no_slope)
+```
+
+# Exposure
+```{r}
+# using repeated measures approach
+smoking_lme_by_row <- lmer(daily_cigs_wins ~ phase * cond + daily_exposures_1000ft_100ft + (phase|pid), data = completers)
+summary(smoking_lme_by_row)
+
+# using repeated measures approach, no random slope
+smoking_lme_by_row_no_slope <- lmer(daily_cigs_wins ~ phase * cond + daily_exposures_1000ft_100ft + (1|pid), data = completers)
+summary(smoking_lme_by_row_no_slope)
+```
+
+# All covariates
+```{r}
+# using repeated measures approach
+smoking_lme_by_row <- lmer(daily_cigs_wins ~ phase * cond + FTND_score + age + gender + ethnicity + race + daily_stress_wins + daily_average_neg_wins + daily_average_pos_wins + daily_exposures_1000ft_100ft + (phase|pid), data = completers)
+summary(smoking_lme_by_row)
+
+# using repeated measures approach, no random slope
+smoking_lme_by_row_no_slope <- lmer(daily_cigs_wins ~ phase * cond + FTND_score + age + gender + ethnicity + race + daily_stress_wins + daily_average_neg_wins + daily_average_pos_wins + daily_exposures_1000ft_100ft + (1|pid), data = completers)
+summary(smoking_lme_by_row_no_slope)
+```
+
+
+# Test whether variables predict compliance {.tabset}
+
+```{r}
+itt_means <- itt %>%
+  group_by(pid) %>%
+  filter(phase == "Baseline") %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE))
+```
+
+```{r}
+model <- lm(num_receipts ~ FTND_score, data = itt_means)
+summary(model)
+```
+
+```{r}
+itt_means_low <- itt %>%
+  group_by(pid) %>%
+  filter(cond == "Low") %>%
+  filter(phase == "Baseline") %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE))
+
+model <- lm(num_receipts ~ FTND_score, data = itt_means_low)
+summary(model)
+```
+
+```{r}
+itt_means_high <- itt %>%
+  group_by(pid) %>%
+  filter(cond == "High") %>%
+  filter(phase == "Baseline") %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE))
+
+model <- lm(num_receipts ~ FTND_score, data = itt_means_high)
+summary(model)
+```
+
+```{r}
+model <- lm(num_receipts ~ daily_cigs_wins, data = itt_means)
+summary(model)
+```
+
+```{r}
+model <- lm(num_receipts ~ daily_average_crave, data = itt_means)
+summary(model)
+```
+
+```{r}
+model <- lm(num_receipts ~ daily_stress_wins, data = itt_means)
+summary(model)
+```
+
+```{r}
+model <- lm(num_receipts ~ daily_average_neg_wins, data = itt_means)
+summary(model)
+```
+
+```{r}
+model <- lm(num_receipts ~ daily_average_pos_wins, data = itt_means)
+summary(model)
+```
+
+```{r}
+model <- lm(num_receipts ~ age, data = itt_means)
+summary(model)
+```
+
+```{r}
+#model <- lm(num_receipts ~ baseline_smoking, data = itt_means)
+#summary(model)
+```
+
+```{r}
+#cor.test(itt_means$baseline_smoking, itt_means$FTND_score)
+```
+
+
+
+```{r}
+model <- lm(num_receipts ~ daily_exposures_1000ft_100ft_wins, data = itt_means)
+summary(model)
+```
+
+
+
+
+# Plots of additional variables {.tabset}
+
+## FTND
+
+```{r}
+ftnd_summary <- calc_mean_se(completers, "FTND_score", group_by_phase = FALSE)
+
+# plot
+ggplot(ftnd_summary, aes(x = cond, y = mean, fill = cond)) +
+  geom_col(color = "black", width = 0.6) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), width = 0.2) +
+  scale_fill_manual(values = palette_condition) +
+  labs(x = "Condition", y = "FTND score",
+       title = "Mean FTND score by condition") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Age
+
+```{r}
+age_summary <- calc_mean_se(completers, "age", group_by_phase = FALSE)
+
+# plot
+ggplot(age_summary, aes(x = cond, y = mean, fill = cond)) +
+  geom_col(color = "black", width = 0.6) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), width = 0.2) +
+  scale_fill_manual(values = palette_condition) +
+  labs(x = "Condition", y = "Age",
+       title = "Mean age by condition") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Exposures 1000 feet (Intent-to-treat)
+```{r}
+exposures_summary_itt <- calc_mean_se(itt, "daily_exposures_1000ft_100ft", group_by_phase = TRUE)
+
+ggplot(exposures_summary_itt, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Daily exposures", fill = "Phase",
+       title = "Daily exposures by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+
+# plot distributions 
+exposures_pid_means_itt <- calc_mean_se(itt, daily_exposures_1000ft_100ft, TRUE, output = "pid")
+
+ggplot(exposures_pid_means_itt,
+       aes(x = pid_mean)) +
+  geom_histogram(bins = 20, color = "black", fill = "#79C3BC") +
+  facet_grid(phase ~ cond) +
+  labs(
+    title = "Distribution of daily exposures by condition and phase",
+    x = "Mean daily exposures",
+    y = "Count"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+
+# using repeated measures approach
+daily_exposures_lme_by_row <- lmer(daily_exposures_1000ft_100ft  ~ phase * cond + (phase|pid), data = itt)
+summary(daily_exposures_lme_by_row)
+
+# using repeated measures approach, no random slope
+daily_exposures_lme_by_row_no_slope <- lmer(daily_exposures_1000ft_100ft ~ phase * cond + (1|pid), data = itt)
+summary(daily_exposures_lme_by_row_no_slope)
+```
+
+## Exposures 1000 feet (Intent-to-treat): excluding days where at least one point is outside study areas
+```{r}
+exposures_summary_itt_exclude_at_least_point_outside_by_day <- itt %>%
+  dplyr::filter(at_least_point_outside_by_day == FALSE) %>%
+  calc_mean_se("daily_exposures_1000ft_100ft", group_by_phase = TRUE)
+
+ggplot(exposures_summary_itt_exclude_at_least_point_outside_by_day, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(
+    aes(ymin = mean - se, ymax = mean + se),
+    width = 0.2,
+    position = position_dodge(0.6)
+  ) +
+  scale_fill_manual(values = palette_phase) +
+  labs(
+    x = "Condition",
+    y = "Daily exposures",
+    fill = "Phase",
+    title = "Daily exposures by condition and phase"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    axis.text = element_text(color = "black"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+```
+
+
+
+## Exposures 1000 feet (Completers)
+```{r}
+exposures_summary_completers <- calc_mean_se(completers, "daily_exposures_1000ft_100ft", group_by_phase = TRUE)
+
+ggplot(exposures_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Daily exposures", fill = "Phase",
+       title = "Daily exposures by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+
+# plot distributions 
+exposures_pid_means_completers <- calc_mean_se(completers, daily_exposures_500ft_100ft, TRUE, output = "pid")
+
+ggplot(exposures_pid_means_completers,
+       aes(x = pid_mean)) +
+  geom_histogram(bins = 20, color = "black", fill = "#79C3BC") +
+  facet_grid(phase ~ cond) +
+  labs(
+    title = "Distribution of daily exposures by condition and phase",
+    x = "Mean daily exposures",
+    y = "Count"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+# using repeated measures approach
+daily_exposures_lme_by_row_completers <- lmer(daily_exposures_1000ft_100ft  ~ phase * cond + (phase|pid), data = completers)
+summary(daily_exposures_lme_by_row_completers)
+
+# using repeated measures approach, no random slope
+daily_exposures_by_row_no_slope_completers <- lmer(daily_exposures_1000ft_100ft ~ phase * cond + (1|pid), data = completers)
+summary(daily_exposures_by_row_no_slope_completers)
+```
+
+## Exposures 1000 feet (Completers): excluding days where at least one point is outside study areas
+```{r}
+exposures_summary_completers_exclude_at_least_point_outside_by_day <- completers %>%
+  dplyr::filter(at_least_point_outside_by_day == FALSE) %>%
+  calc_mean_se("daily_exposures_1000ft_100ft", group_by_phase = TRUE)
+
+ggplot(exposures_summary_completers_exclude_at_least_point_outside_by_day, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(
+    aes(ymin = mean - se, ymax = mean + se),
+    width = 0.2,
+    position = position_dodge(0.6)
+  ) +
+  scale_fill_manual(values = palette_phase) +
+  labs(
+    x = "Condition",
+    y = "Daily exposures",
+    fill = "Phase",
+    title = "Daily exposures by condition and phase"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    axis.text = element_text(color = "black"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+```
+
+## Exposures 1000 feet (Completers): IOS Users
+```{r}
+# subset to just IOS users
+completers_ios <- completers %>% 
+  filter(platformType == "IOS")
+
+exposures_summary_completers_ios <- calc_mean_se(completers_ios, "daily_exposures_1000ft_100ft", group_by_phase = TRUE)
+
+ggplot(exposures_summary_completers_ios, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Daily exposures", fill = "Phase",
+       title = "Daily exposures by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+
+# plot distributions 
+exposures_pid_means_completers_ios <- calc_mean_se(completers_ios, daily_exposures_1000ft_100ft, TRUE, output = "pid")
+
+ggplot(exposures_pid_means_completers_ios,
+       aes(x = pid_mean)) +
+  geom_histogram(bins = 20, color = "black", fill = "#79C3BC") +
+  facet_grid(phase ~ cond) +
+  labs(
+    title = "Distribution of daily exposures by condition and phase",
+    x = "Mean daily exposures",
+    y = "Count"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(hjust = 0.5)
+  )
+```
+
+## Exposures 1000 feet (Completers): IOS Users; excluding days where at least one point is outside study areas
+```{r}
+exposures_summary_completers_ios_exclude_at_least_point_outside_by_day <- completers_ios %>%
+  dplyr::filter(at_least_point_outside_by_day == FALSE) %>%
+  calc_mean_se("daily_exposures_1000ft_100ft", group_by_phase = TRUE)
+
+ggplot(exposures_summary_completers_ios_exclude_at_least_point_outside_by_day, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(
+    aes(ymin = mean - se, ymax = mean + se),
+    width = 0.2,
+    position = position_dodge(0.6)
+  ) +
+  scale_fill_manual(values = palette_phase) +
+  labs(
+    x = "Condition",
+    y = "Daily exposures",
+    fill = "Phase",
+    title = "Daily exposures by condition and phase"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    axis.text = element_text(color = "black"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+```
+
+
+## Exposures 1000 feet (Completers): Android Users
+```{r}
+# subset to just IOS users
+completers_android <- completers %>% 
+  filter(platformType == "ANDROID")
+
+exposures_summary_completers_android <- calc_mean_se(completers_android, "daily_exposures_1000ft_100ft", group_by_phase = TRUE)
+
+ggplot(exposures_summary_completers_android, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Daily exposures", fill = "Phase",
+       title = "Daily exposures by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+
+# plot distributions 
+exposures_pid_means_completers_android <- calc_mean_se(completers_android, daily_exposures_1000ft_100ft, TRUE, output = "pid")
+
+ggplot(exposures_pid_means_completers_ios,
+       aes(x = pid_mean)) +
+  geom_histogram(bins = 20, color = "black", fill = "#79C3BC") +
+  facet_grid(phase ~ cond) +
+  labs(
+    title = "Distribution of daily exposures by condition and phase",
+    x = "Mean daily exposures",
+    y = "Count"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(hjust = 0.5)
+  )
+```
+
+## Exposures 1000 feet (Completers): Android Users; excluding days where at least one point is outside study areas
+```{r}
+exposures_summary_completers_android_exclude_at_least_point_outside_by_day <- completers_android %>%
+  dplyr::filter(at_least_point_outside_by_day == FALSE) %>%
+  calc_mean_se("daily_exposures_1000ft_100ft", group_by_phase = TRUE)
+
+ggplot(exposures_summary_completers_android_exclude_at_least_point_outside_by_day, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(
+    aes(ymin = mean - se, ymax = mean + se),
+    width = 0.2,
+    position = position_dodge(0.6)
+  ) +
+  scale_fill_manual(values = palette_phase) +
+  labs(
+    x = "Condition",
+    y = "Daily exposures",
+    fill = "Phase",
+    title = "Daily exposures by condition and phase"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    axis.text = element_text(color = "black"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank()
+  )
+```
+
+## Distance (Completers): all points included
+```{r}
+distance_all_summary_completers <- calc_mean_se(completers, "distance_traveled_day_miles_all_points_included", group_by_phase = TRUE)
+
+ggplot(distance_all_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (IOS Completers): all points included
+```{r}
+distance_all_summary_completers_ios <- calc_mean_se(completers_ios, "distance_traveled_day_miles_all_points_included", group_by_phase = TRUE)
+
+ggplot(distance_all_summary_completers_ios, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Android Completers): all points included
+```{r}
+distance_all_summary_completers_android <- calc_mean_se(completers_android, "distance_traveled_day_miles_all_points_included", group_by_phase = TRUE)
+
+ggplot(distance_all_summary_completers_android, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Completers): all points included under 125 mph
+```{r}
+distance_all_under_125_mph_summary_completers <- calc_mean_se(completers, "distance_traveled_day_miles_all_points_included_under_125_mph", group_by_phase = TRUE)
+
+ggplot(distance_all_under_125_mph_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (IOS Completers): all points included under 125 mph
+```{r}
+distance_all_under_125_mph_summary_completers_ios <- calc_mean_se(completers_ios, "distance_traveled_day_miles_all_points_included_under_125_mph", group_by_phase = TRUE)
+
+ggplot(distance_all_under_125_mph_summary_completers_ios, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Android Completers): all points included under 125 mph
+```{r}
+distance_all_under_125_mph_summary_completers_android <- calc_mean_se(completers_android, "distance_traveled_day_miles_all_points_included_under_125_mph", group_by_phase = TRUE)
+
+ggplot(distance_all_under_125_mph_summary_completers_android, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Completers): all points included under 100 mph
+```{r}
+distance_all_under_100_mph_summary_completers <- calc_mean_se(completers, "distance_traveled_day_miles_all_points_included_under_100_mph", group_by_phase = TRUE)
+
+ggplot(distance_all_under_100_mph_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (IOS Completers): all points included under 100 mph
+```{r}
+distance_all_under_100_mph_summary_completers_ios <- calc_mean_se(completers_ios, "distance_traveled_day_miles_all_points_included_under_100_mph", group_by_phase = TRUE)
+
+ggplot(distance_all_under_100_mph_summary_completers_ios, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Android Completers): all points included under 100 mph
+```{r}
+distance_all_under_100_mph_summary_completers_android <- calc_mean_se(completers_android, "distance_traveled_day_miles_all_points_included_under_100_mph", group_by_phase = TRUE)
+
+ggplot(distance_all_under_100_mph_summary_completers_android, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Completers): all points included under 75 mph
+```{r}
+distance_all_under_75_mph_summary_completers <- calc_mean_se(completers, "distance_traveled_day_miles_all_points_included_under_75_mph", group_by_phase = TRUE)
+
+ggplot(distance_all_under_75_mph_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (IOS Completers): all points included under 75 mph
+```{r}
+distance_all_under_75_mph_summary_completers_ios <- calc_mean_se(completers_ios, "distance_traveled_day_miles_all_points_included_under_75_mph", group_by_phase = TRUE)
+
+ggplot(distance_all_under_75_mph_summary_completers_ios, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Android Completers): all points included under 75 mph
+```{r}
+distance_all_under_75_mph_summary_completers_android <- calc_mean_se(completers_android, "distance_traveled_day_miles_all_points_included_under_75_mph", group_by_phase = TRUE)
+
+ggplot(distance_all_under_75_mph_summary_completers_android, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Completers): all points included under 50 mph
+```{r}
+distance_all_under_50_mph_summary_completers <- calc_mean_se(completers, "distance_traveled_day_miles_all_points_included_under_50_mph", group_by_phase = TRUE)
+
+ggplot(distance_all_under_50_mph_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (IOS Completers): all points included under 50 mph
+```{r}
+distance_all_under_50_mph_summary_completers_ios <- calc_mean_se(completers_ios, "distance_traveled_day_miles_all_points_included_under_50_mph", group_by_phase = TRUE)
+
+ggplot(distance_all_under_50_mph_summary_completers_ios, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (IOS Completers): all points included under 50 mph
+```{r}
+distance_all_under_50_mph_summary_completers_android <- calc_mean_se(completers_android, "distance_traveled_day_miles_all_points_included_under_50_mph", group_by_phase = TRUE)
+
+ggplot(distance_all_under_50_mph_summary_completers_android, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Completers): all points included under 25 mph
+```{r}
+distance_all_under_25_mph_summary_completers <- calc_mean_se(completers, "distance_traveled_day_miles_all_points_included_under_25_mph", group_by_phase = TRUE)
+
+ggplot(distance_all_under_25_mph_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (IOS Completers): all points included under 25 mph
+```{r}
+distance_all_under_25_mph_summary_completers_ios <- calc_mean_se(completers_ios, "distance_traveled_day_miles_all_points_included_under_25_mph", group_by_phase = TRUE)
+
+ggplot(distance_all_under_25_mph_summary_completers_ios, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Android Completers): all points included under 25 mph
+```{r}
+distance_all_under_25_mph_summary_completers_android <- calc_mean_se(completers_android, "distance_traveled_day_miles_all_points_included_under_25_mph", group_by_phase = TRUE)
+
+ggplot(distance_all_under_25_mph_summary_completers_android, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Completers): only points in study area 
+```{r}
+distance_only_study_area_summary_completers <- calc_mean_se(completers, "distance_traveled_day_miles_only_points_in_study_area", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (IOS Completers): only points in study area 
+```{r}
+distance_only_study_area_summary_completers_ios <- calc_mean_se(completers_ios, "distance_traveled_day_miles_only_points_in_study_area", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_summary_completers_ios, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Android Completers): only points in study area 
+```{r}
+distance_only_study_area_summary_completers_android <- calc_mean_se(completers_android, "distance_traveled_day_miles_only_points_in_study_area", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_summary_completers_android, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Completers): only points in study area under 125 mph
+```{r}
+distance_only_study_area_under_125_mph_summary_completers <- calc_mean_se(completers, "distance_traveled_day_miles_only_points_in_study_area_under_125_mph", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_under_125_mph_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (IOS Completers): only points in study area under 125 mph
+```{r}
+distance_only_study_area_under_125_mph_summary_completers_ios <- calc_mean_se(completers_ios, "distance_traveled_day_miles_only_points_in_study_area_under_125_mph", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_under_125_mph_summary_completers_ios, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Android Completers): only points in study area under 125 mph
+```{r}
+distance_only_study_area_under_125_mph_summary_completers_android <- calc_mean_se(completers_android, "distance_traveled_day_miles_only_points_in_study_area_under_125_mph", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_under_125_mph_summary_completers_android, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Completers): only points in study area under 100 mph
+```{r}
+distance_only_study_area_under_100_mph_summary_completers <- calc_mean_se(completers, "distance_traveled_day_miles_only_points_in_study_area_under_100_mph", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_under_100_mph_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (IOS Completers): only points in study area under 100 mph
+```{r}
+distance_only_study_area_under_100_mph_summary_completers_ios <- calc_mean_se(completers_ios, "distance_traveled_day_miles_only_points_in_study_area_under_100_mph", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_under_100_mph_summary_completers_ios, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Android Completers): only points in study area under 100 mph
+```{r}
+distance_only_study_area_under_100_mph_summary_completers_android <- calc_mean_se(completers_android, "distance_traveled_day_miles_only_points_in_study_area_under_100_mph", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_under_100_mph_summary_completers_android, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Completers): only points in study area under 75 mph
+```{r}
+distance_only_study_area_under_75_mph_summary_completers <- calc_mean_se(completers, "distance_traveled_day_miles_only_points_in_study_area_under_75_mph", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_under_75_mph_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (IOS Completers): only points in study area under 75 mph
+```{r}
+distance_only_study_area_under_75_mph_summary_completers_ios <- calc_mean_se(completers_ios, "distance_traveled_day_miles_only_points_in_study_area_under_75_mph", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_under_75_mph_summary_completers_ios, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Android Completers): only points in study area under 75 mph
+```{r}
+distance_only_study_area_under_75_mph_summary_completers_android <- calc_mean_se(completers_android, "distance_traveled_day_miles_only_points_in_study_area_under_75_mph", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_under_75_mph_summary_completers_android, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Completers): only points in study area under 50 mph
+```{r}
+distance_only_study_area_under_50_mph_summary_completers <- calc_mean_se(completers, "distance_traveled_day_miles_only_points_in_study_area_under_50_mph", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_under_50_mph_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (IOS Completers): only points in study area under 50 mph
+```{r}
+distance_only_study_area_under_50_mph_summary_completers_ios <- calc_mean_se(completers_ios, "distance_traveled_day_miles_only_points_in_study_area_under_50_mph", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_under_50_mph_summary_completers_ios, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Android Completers): only points in study area under 50 mph
+```{r}
+distance_only_study_area_under_50_mph_summary_completers_android <- calc_mean_se(completers_android, "distance_traveled_day_miles_only_points_in_study_area_under_50_mph", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_under_50_mph_summary_completers_android, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Completers): only points in study area under 25 mph
+```{r}
+distance_only_study_area_under_25_mph_summary_completers <- calc_mean_se(completers, "distance_traveled_day_miles_only_points_in_study_area_under_25_mph", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_under_25_mph_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+
+# using repeated measures approach
+daily_distance_lme_by_row_completers <- lmer(distance_traveled_day_miles_only_points_in_study_area_under_25_mph  ~ phase * cond + (phase|pid), data = completers)
+summary(daily_distance_lme_by_row_completers)
+
+daily_distance_lme_by_row_completers_no_random_slope <- lmer(distance_traveled_day_miles_only_points_in_study_area_under_25_mph  ~ phase * cond + (1|pid), data = completers)
+summary(daily_distance_lme_by_row_completers_no_random_slope)
+```
+
+## Distance (IOS Completers): only points in study area under 25 mph
+```{r}
+distance_only_study_area_under_25_mph_summary_completers_ios <- calc_mean_se(completers_ios, "distance_traveled_day_miles_only_points_in_study_area_under_25_mph", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_under_25_mph_summary_completers_ios, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Distance (Android Completers): only points in study area under 25 mph
+```{r}
+distance_only_study_area_under_25_mph_summary_completers_android <- calc_mean_se(completers_android, "distance_traveled_day_miles_only_points_in_study_area_under_25_mph", group_by_phase = TRUE)
+
+ggplot(distance_only_study_area_under_25_mph_summary_completers_android, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Distance (miles)", fill = "Phase",
+       title = "Distance (miles) by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+```{r}
+mobility_vars <- c(
+  "distance_traveled_day_miles_all_points_included",
+  "distance_traveled_day_miles_all_points_included_under_125_mph",
+  "distance_traveled_day_miles_all_points_included_under_100_mph",
+  "distance_traveled_day_miles_all_points_included_under_75_mph",
+  "distance_traveled_day_miles_all_points_included_under_50_mph",
+  "distance_traveled_day_miles_all_points_included_under_25_mph",
+  "distance_traveled_day_miles_only_points_in_study_area",
+  "distance_traveled_day_miles_only_points_in_study_area_under_125_mph",
+  "distance_traveled_day_miles_only_points_in_study_area_under_100_mph",
+  "distance_traveled_day_miles_only_points_in_study_area_under_75_mph",
+  "distance_traveled_day_miles_only_points_in_study_area_under_50_mph",
+  "distance_traveled_day_miles_only_points_in_study_area_under_25_mph"
+)
+
+change_df <- completers %>%
+  group_by(pid, phase) %>%
+  summarise(
+    mean_cigs    = mean(daily_cigs, na.rm = TRUE),
+    mean_crave   = mean(daily_average_crave, na.rm = TRUE),
+    across(
+      all_of(mobility_vars),
+      ~ mean(.x, na.rm = TRUE),
+      .names = "mean_{.col}"
+    ),
+    .groups = "drop"
+  )
+
+change_scores <- change_df %>%
+  pivot_wider(
+    names_from = phase,
+    values_from = c(mean_cigs, mean_crave, starts_with("mean_"))
+  )
+
+mean_cols <- c(
+  "mean_cigs",
+  "mean_crave",
+  paste0("mean_", mobility_vars)
+)
+
+for (v in mean_cols) {
+  change_scores[[paste0("delta_", sub("^mean_", "", v))]] <-
+    change_scores[[paste0(v, "_Intervention")]] -
+    change_scores[[paste0(v, "_Baseline")]]
+}
+```
+
+```{r}
+ggplot(change_scores,
+       aes(x = delta_distance_traveled_day_miles_all_points_included,
+           y = delta_crave)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_bw(base_size = 14)
+```
+
+```{r}
+ggplot(change_scores,
+       aes(x = delta_distance_traveled_day_miles_all_points_included,
+           y = delta_crave)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_bw(base_size = 14)
+```
+
+```{r}
+ggplot(change_scores,
+       aes(x = delta_distance_traveled_day_miles_all_points_included_under_125_mph,
+           y = delta_cigs)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_bw(base_size = 14)
+```
+
+```{r}
+ggplot(change_scores,
+       aes(x = delta_distance_traveled_day_miles_all_points_included_under_125_mph,
+           y = delta_cigs)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_bw(base_size = 14)
+```
+
+```{r}
+ggplot(change_scores,
+       aes(x = delta_distance_traveled_day_miles_all_points_included_under_100_mph,
+           y = delta_cigs)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_bw(base_size = 14)
+```
+
+```{r}
+ggplot(change_scores,
+       aes(x = delta_distance_traveled_day_miles_all_points_included_under_75_mph,
+           y = delta_cigs)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_bw(base_size = 14)
+```
+
+```{r}
+ggplot(change_scores,
+       aes(x = delta_distance_traveled_day_miles_all_points_included_under_50_mph,
+           y = delta_cigs)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_bw(base_size = 14)
+```
+
+```{r}
+ggplot(change_scores,
+       aes(x = delta_distance_traveled_day_miles_all_points_included_under_25_mph,
+           y = delta_cigs)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_bw(base_size = 14)
+```
+
+```{r}
+ggplot(change_scores,
+       aes(x = delta_distance_traveled_day_miles_only_points_in_study_area,
+           y = delta_cigs)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_bw(base_size = 14)
+```
+
+```{r}
+ggplot(change_scores,
+       aes(x = delta_distance_traveled_day_miles_only_points_in_study_area_under_125_mph,
+           y = delta_cigs)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_bw(base_size = 14)
+```
+
+```{r}
+ggplot(change_scores,
+       aes(x = delta_distance_traveled_day_miles_only_points_in_study_area_under_100_mph,
+           y = delta_cigs)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_bw(base_size = 14)
+```
+
+```{r}
+ggplot(change_scores,
+       aes(x = delta_distance_traveled_day_miles_only_points_in_study_area_under_75_mph,
+           y = delta_cigs)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_bw(base_size = 14)
+```
+
+```{r}
+ggplot(change_scores,
+       aes(x = delta_distance_traveled_day_miles_only_points_in_study_area_under_50_mph,
+           y = delta_cigs)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_bw(base_size = 14)
+```
+
+
+```{r}
+ggplot(change_scores,
+       aes(x = delta_distance_traveled_day_miles_only_points_in_study_area_under_25_mph,
+           y = delta_cigs)) +
+  geom_point(size = 3, alpha = 0.8) +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_bw(base_size = 14)
+```
+
+
+## Replication of Correlational Results
+```{r}
+# Read data
+itt_intervention <-read.csv("/Volumes/cnlab/GeoRemote/Output/aim_3/EMA_geo_combined.csv")
+
+itt_intervention <- itt_intervention %>%
+  dplyr::filter(phase == "Intervention")
+```
+
+```{r}
+# Winsorize variables
+itt_intervention = winsorize_variables(itt_intervention, 
+                               c("daily_average_crave",
+                                 "daily_cigs", 
+                                 "daily_stress",
+                                 "daily_average_neg",
+                                 "daily_average_pos",
+                                 "daily_exposures_1000ft_100ft"))
+
+# Split variables
+itt_intervention <- split_within_between(itt_intervention,
+                                 c("daily_average_crave",
+                                 "daily_cigs", 
+                                 "daily_stress",
+                                 "daily_average_neg",
+                                 "daily_average_pos",
+                                 "daily_exposures_1000ft_100ft_wins"))
+```
+
+```{r}
+craving_lme <- lmer(daily_average_crave_wins ~ daily_exposures_1000ft_100ft_wins_wn + daily_exposures_1000ft_100ft_wins_bw + day + (1|pid), data = itt_intervention)
+summary(craving_lme)
+
+craving_lme <- lmer(daily_average_crave_wins ~ daily_exposures_1000ft_100ft_wins_wn + daily_exposures_1000ft_100ft_wins_bw + day + (daily_exposures_1000ft_100ft_wins_wn|pid), data = itt_intervention)
+summary(craving_lme)
+```
+
+```{r}
+smoking_lme <- lmer(daily_cigs_wins ~ daily_exposures_1000ft_100ft_wins_wn + daily_exposures_1000ft_100ft_wins_bw + day + (1|pid), data = itt_intervention)
+summary(smoking_lme)
+
+smoking_lme <- lmer(daily_cigs_wins ~ daily_exposures_1000ft_100ft_wins_wn + daily_exposures_1000ft_100ft_wins_bw + day + (daily_exposures_1000ft_100ft_wins_wn|pid), data = itt_intervention)
+summary(smoking_lme)
+```
+
+
+
+```{r}
+# Read data
+completers_intervention <-read.csv("/Volumes/cnlab/GeoRemote/Output/aim_3/EMA_geo_combined.csv")
+
+completers_intervention <- completers_intervention[completers_intervention$intervention_complete == 1, ]
+
+completers_intervention <- completers_intervention %>%
+  dplyr::filter(phase == "Intervention")
+```
+
+```{r}
+# Winsorize variables
+completers_intervention = winsorize_variables(completers_intervention, 
+                               c("daily_average_crave",
+                                 "daily_cigs", 
+                                 "daily_stress",
+                                 "daily_average_neg",
+                                 "daily_average_pos",
+                                 "daily_exposures_1000ft_100ft"))
+
+# Split variables
+completers_intervention <- split_within_between(completers_intervention,
+                                 c("daily_average_crave",
+                                 "daily_cigs", 
+                                 "daily_stress",
+                                 "daily_average_neg",
+                                 "daily_average_pos",
+                                 "daily_exposures_1000ft_100ft_wins"))
+```
+
+```{r}
+craving_lme <- lmer(daily_average_crave_wins ~ daily_exposures_1000ft_100ft_wins_wn + daily_exposures_1000ft_100ft_wins_bw + day + (1|pid), data = completers_intervention)
+summary(craving_lme)
+
+craving_lme <- lmer(daily_average_crave_wins ~ daily_exposures_1000ft_100ft_wins_wn + daily_exposures_1000ft_100ft_wins_bw + day + (daily_exposures_1000ft_100ft_wins_wn|pid), data = completers_intervention)
+summary(craving_lme)
+```
+
+```{r}
+smoking_lme <- lmer(daily_cigs_wins ~ daily_exposures_1000ft_100ft_wins_wn + daily_exposures_1000ft_100ft_wins_bw + day + (1|pid), data = completers_intervention)
+summary(smoking_lme)
+
+smoking_lme <- lmer(daily_cigs_wins ~ daily_exposures_1000ft_100ft_wins_wn + daily_exposures_1000ft_100ft_wins_bw + day + (daily_exposures_1000ft_100ft_wins_wn|pid), data = completers_intervention)
+summary(smoking_lme)
+```
+
+## Observations (Intent-to-treat)
+```{r}
+observations_summary_itt <- calc_mean_se(itt, "n_observations_per_day", group_by_phase = TRUE)
+
+ggplot(observations_summary_itt, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Daily observations", fill = "Phase",
+       title = "Daily observations by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Observations (Completers)
+```{r}
+observations_summary_completers <- calc_mean_se(completers, "n_observations_per_day", group_by_phase = TRUE)
+
+ggplot(observations_summary_completers, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Daily observations", fill = "Phase",
+       title = "Daily observations by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Stress
+
+```{r}
+stress_summary <- calc_mean_se(completers, "daily_stress", group_by_phase = TRUE)
+
+ggplot(stress_summary, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Daily stress", fill = "Phase",
+       title = "Daily stress by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Negative mood
+
+```{r}
+neg_mood_summary <- calc_mean_se(completers, "daily_average_neg", group_by_phase = TRUE)
+
+ggplot(neg_mood_summary, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Daily negative mood", fill = "Phase",
+       title = "Daily average negative mood by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+## Positive mood
+
+```{r}
+pos_mood_summary <- calc_mean_se(completers, "daily_average_pos", group_by_phase = TRUE)
+
+# plot
+ggplot(pos_mood_summary, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(color = "black", width = 0.6, position = position_dodge(0.6)) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                width = 0.2, position = position_dodge(0.6)) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Daily positive mood", fill = "Phase",
+       title = "Daily average positive mood by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(scales)
+
+# 1) Summarize: % of each category level within each condition (pid-weighted)
+cat_percent_by_cond <- function(data, cat_var,
+                                pid_col = "pid",
+                                cond_col = "cond",
+                                drop_na = TRUE,
+                                cond_order = c("Control", "Low", "High")) {
+  v   <- rlang::ensym(cat_var)
+  pid <- rlang::sym(pid_col)
+  cnd <- rlang::sym(cond_col)
+
+  # Collapse to one row per participant (uses first observed value per pid)
+  base <- data %>%
+    group_by(!!pid) %>%
+    summarise(
+      !!cnd := dplyr::first(!!cnd),
+      !!v   := dplyr::first(!!v),
+      .groups = "drop"
+    )
+
+  if (drop_na) base <- drop_na(base, !!v, !!cnd)
+
+  # Consistent cond order everywhere
+  base[[cond_col]] <- factor(base[[cond_col]], levels = cond_order)
+
+  # Percent within each condition (each pid counts once)
+  summary <- base %>%
+    count(!!cnd, !!v, name = "n") %>%
+    group_by(!!cnd) %>%
+    mutate(total = sum(n), percent = 100 * n / total) %>%
+    ungroup()
+
+  summary
+}
+
+# 2) Plot helper: stacked % bars (or dodged) with labels
+plot_cat_percent_by_cond <- function(summary_df, cat_var,
+                                     cond_col = "cond",
+                                     stacked = TRUE,
+                                     plot_title = NULL) {
+  v   <- rlang::ensym(cat_var)
+  cnd <- rlang::sym(cond_col)
+
+  pos <- if (stacked) "stack" else position_dodge(width = 0.6)
+
+  ggplot(summary_df, aes(x = !!cnd, y = percent, fill = !!v)) +
+    geom_col(width = 0.6, color = "black", position = pos) +
+    scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+    labs(
+      x = "Condition",
+      y = "Percent of participants",
+      fill = rlang::as_label(v),
+      title = plot_title
+    ) +
+    theme_bw(base_size = 14)
+}
+```
+
+## Race
+
+```{r}
+race_summary <- cat_percent_by_cond(completers, "race")
+plot_cat_percent_by_cond(race_summary, "race", stacked = FALSE,
+                         plot_title = "Distribution of race by condition")
+```
+
+## Ethnicity
+
+```{r}
+ethnicity_summary <- cat_percent_by_cond(completers, "ethnicity")
+plot_cat_percent_by_cond(ethnicity_summary, "ethnicity", stacked = FALSE,
+                         plot_title = "Distribution of ethnicity by condition \n Yes = Latino/Hispanic")
+```
+
+## Gender
+
+```{r}
+gender_summary <- cat_percent_by_cond(completers, "gender")
+plot_cat_percent_by_cond(gender_summary, "gender", stacked = FALSE,
+                         plot_title = "Distribution of gender by condition")
+```
+
+## OS
+
+```{r}
+os_summary <- cat_percent_by_cond(completers, "platformType")
+palette_os <- c("IOS" = "#3B9AB2", "ANDROID" = "#EBCC2A")
+
+# plot
+plot_cat_percent_by_cond(
+  os_summary,
+  cat_var = "platformType",
+  stacked = FALSE,
+  plot_title = "Distribution of operating system by condition"
+) +
+  scale_fill_manual(values = palette_os)
+
+```
+
+# Temporal patterns of primary outcomes {.tabset}
+
+```{r}
+daily_mean_se <- function(data, var,
+                          group_by_phase = TRUE,
+                          pid_col  = "pid",
+                          day_col  = "day",
+                          cond_col = "cond") {
+  v    <- rlang::ensym(var)
+  pid  <- rlang::sym(pid_col)
+  day  <- rlang::sym(day_col)
+  cond <- rlang::sym(cond_col)
+
+  if (group_by_phase) {
+    # 1) participant-level means per day within phase × cond
+    pid_day <- data %>%
+      dplyr::group_by(!!pid, phase, !!cond, !!day) %>%
+      dplyr::summarise(pid_day_mean = mean(!!v, na.rm = TRUE), .groups = "drop_last") %>%
+      dplyr::filter(!is.nan(pid_day_mean)) %>%
+      dplyr::ungroup()
+
+    # 2) mean & SE across participants for each day × cond × phase
+    out <- pid_day %>%
+      dplyr::group_by(phase, !!cond, !!day) %>%
+      dplyr::summarise(
+        n_pids = dplyr::n(),
+        mean   = mean(pid_day_mean),
+        se     = dplyr::if_else(n_pids > 1, stats::sd(pid_day_mean) / sqrt(n_pids), NA_real_),
+        .groups = "drop"
+      ) %>%
+      dplyr::arrange(phase, !!cond, !!day)
+
+  } else {
+    # 1) participant-level means per day within cond only
+    pid_day <- data %>%
+      dplyr::group_by(!!pid, !!cond, !!day) %>%
+      dplyr::summarise(pid_day_mean = mean(!!v, na.rm = TRUE), .groups = "drop_last") %>%
+      dplyr::filter(!is.nan(pid_day_mean)) %>%
+      dplyr::ungroup()
+
+    # 2) mean & SE across participants for each day × cond
+    out <- pid_day %>%
+      dplyr::group_by(!!cond, !!day) %>%
+      dplyr::summarise(
+        n_pids = dplyr::n(),
+        mean   = mean(pid_day_mean),
+        se     = dplyr::if_else(n_pids > 1, stats::sd(pid_day_mean) / sqrt(n_pids), NA_real_),
+        .groups = "drop"
+      ) %>%
+      dplyr::arrange(!!cond, !!day)
+  }
+
+  out
+}
+
+plot_daily_mean_se <- function(summary_df,
+                               day_col   = "day",
+                               cond_col  = "cond",
+                               phase_col = "phase",
+                               ribbon    = TRUE,
+                               point     = TRUE,
+                               linewidth = 1,
+                               point_size = 2.5,
+                               title = NULL,
+                               ylab  = NULL,
+                               xlab  = "Day",
+                               facet_scales = "free_x") { 
+
+  day_sym   <- rlang::sym(day_col)
+  cond_sym  <- rlang::sym(cond_col)
+  has_phase <- phase_col %in% names(summary_df)
+  if (has_phase) phase_sym <- rlang::sym(phase_col)
+
+  p <- ggplot2::ggplot(summary_df,
+                       ggplot2::aes(x = !!day_sym, y = mean, color = !!cond_sym, group = !!cond_sym))
+
+  if (ribbon) {
+    p <- p + ggplot2::geom_ribbon(
+      ggplot2::aes(ymin = mean - se, ymax = mean + se, fill = !!cond_sym),
+      alpha = 0.20, linewidth = 0, color = NA
+    )
+  }
+
+  p <- p + ggplot2::geom_line(linewidth = linewidth)
+  if (point) p <- p + ggplot2::geom_point(size = point_size)
+
+  if (has_phase) {
+    p <- p + ggplot2::facet_wrap(rlang::as_quosure(phase_sym), ncol = 1, scales = facet_scales)
+  }
+
+  p +
+    ggplot2::labs(title = title, x = xlab, y = ylab, color = "Condition", fill = "Condition") +
+    ggplot2::theme_bw(base_size = 14) +
+    ggplot2::scale_x_continuous(
+      breaks = seq(
+        min(summary_df[[day_col]], na.rm = TRUE),
+        max(summary_df[[day_col]], na.rm = TRUE),
+        by = 1
+      )
+    )
+}
+
+```
+
+```{r}
+# Check day counts for both phases
+# completers %>%
+#   filter(phase == "Baseline") %>%
+#   group_by(pid) %>%
+#   summarise(day_count = n_distinct(day)) %>%
+#   filter(day_count > 14) %>%
+#   pull(pid)
+#character(0)
+
+# completers %>%
+#   filter(phase == "Intervention") %>%
+#   group_by(pid) %>%
+#   summarise(day_count = n_distinct(day)) %>%
+#   filter(day_count > 28) %>%
+#   pull(pid)
+#[1] "GR066" "GR236" - there are 2 subjects with more than 28 days
+
+# investigating these data
+GR066 <- completers %>%
+  filter(pid == "GR066") #29 days, data for all days
+
+GR236 <- completers %>%
+  filter(pid == "GR236") #30 days, no data on day 13
+```
+
+```{r}
+# FOR NOW: removing rows where day count is over 28
+itt <- itt %>%
+  filter(!(phase == "Intervention" & day > 28))
+
+completers <- completers %>%
+  filter(!(phase == "Intervention" & day > 28))
+```
+
+## Group level {.tabset}
+
+```{r}
+itt <- itt %>%
+  mutate(week = ceiling(day / 7))
+
+completers <- completers %>%
+  mutate(week = ceiling(day / 7))
+```
+
+### Craving: Day-level
+
+```{r, fig.width=10, fig.height=8}
+craving_daily <- daily_mean_se(
+  data = completers,
+  var = daily_average_crave,
+  group_by_phase = TRUE,   
+  pid_col  = "pid",
+  day_col  = "day",
+  cond_col = "cond"
+)
+
+plot_daily_mean_se(
+  craving_daily,
+  title = "Daily craving by condition and phase",
+  ylab = "Daily craving"
+) +
+  scale_color_manual(values = palette_condition) +
+  scale_fill_manual(values = palette_condition)
+```
+### Craving: Week-level
+
+```{r}
+craving_weekly <- daily_mean_se(
+  data = completers,
+  var  = daily_average_crave,       
+  group_by_phase = TRUE,
+  pid_col  = "pid",
+  day_col  = "week",       
+  cond_col = "cond"
+)
+
+plot_daily_mean_se(
+  summary_df = craving_weekly,
+  day_col    = "week",       
+  xlab       = "Week",
+  ylab = "Daily craving",
+  title      = "Daily craving by condition and phase"
+) +
+  scale_color_manual(values = palette_condition) +
+  scale_fill_manual(values = palette_condition)
+```
+
+
+
+
+### Smoking: Day-level
+
+```{r, fig.width=10, fig.height=8}
+smoking_daily <- daily_mean_se(
+  data = completers,
+  var = daily_cigs,
+  group_by_phase = TRUE,   
+  pid_col  = "pid",
+  day_col  = "day",
+  cond_col = "cond"
+)
+
+plot_daily_mean_se(
+  smoking_daily,
+  title = "Daily smoking by condition and phase",
+  ylab = "Daily cigarettes"
+) +
+  scale_color_manual(values = palette_condition) +
+  scale_fill_manual(values = palette_condition)
+```
+
+### Smoking: Week-level
+
+```{r}
+smoking_weekly <- daily_mean_se(
+  data = completers,
+  var  = daily_cigs,       
+  group_by_phase = TRUE,
+  pid_col  = "pid",
+  day_col  = "week",       
+  cond_col = "cond"
+)
+
+plot_daily_mean_se(
+  summary_df = smoking_weekly,
+  day_col    = "week",       
+  xlab       = "Week",
+  ylab = "Daily craving",
+  title      = "Daily ccigarettes by condition and phase"
+) +
+  scale_color_manual(values = palette_condition) +
+  scale_fill_manual(values = palette_condition)
+```
+
+
+
+## Subject level {.tabset}
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(purrr)
+library(rlang)
+library(patchwork)
+
+make_plots_by_condition <- function(data, var,
+                                    pid_col   = "pid",
+                                    day_col   = "day",
+                                    phase_col = "phase",
+                                    cond_col  = "cond",
+                                    time_unit = c("day","week"),
+                                    ylab      = NULL,
+                                    phase_levels = c("Baseline","Intervention"),
+                                    color_values = NULL,
+                                    skip_single_phase = FALSE) {
+
+  time_unit <- match.arg(time_unit)
+
+  # helper: aggregate to weekly level if requested
+  aggregate_time <- function(df) {
+    if (time_unit == "day") {
+      df %>%
+        mutate(.x = .data[[day_col]], .y = {{ var }})
+    } else { # "week"
+      df %>%
+        mutate(.week = ceiling(.data[[day_col]] / 7)) %>%
+        group_by(.data[[pid_col]], .data[[phase_col]], .week, .add = FALSE) %>%
+        summarise(.y = mean({{ var }}, na.rm = TRUE), .groups = "drop") %>%
+        rename(.x = .week)
+    }
+  }
+
+  conds <- unique(data[[cond_col]])
+  out <- lapply(conds, function(cn) {
+    dfc <- dplyr::filter(data, .data[[cond_col]] == cn)
+    ids <- unique(dfc[[pid_col]])
+
+    pls <- purrr::map(ids, ~ {
+      dfp <- dplyr::filter(dfc, .data[[pid_col]] == .x) |>
+        dplyr::filter(!is.na({{ var }})) |>
+        dplyr::mutate(!!phase_col := factor(.data[[phase_col]], levels = phase_levels)) |>
+        aggregate_time()
+
+      # skip if only one phase and requested
+      if (skip_single_phase) {
+        nph <- dfp |>
+          mutate(.ph = dplyr::if_else(time_unit == "day", NA, NA)) # dummy to keep pipes happy
+        if (nlevels(droplevels(dplyr::pull(dplyr::distinct(dfp, !!sym(phase_col)), !!sym(phase_col)))) < 2) return(NULL)
+      }
+
+      x_lab <- if (time_unit == "day") "Day" else "Week"
+
+      p <- ggplot(
+        dfp,
+        aes(x = .x, y = .y, color = .data[[phase_col]], group = .data[[phase_col]])
+      ) +
+        geom_line(linewidth = 0.6) +
+        geom_point(size = 1.2, stroke = 0) +
+        scale_x_continuous(breaks = scales::pretty_breaks(n = 4)) +
+        scale_y_continuous(breaks = scales::pretty_breaks(n = 3)) +
+        labs(x = x_lab, y = ylab) +
+        theme_bw(base_size = 9) +
+        theme(
+          plot.title       = element_text(size = 9, hjust = 0),
+          axis.title.x     = element_blank(),   # keep tiles compact
+          axis.title.y     = element_blank(),
+          axis.text.x      = element_text(size = 7),
+          axis.text.y      = element_text(size = 7),
+          panel.grid.minor = element_blank(),
+          plot.margin      = margin(2, 2, 2, 2)
+        )
+
+      if (!is.null(color_values)) {
+        p <- p + scale_color_manual(values = color_values)
+      }
+      p
+    })
+
+    keep <- !vapply(pls, is.null, logical(1))
+    pls <- pls[keep]
+    rlang::set_names(pls, ids[keep])
+  })
+  rlang::set_names(out, conds)
+}
+
+print_condition <- function(plots_by_condition,
+                            condition_name,
+                            ncol = 2,
+                            shared_legend = TRUE,
+                            show_headers = FALSE) {
+  if (!condition_name %in% names(plots_by_condition)) stop("Condition not found: ", condition_name)
+  cond_plots <- plots_by_condition[[condition_name]]
+  if (length(cond_plots) == 0L) { message("No plots for condition: ", condition_name); return(invisible(NULL)) }
+
+  if (show_headers) cat("### ", condition_name, "\n\n")
+
+  combined <- patchwork::wrap_plots(
+    cond_plots, ncol = ncol,
+    guides = if (shared_legend) "collect" else "keep"
+  ) +
+    patchwork::plot_layout(heights = 1, widths = 1) &
+    ggplot2::theme(plot.margin = ggplot2::margin(4, 4, 4, 4))
+
+  if (shared_legend) {
+    combined <- combined &
+      ggplot2::theme(
+        legend.position   = "top",
+        legend.text       = ggplot2::element_text(size = 12),
+        legend.title      = ggplot2::element_text(size = 13, face = "bold"),
+        legend.key.width  = grid::unit(10, "mm"),
+        legend.key.height = grid::unit(8, "mm")
+      ) &
+      ggplot2::guides(color = ggplot2::guide_legend(override.aes = list(size = 3)))
+  } else {
+    combined <- combined & ggplot2::theme(legend.position = "none")
+  }
+
+  print(combined)
+  invisible(combined)
+}
+```
+
+### Craving {.tabset}
+
+```{r}
+craving_plots_by_condition_day <- make_plots_by_condition(
+  data = completers,
+  var  = daily_average_crave,
+  time_unit = "day",        
+  ylab = "Weekly mean craving",
+  color_values = palette_phase,
+  skip_single_phase = TRUE
+)
+```
+
+#### Control: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(craving_plots_by_condition_day, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(craving_plots_by_condition_day, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(craving_plots_by_condition_day, "High", ncol = 2, shared_legend = TRUE)
+```
+
+```{r}
+craving_plots_by_condition_week <- make_plots_by_condition(
+  data = completers,
+  var  = daily_average_crave,
+  time_unit = "week",        
+  ylab = "Weekly mean craving",
+  color_values = palette_phase,
+  skip_single_phase = TRUE
+)
+```
+
+#### Control: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(craving_plots_by_condition_week, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(craving_plots_by_condition_week, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(craving_plots_by_condition_week, "High", ncol = 2, shared_legend = TRUE)
+```
+
+### Smoking {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=30}
+smoking_plots_by_condition_day <- make_plots_by_condition(
+  data = completers,
+  var  = daily_cigs,
+  time_unit = "day", 
+  ylab = "Daily cigarettes",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(smoking_plots_by_condition_day, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(smoking_plots_by_condition_day, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(smoking_plots_by_condition_day, "High", ncol = 2, shared_legend = TRUE)
+```
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=30}
+smoking_plots_by_condition_week <- make_plots_by_condition(
+  data = completers,
+  var  = daily_cigs,
+  time_unit = "week", 
+  ylab = "Daily cigarettes",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(smoking_plots_by_condition_week, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(smoking_plots_by_condition_week, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(smoking_plots_by_condition_week, "High", ncol = 2, shared_legend = TRUE)
+```
+
+
+# Temporal patterns of additional variables {.tabset}
+
+## Group level {.tabset}
+
+### Exposures (Intent-to-treat)
+
+```{r, fig.width=10, fig.height=8}
+exposures_daily_itt <- daily_mean_se(
+  data = itt,
+  var = daily_exposures_1000ft_100ft,
+  group_by_phase = TRUE,   
+  pid_col  = "pid",
+  day_col  = "day",
+  cond_col = "cond"
+)
+
+plot_daily_mean_se(
+  exposures_daily_itt,
+  title = "Daily exposures by condition and phase",
+  ylab = "Daily exposures"
+) +
+  scale_color_manual(values = palette_condition) +
+  scale_fill_manual(values = palette_condition)
+```
+
+### Exposures (Completers)
+
+```{r, fig.width=10, fig.height=8}
+exposures_daily_completers <- daily_mean_se(
+  data = completers,
+  var = daily_exposures_1000ft_100ft,
+  group_by_phase = TRUE,   
+  pid_col  = "pid",
+  day_col  = "day",
+  cond_col = "cond"
+)
+
+plot_daily_mean_se(
+  exposures_daily_completers,
+  title = "Daily exposures by condition and phase",
+  ylab = "Daily exposures"
+) +
+  scale_color_manual(values = palette_condition) +
+  scale_fill_manual(values = palette_condition)
+```
+
+### Stress
+
+```{r, fig.width=10, fig.height=8}
+stress_daily <- daily_mean_se(
+  data = completers,
+  var = daily_stress,
+  group_by_phase = TRUE,   
+  pid_col  = "pid",
+  day_col  = "day",
+  cond_col = "cond"
+)
+
+plot_daily_mean_se(
+  stress_daily,
+  title = "Daily stress by condition and phase",
+  ylab = "Daily stress"
+) +
+  scale_color_manual(values = palette_condition) +
+  scale_fill_manual(values = palette_condition)
+```
+
+### Negative mood
+
+```{r, fig.width=10, fig.height=8}
+neg_mood_daily <- daily_mean_se(
+  data = completers,
+  var = daily_average_neg,
+  group_by_phase = TRUE,   
+  pid_col  = "pid",
+  day_col  = "day",
+  cond_col = "cond"
+)
+
+plot_daily_mean_se(
+  neg_mood_daily,
+  title = "Daily negative mood by condition and phase",
+  ylab = "Daily negative mood"
+) +
+  scale_color_manual(values = palette_condition) +
+  scale_fill_manual(values = palette_condition)
+```
+
+### Positive mood
+
+```{r, fig.width=10, fig.height=8}
+pos_mood_daily <- daily_mean_se(
+  data = completers,
+  var = daily_average_pos,
+  group_by_phase = TRUE,   
+  pid_col  = "pid",
+  day_col  = "day",
+  cond_col = "cond"
+)
+
+plot_daily_mean_se(
+  pos_mood_daily,
+  title = "Daily positive mood by condition and phase",
+  ylab = "Daily positive mood"
+) +
+  scale_color_manual(values = palette_condition) +
+  scale_fill_manual(values = palette_condition)
+```
+
+## Subject level {.tabset}
+
+### Stress {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=30}
+stress_plots_by_condition_day <- make_plots_by_condition(
+  data = completers,
+  var  = daily_stress,
+  time_unit = "day",
+  ylab = "Daily stress",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control:Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(stress_plots_by_condition_day, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low:Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(stress_plots_by_condition_day, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High:Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(stress_plots_by_condition_day, "High", ncol = 2, shared_legend = TRUE)
+```
+
+```{r}
+stress_plots_by_condition_week <- make_plots_by_condition(
+  data = completers,
+  var  = daily_stress,
+  time_unit = "week",
+  ylab = "Daily stress",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(stress_plots_by_condition_week, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(stress_plots_by_condition_week, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(stress_plots_by_condition_week, "High", ncol = 2, shared_legend = TRUE)
+```
+
+### Negative mood:Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=30}
+neg_mood_plots_by_condition_day <- make_plots_by_condition(
+  data = completers,
+  var  = daily_average_neg,
+  time_unit = "day",
+  ylab = "Daily negative mood",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(neg_mood_plots_by_condition_day, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(neg_mood_plots_by_condition_day, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(neg_mood_plots_by_condition_day, "High", ncol = 2, shared_legend = TRUE)
+```
+
+```{r}
+neg_mood_plots_by_condition_week <- make_plots_by_condition(
+  data = completers,
+  var  = daily_average_neg,
+  time_unit = "week",
+  ylab = "Daily negative mood",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(neg_mood_plots_by_condition_week, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(neg_mood_plots_by_condition_week, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(neg_mood_plots_by_condition_week, "High", ncol = 2, shared_legend = TRUE)
+```
+
+
+### Positive mood {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=30}
+pos_mood_plots_by_condition_day <- make_plots_by_condition(
+  data = completers,
+  var  = daily_average_pos,
+  time_unit = "day",
+  ylab = "Daily positive mood",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(pos_mood_plots_by_condition_day, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(pos_mood_plots_by_condition_day, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(pos_mood_plots_by_condition_day, "High", ncol = 2, shared_legend = TRUE)
+```
+
+```{r}
+pos_mood_plots_by_condition_week <- make_plots_by_condition(
+  data = completers,
+  var  = daily_average_pos,
+  time_unit = "week",
+  ylab = "Daily positive mood",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(pos_mood_plots_by_condition_week, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(pos_mood_plots_by_condition_week, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(pos_mood_plots_by_condition_week, "High", ncol = 2, shared_legend = TRUE)
+```
+
+```{r}
+# mobility
+# load baseline stay events
+geo_data_stay_events_baseline <- read_csv("/Volumes/cnlab/GeoRemote/Data/Geodata/clean/stay_events/baseline/stay_events_baseline.csv")
+```
+
+```{r}
+# load intervention stay events
+geo_data_stay_events_intervention <- read_csv("/Volumes/cnlab/GeoRemote/Data/Geodata/clean/stay_events/intervention/stay_events_intervention.csv")
+```
+
+```{r}
+# get distance traveled: baseline
+geo_data_distance_traveled_baseline_averages <- geo_data_stay_events_baseline %>%
+  group_by(pid, day) %>%
+  summarise(
+    distance_traveled_day_miles_baseline = sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  group_by(pid) %>%
+  summarise(
+    avg_distance_traveled_per_day_miles_baseline = mean(distance_traveled_day_miles_baseline, na.rm = TRUE)
+  )
+```
+
+```{r}
+# get distance traveled: intervention
+geo_data_distance_traveled_intervention_averages <- geo_data_stay_events_intervention %>%
+  group_by(pid, day) %>%
+  summarise(
+    distance_traveled_day_miles_intervention = sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  group_by(pid) %>%
+  summarise(
+    avg_distance_traveled_per_day_miles_intervention = mean(distance_traveled_day_miles_intervention, na.rm = TRUE)
+  )
+```
+
+```{r}
+# join baseline and intervention averages
+geo_data_distance_traveled_averages_combine <- full_join(
+  geo_data_distance_traveled_baseline_averages,
+  geo_data_distance_traveled_intervention_averages,
+  by = "pid"
+)
+```
+
+```{r}
+# join the distance averages with the completers df by pid, condition, and phone type
+geo_data_distance_traveled_averages <- geo_data_distance_traveled_averages_combine %>%
+  inner_join(
+    completers %>% select(pid, cond, platformType) %>% distinct(),
+    by = "pid"
+  )
+```
+
+```{r}
+# calculate the difference in distance traveled between phases
+geo_data_distance_traveled_averages <- geo_data_distance_traveled_averages %>%  mutate(distance_difference = avg_distance_traveled_per_day_miles_intervention - avg_distance_traveled_per_day_miles_baseline) 
+```
+
+```{r}
+# calculate z-scores so we can filter outliers later
+geo_data_distance_traveled_averages <- geo_data_distance_traveled_averages %>%
+  mutate(
+    z_distance_difference = (distance_difference - mean(distance_difference, na.rm = TRUE)) /
+                            sd(distance_difference, na.rm = TRUE)
+  )
+```
+
+```{r}
+# subset to just IOS users
+geo_data_distance_traveled_averages_ios <- geo_data_distance_traveled_averages %>% 
+  filter(platformType == "IOS")
+```
+
+```{r}
+# subset to just Android users
+geo_data_distance_traveled_averages_android <- geo_data_distance_traveled_averages %>% 
+  filter(platformType == "ANDROID")
+```
+
+
+```{r}
+# plot: average distance traveled per day by condition and phase
+# pivot df to long format 
+geo_long <- geo_data_distance_traveled_averages %>%
+  pivot_longer(
+    cols = c(avg_distance_traveled_per_day_miles_baseline,
+             avg_distance_traveled_per_day_miles_intervention),
+    names_to = "phase",
+    values_to = "avg_distance_miles"
+  ) %>%
+  mutate(
+    phase = recode(phase,
+      "avg_distance_traveled_per_day_miles_baseline" = "Baseline",
+      "avg_distance_traveled_per_day_miles_intervention" = "Intervention"
+    )
+  )
+
+# get summary stats
+dist_summary <- calc_mean_se(
+  geo_long,
+  avg_distance_miles,
+  group_by_phase = TRUE,
+  pid_col = "pid",
+  return = "summary"
+)
+
+# plot
+ggplot(dist_summary, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(position = position_dodge(0.6), color = "black", width = 0.6) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                position = position_dodge(0.6), width = 0.2) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Avg miles/day", fill = "Phase",
+       title = "Average distance traveled per day by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+
+# get summary stats
+dist_pid_means <- calc_mean_se(
+  geo_long,
+  avg_distance_miles,
+  group_by_phase = TRUE,
+  pid_col = "pid",
+  return = "pid"
+)
+
+# plot
+ggplot(dist_pid_means, aes(x = pid_mean)) +
+  geom_histogram(bins = 20, color = "black", fill = "#79C3BC") +
+  facet_grid(phase ~ cond) +
+  labs(
+    title = "Distribution of average miles/day by condition and phase",
+    x = "PID mean miles/day",
+    y = "Count"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(hjust = 0.5)
+  )
+
+```
+
+
+```{r}
+# filters outliers 
+geo_data_distance_traveled_averages_no_outliers <- geo_data_distance_traveled_averages %>%
+  filter(abs(z_distance_difference) <= 3)
+
+distance_summary <- calc_mean_se(geo_data_distance_traveled_averages_no_outliers, "distance_difference", group_by_phase = FALSE)
+
+# recall palette condition because for some reason it is not working 
+palette_condition <- c(
+  "Control" = "#C29B5B",  # deep teal
+  "Low"     = "#5BC29B",
+  "High"    = "#9B5BC2"   # rust
+)
+
+# plot difference 
+ggplot(distance_summary, aes(x = cond, y = mean, fill = cond)) +
+  geom_col(color = "black", width = 0.6) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), width = 0.2) +
+  scale_fill_manual(values = palette_condition) +
+  labs(x = "Condition", y = "Miles traveled difference",
+       title = "Miles traveled difference by condition") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+```
+
+```{r}
+# plot: average distance traveled per day by condition and phase for IOS users
+# pivot df to long format 
+geo_long <- geo_data_distance_traveled_averages_ios %>%
+  pivot_longer(
+    cols = c(avg_distance_traveled_per_day_miles_baseline,
+             avg_distance_traveled_per_day_miles_intervention),
+    names_to = "phase",
+    values_to = "avg_distance_miles"
+  ) %>%
+  mutate(
+    phase = recode(phase,
+      "avg_distance_traveled_per_day_miles_baseline" = "Baseline",
+      "avg_distance_traveled_per_day_miles_intervention" = "Intervention"
+    )
+  )
+
+# get summary stats
+dist_summary <- calc_mean_se(
+  geo_long,
+  avg_distance_miles,
+  group_by_phase = TRUE,
+  pid_col = "pid",
+  return = "summary"
+)
+
+# plot
+ggplot(dist_summary, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(position = position_dodge(0.6), color = "black", width = 0.6) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                position = position_dodge(0.6), width = 0.2) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Avg miles/day", fill = "Phase",
+       title = "Average distance traveled per day by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+
+# get summary stats
+dist_pid_means <- calc_mean_se(
+  geo_long,
+  avg_distance_miles,
+  group_by_phase = TRUE,
+  pid_col = "pid",
+  return = "pid"
+)
+
+# plot
+ggplot(dist_pid_means, aes(x = pid_mean)) +
+  geom_histogram(bins = 20, color = "black", fill = "#79C3BC") +
+  facet_grid(phase ~ cond) +
+  labs(
+    title = "Distribution of average miles/day by condition and phase",
+    x = "PID mean miles/day",
+    y = "Count"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(hjust = 0.5)
+  )
+```
+
+```{r}
+# plot: average distance traveled per day by condition and phase for Android users
+# pivot df to long format 
+geo_long <- geo_data_distance_traveled_averages_android %>%
+  pivot_longer(
+    cols = c(avg_distance_traveled_per_day_miles_baseline,
+             avg_distance_traveled_per_day_miles_intervention),
+    names_to = "phase",
+    values_to = "avg_distance_miles"
+  ) %>%
+  mutate(
+    phase = recode(phase,
+      "avg_distance_traveled_per_day_miles_baseline" = "Baseline",
+      "avg_distance_traveled_per_day_miles_intervention" = "Intervention"
+    )
+  )
+
+# get summary stats
+dist_summary <- calc_mean_se(
+  geo_long,
+  avg_distance_miles,
+  group_by_phase = TRUE,
+  pid_col = "pid",
+  return = "summary"
+)
+
+# plot
+ggplot(dist_summary, aes(x = cond, y = mean, fill = phase)) +
+  geom_col(position = position_dodge(0.6), color = "black", width = 0.6) +
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
+                position = position_dodge(0.6), width = 0.2) +
+  scale_fill_manual(values = palette_phase) +
+  labs(x = "Condition", y = "Avg miles/day", fill = "Phase",
+       title = "Average distance traveled per day by condition and phase") +
+  theme_bw(base_size = 14) +
+  theme(axis.text = element_text(color = "black"),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank())
+
+# get summary stats
+dist_pid_means <- calc_mean_se(
+  geo_long,
+  avg_distance_miles,
+  group_by_phase = TRUE,
+  pid_col = "pid",
+  return = "pid"
+)
+
+# plot
+ggplot(dist_pid_means, aes(x = pid_mean)) +
+  geom_histogram(bins = 20, color = "black", fill = "#79C3BC") +
+  facet_grid(phase ~ cond) +
+  labs(
+    title = "Distribution of average miles/day by condition and phase",
+    x = "PID mean miles/day",
+    y = "Count"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    strip.text = element_text(face = "bold"),
+    plot.title = element_text(hjust = 0.5)
+  )
+```
+
+```{r}
+# analyzing distance traveled at the day level
+geo_data_distance_traveled_baseline_day <- geo_data_stay_events_baseline %>%
+  group_by(pid, day) %>%
+  summarise(
+    miles_traveled = sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  mutate(phase = "Baseline")
+
+geo_data_distance_traveled_intervention_day <- geo_data_stay_events_intervention %>%
+  group_by(pid, day) %>%
+  summarise(
+    miles_traveled = sum(lagDist_ft, na.rm = TRUE) / 5280
+  ) %>%
+  mutate(phase = "Intervention")
+```
+
+```{r}
+# join baseline and intervention distance dfs
+geo_data_distance_traveled_day_combine <- bind_rows(
+  geo_data_distance_traveled_baseline_day,
+  geo_data_distance_traveled_intervention_day
+)
+```
+
+```{r}
+# joing the day-level distance data with the day-level completers day
+completers <- completers %>%
+  left_join(geo_data_distance_traveled_day_combine, by = c("pid", "day", "phase"))
+```
+
+### Miles traveled {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=30}
+# plot by day
+miles_plots_by_condition_day <- make_plots_by_condition(
+  data = completers,
+  var  = miles_traveled,
+  time_unit = "day",
+  ylab = "Daily miles traveled",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control:Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_day, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_day, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_day, "High", ncol = 2, shared_legend = TRUE)
+```
+
+```{r}
+# filter to IOS users
+completers_ios <- completers %>% 
+  filter(platformType == "IOS")
+```
+
+#### Control:Day-level (IOS users) {.tabset}
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=30}
+# plot by day
+miles_plots_by_condition_day_ios <- make_plots_by_condition(
+  data = completers_ios,
+  var  = miles_traveled,
+  time_unit = "day",
+  ylab = "Daily miles traveled",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control:Day-level (IOS users){.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_day_ios, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Day-level (IOS users){.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_day_ios, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Day-level (IOS users){.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_day_ios, "High", ncol = 2, shared_legend = TRUE)
+```
+
+
+```{r}
+# filter to Android users
+completers_android <- completers %>% 
+  filter(platformType == "Android")
+```
+
+#### Control:Day-level (Android users) {.tabset}
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=30}
+# plot by day
+miles_plots_by_condition_week <- make_plots_by_condition(
+  data = completers_ios,
+  var  = miles_traveled,
+  time_unit = "day",
+  ylab = "Daily miles traveled",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control:Day-level (Android users){.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_day_ios, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Day-level (Android users){.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_day_ios, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Day-level (Android users){.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_day_ios, "High", ncol = 2, shared_legend = TRUE)
+```
+
+
+```{r}
+miles_plots_by_condition_week <- make_plots_by_condition(
+  data = completers,
+  var  = miles_traveled,
+  time_unit = "week",
+  ylab = "Miles traveled",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_week, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_week, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_week, "High", ncol = 2, shared_legend = TRUE)
+```
+
+
+```{r}
+# IOS users
+miles_plots_by_condition_week_ios <- make_plots_by_condition(
+  data = completers_ios,
+  var  = miles_traveled,
+  time_unit = "week",
+  ylab = "Miles traveled",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control: Week-level (IOS users){.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_week_ios, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Week-level (IOS users){.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_week_ios, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Week-level (IOS users){.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_week_ios, "High", ncol = 2, shared_legend = TRUE)
+```
+
+```{r}
+# Android users
+miles_plots_by_condition_week_android <- make_plots_by_condition(
+  data = completers_android,
+  var  = miles_traveled,
+  time_unit = "week",
+  ylab = "Miles traveled",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control: Week-level (Android users){.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_week_android, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Week-level (Android users){.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_week_android, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Week-level (Android users){.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(miles_plots_by_condition_week_android, "High", ncol = 2, shared_legend = TRUE)
+```
+
+
+
+### Negative mood:Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=30}
+neg_mood_plots_by_condition_day <- make_plots_by_condition(
+  data = completers,
+  var  = daily_average_neg,
+  time_unit = "day",
+  ylab = "Daily negative mood",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(neg_mood_plots_by_condition_day, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(neg_mood_plots_by_condition_day, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Day-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(neg_mood_plots_by_condition_day, "High", ncol = 2, shared_legend = TRUE)
+```
+
+### Negative mood: Week-level {.tabset}
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=30}
+neg_mood_plots_by_condition_week <- make_plots_by_condition(
+  data = completers,
+  var  = daily_average_neg,
+  time_unit = "week",
+  ylab = "Daily negative mood",
+  color_values = palette_phase, 
+  skip_single_phase = TRUE
+)
+```
+
+#### Control: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(neg_mood_plots_by_condition_week, "Control", ncol = 2, shared_legend = TRUE)
+```
+
+#### Low: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(neg_mood_plots_by_condition_week, "Low", ncol = 2, shared_legend = TRUE)
+```
+
+#### High: Week-level {.tabset}
+
+```{r, results='asis', echo=FALSE, fig.width=12, fig.height=50}
+print_condition(neg_mood_plots_by_condition_week, "High", ncol = 2, shared_legend = TRUE)
+```
+
+```{r}
+# weekly survey data
+source(file.path(scripts_directory, 
+                 "Utility Scripts", 
+                 "geo_qualtrics.r"))
+
+weekly_data <- load_qualtrics_weekly_surveys(type = "clean")
+```
+
+```{r}
+# joing weekly survey data with completers df
+weekly_df <- weekly_data %>%
+  inner_join(
+    completers %>% select(pid, cond) %>% distinct(),
+    by = "pid"
+  )
+```
+
+```{r}
+# 1) participant-week means (one value per pid×week)
+weekly_pid_means <- weekly_df %>%
+  group_by(pid, cond, week) %>%
+  summarise(mean_days_03 = mean(days_03, na.rm = TRUE), .groups = "drop") %>%
+  mutate(mean_days_03 = ifelse(is.nan(mean_days_03), NA_real_, mean_days_03)) %>%
+  filter(!is.na(mean_days_03))
+
+# 2) per-week means
+weekly_means_by_week <- weekly_pid_means %>%
+  group_by(cond, week) %>%
+  summarise(mean_days_03 = mean(mean_days_03, na.rm = TRUE), .groups = "drop")
+
+# 3) pooled SE per condition (across *all* pid×week rows)
+cond_level_se <- weekly_pid_means %>%
+  group_by(cond) %>%
+  summarise(
+    n = dplyr::n(),
+    se_days_03 = ifelse(n > 1, sd(mean_days_03, na.rm = TRUE) / sqrt(n), 0),
+    .groups = "drop"
+  )
+
+# 4) join pooled SE back to each weekly point and compute bars
+weekly_summary <- weekly_means_by_week %>%
+  left_join(cond_level_se, by = "cond") %>%
+  mutate(
+    week = suppressWarnings(as.numeric(as.character(week))),
+    ymin = mean_days_03 - se_days_03,
+    ymax = mean_days_03 + se_days_03
+  )
+
+# 5) plot: constant SE within each condition across weeks
+ggplot(weekly_summary, aes(x = week, y = mean_days_03, color = cond, group = cond)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0.2, size = 0.8) +
+  scale_color_manual(values = palette_condition) +
+  labs(
+    x = "Week",
+    y = "Exposure recall",
+    color = "Condition",
+    title = "Weekly exposure recall by condition"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank())
+```
+
+```{r}
+# 1) participant-week means (one value per pid×week)
+weekly_pid_means <- weekly_df %>%
+  group_by(pid, cond, week) %>%
+  summarise(mean_days_04 = mean(days_04, na.rm = TRUE), .groups = "drop") %>%
+  mutate(mean_days_04 = ifelse(is.nan(mean_days_04), NA_real_, mean_days_04)) %>%
+  filter(!is.na(mean_days_04))
+
+# 2) per-week means
+weekly_means_by_week <- weekly_pid_means %>%
+  group_by(cond, week) %>%
+  summarise(mean_days_04 = mean(mean_days_04, na.rm = TRUE), .groups = "drop")
+
+# 3) pooled SE per condition (across *all* pid×week rows)
+cond_level_se <- weekly_pid_means %>%
+  group_by(cond) %>%
+  summarise(
+    n = dplyr::n(),
+    se_days_04 = ifelse(n > 1, sd(mean_days_04, na.rm = TRUE) / sqrt(n), 0),
+    .groups = "drop"
+  )
+
+# 4) join pooled SE back to each weekly point and compute bars
+weekly_summary <- weekly_means_by_week %>%
+  left_join(cond_level_se, by = "cond") %>%
+  mutate(
+    week = suppressWarnings(as.numeric(as.character(week))),
+    ymin = mean_days_04 - se_days_04,
+    ymax = mean_days_04 + se_days_04
+  )
+
+# 5) plot: constant SE within each condition across weeks
+ggplot(weekly_summary, aes(x = week, y = mean_days_04, color = cond, group = cond)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0.2, size = 0.8) +
+  scale_color_manual(values = palette_condition) +
+  labs(
+    x = "Week",
+    y = "Impulse purchases",
+    color = "Condition",
+    title = "Weekly impulse purchases by condition"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank())
+```
+
+
+```{r}
+# 1) participant-week means (one value per pid×week)
+weekly_pid_means <- weekly_df %>%
+  group_by(pid, cond, week) %>%
+  summarise(mean_days_02 = mean(days_02, na.rm = TRUE), .groups = "drop") %>%
+  mutate(mean_days_02 = ifelse(is.nan(mean_days_02), NA_real_, mean_days_02)) %>%
+  filter(!is.na(mean_days_02))
+
+# 2) per-week means
+weekly_means_by_week <- weekly_pid_means %>%
+  group_by(cond, week) %>%
+  summarise(mean_days_02 = mean(mean_days_02, na.rm = TRUE), .groups = "drop")
+
+# 3) pooled SE per condition (across *all* pid×week rows)
+cond_level_se <- weekly_pid_means %>%
+  group_by(cond) %>%
+  summarise(
+    n = dplyr::n(),
+    se_days_02 = ifelse(n > 1, sd(mean_days_02, na.rm = TRUE) / sqrt(n), 0),
+    .groups = "drop"
+  )
+
+# 4) join pooled SE back to each weekly point and compute bars
+weekly_summary <- weekly_means_by_week %>%
+  left_join(cond_level_se, by = "cond") %>%
+  mutate(
+    week = suppressWarnings(as.numeric(as.character(week))),
+    ymin = mean_days_02 - se_days_02,
+    ymax = mean_days_02 + se_days_02
+  )
+
+# 5) plot: constant SE within each condition across weeks
+ggplot(weekly_summary, aes(x = week, y = mean_days_02, color = cond, group = cond)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0.2, size = 0.8) +
+  scale_color_manual(values = palette_condition) +
+  labs(
+    x = "Week",
+    y = "Media exposure",
+    color = "Condition",
+    title = "Weekly media exposure by condition"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank())
+```
+
+```{r}
+# compute correlations
+cor.test(weekly_df$days_03, weekly_df$days_04)
+```
+
+```{r}
+# control only
+weekly_df_control <- weekly_df %>% 
+  filter(cond == "Control")
+
+cor.test(weekly_df_control$days_03, weekly_df_control$days_04)
+```
+
+```{r}
+# low only
+weekly_df_low <- weekly_df %>% 
+  filter(cond == "Low")
+
+cor.test(weekly_df_low$days_03, weekly_df_low$days_04)
+```
+
+```{r}
+# high only
+weekly_df_high <- weekly_df %>% 
+  filter(cond == "High")
+
+cor.test(weekly_df_high$days_03, weekly_df_high$days_04)
+```
+
+```{r}
+completers_intervention <- completers %>% 
+  filter(phase == "Intervention")
+```
+
+```{r}
+completers_intervention_weekly <- completers %>%
+  filter(phase == "Intervention") %>%        
+  group_by(pid, week) %>%
+  summarise(
+    exposures = mean(daily_exposures_1000ft_100ft, na.rm = TRUE)     
+  )
+```
+
+```{r}
+weekly_df_intervention <- weekly_df %>% 
+  filter(week != 0)
+```
+
+```{r}
+intervention_weekly_all <- completers_intervention_weekly %>%
+  left_join(weekly_df_intervention, by = c("pid", "week"))
+```
+
+```{r}
+# compute correlations
+cor.test(intervention_weekly_all$exposures, intervention_weekly_all$days_03)
+```
+
+```{r}
+# control only
+intervention_weekly_all_control <- intervention_weekly_all %>% 
+  filter(cond == "Control")
+
+cor.test(intervention_weekly_all_control$exposures, intervention_weekly_all_control$days_03)
+```
+
+```{r}
+# low only
+intervention_weekly_all_low <- intervention_weekly_all %>% 
+  filter(cond == "Low")
+
+cor.test(intervention_weekly_all_low$exposures, intervention_weekly_all_low$days_03)
+```
+
+```{r}
+# high only
+intervention_weekly_all_high <- intervention_weekly_all %>% 
+  filter(cond == "High")
+
+cor.test(intervention_weekly_all_high$exposures, intervention_weekly_all_high$days_03)
+```
+
+
+```{r}
+cor.test(intervention_weekly_all$exposures, intervention_weekly_all$days_04)
+```
+
+```{r}
+# control only
+intervention_weekly_all_control <- intervention_weekly_all %>% 
+  filter(cond == "Control")
+
+cor.test(intervention_weekly_all_control$exposures, intervention_weekly_all_control$days_04)
+```
+
+```{r}
+# low only
+intervention_weekly_all_low <- intervention_weekly_all %>% 
+  filter(cond == "Low")
+
+cor.test(intervention_weekly_all_low$exposures, intervention_weekly_all_low$days_04)
+```
+
+```{r}
+# high only
+intervention_weekly_all_high <- intervention_weekly_all %>% 
+  filter(cond == "High")
+
+cor.test(intervention_weekly_all_high$exposures, intervention_weekly_all_high$days_04)
+```

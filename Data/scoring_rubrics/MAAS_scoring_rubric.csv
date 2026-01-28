@@ -1,0 +1,16 @@
+scale name,column name,reverse,min,max,transform,sum,mean
+MAAS,maas_1,0,1,6,0,sum,mean
+MAAS,maas_2,0,1,6,0,sum,mean
+MAAS,maas_3,0,1,6,0,sum,mean
+MAAS,maas_4,0,1,6,0,sum,mean
+MAAS,maas_5,0,1,6,0,sum,mean
+MAAS,maas_6,0,1,6,0,sum,mean
+MAAS,maas_7,0,1,6,0,sum,mean
+MAAS,maas_8,0,1,6,0,sum,mean
+MAAS,maas_9,0,1,6,0,sum,mean
+MAAS,maas_10,0,1,6,0,sum,mean
+MAAS,maas_11,0,1,6,0,sum,mean
+MAAS,maas_12,0,1,6,0,sum,mean
+MAAS,maas_13,0,1,6,0,sum,mean
+MAAS,maas_14,0,1,6,0,sum,mean
+MAAS,maas_15,0,1,6,0,sum,mean

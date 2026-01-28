@@ -1,0 +1,375 @@
+---
+title: "Aim3_mobility"
+author: "NC"
+date: "2024-12-18"
+output: html_document
+---
+
+# Setup {.tabset}
+## Set scripts directory
+```{r, echo=FALSE}
+if ("Scripts" %in% unlist(strsplit(normalizePath("."), "/"))) {
+  scripts_directory = paste(unlist(strsplit(normalizePath("."), "/"))[1:which(unlist(strsplit(normalizePath("."), "/"))=="Scripts")],collapse="/")
+} else {
+  print("Select any file within Scripts to set up the path")
+  temp = file.choose()
+  scripts_directory = paste(unlist(strsplit(temp, "/"))[1:which(unlist(strsplit(temp, "/"))=="Scripts")],collapse="/")
+}
+```
+
+## Load analysis functions
+```{r}
+source(file.path(scripts_directory, 
+                 "Utility Scripts", 
+                 "geo_analysis.r")) # <- Change the file to load different scripts, e.g. "geo_lifedata.r"
+
+source(file.path(scripts_directory, 
+                 "Utility Scripts", 
+                 "geo_lifedata.r"))
+```
+
+Load ema
+```{r}
+ema = load_lifedata()
+ema_wide = load_lifedata(format = "wide")
+```
+
+## Load EMA, and covariate data
+```{r}
+EMA_Baseline_Covariates_Distinct = load_ema_with_covs(Type="Baseline",
+                                                      ema_variables = c("day", "day_in_study","daily_average_crave", "daily_cigs", "daily_stress"),
+                        redcap_variables = c("pid","age","gender","ethnicity","race","intervention_complete","cond")) %>%
+  add_survey_measure("FTND", session=1) %>%
+  add_descriptives(vars="platformType") %>%
+  distinct()
+```
+
+```{r}
+EMA_Intervention_Covariates_Distinct = load_ema_with_covs(Type="Intervention",
+                                                      ema_variables = c("day", "day_in_study","daily_average_crave", "daily_cigs", "daily_stress"),
+                        redcap_variables = c("pid","age","gender","ethnicity","race","intervention_complete","cond")) %>%
+  add_survey_measure("FTND", session=3) %>%
+  add_descriptives(vars="platformType") %>%
+  distinct()
+
+
+#[num_receipts]
+```
+## Load and reduce mobility data 
+```{r}
+mobility <- read_csv("/Volumes/cnlab/GeoRemote/Data/RetailerExposure/Mobility/geodata_clusters_minPts20.csv")
+
+Mobility_Distinct <- mobility  %>% 
+  distinct(pid, type, uniqueLocations, timeSpentAtHome, travelTime, totaltime, entropy, placesVisited)
+```
+
+## Append daily count dataframes 
+```{r}
+EMA_Baseline_Covariates_Distinct$phase<-"baseline"
+EMA_Intervention_Covariates_Distinct$phase<-"intervention"
+
+data_daily_comb_long <- rbind(EMA_Baseline_Covariates_Distinct, EMA_Intervention_Covariates_Distinct)
+  
+data_daily_comb_long <- data_daily_comb_long %>%
+  mutate(
+    cond = case_when(
+      cond == 1 ~ "Low",
+      cond == 2 ~ "High",
+      cond == 3 ~ "Control",
+      TRUE ~ as.character(cond) 
+    ),
+    cond = factor(cond, levels = c("Control", "Low", "High"))
+  )
+
+data_daily_comb_long$cond_base<-ifelse(data_daily_comb_long$cond=="Control",0,1)
+
+data_daily_comb_long <- data_daily_comb_long %>%
+  filter(!is.na(cond))
+```
+
+## Example lmer models
+```{r}
+lme_craving_itt <- lmer(daily_average_crave ~ phase * cond + (phase|pid), data = data_daily_comb_long)
+summary(lme_craving_itt)
+
+lme_stress_itt <- lmer(daily_stress ~ phase * cond + (phase|pid), data = data_daily_comb_long)
+summary(lme_stress_itt)
+
+lme_stress_itt <- lmer(daily_stress ~ phase * cond_base + (phase|pid), data = data_daily_comb_long)
+summary(lme_stress_itt)
+
+```
+
+
+## Merge daily count dataframes, for the percent change version 
+```{r}
+colnames(EMA_Baseline_Covariates_Distinct)<-c("pid","day_baseline","day_in_study","daily_average_crave_baseline","daily_cigs_baseline","daily_stress_baseline","age","gender","etnicity","race","intervention_complete","cond","FTND_score_baseline","platformType","phase")
+
+colnames(EMA_Intervention_Covariates_Distinct)<-c("pid","day_intervention","day_in_study","daily_average_crave_intervention","daily_cigs_intervention","daily_stress_intervention","age","gender","etnicity","race","intervention_complete","cond","FTND_score_intervention","platformType","phase")
+
+data_daily_comb<-merge(EMA_Baseline_Covariates_Distinct, EMA_Intervention_Covariates_Distinct, by=c('pid'))
+```
+
+## Winsorize merged data
+```{r}
+EMA_Baseline_Covariates_Distinct = winsorize_variables(EMA_Baseline_Covariates_Distinct, 
+                               c("daily_average_crave_baseline",
+                                 "daily_cigs_baseline",
+                                 "daily_stress_baseline"))
+
+EMA_Intervention_Covariates_Distinct = winsorize_variables(EMA_Intervention_Covariates_Distinct, 
+                              c("daily_average_crave_intervention",
+                                 "daily_cigs_intervention",
+                                 "daily_stress_intervention"))
+```
+
+## Create average smoking and craving variables (baseline, intervention) for each person - wide 
+```{r}
+baseline_means <- aggregate(list(baseline_crave=EMA_Baseline_Covariates_Distinct$daily_average_crave_baseline, baseline_cigs=EMA_Baseline_Covariates_Distinct$daily_cigs_baseline, baseline_FTND=EMA_Baseline_Covariates_Distinct$FTND_score_baseline,baseline_stress=EMA_Baseline_Covariates_Distinct$daily_stress_baseline), by = list(pid=EMA_Baseline_Covariates_Distinct$pid), mean, na.rm=TRUE)
+
+intervention_means <- aggregate(list(intervention_crave=EMA_Intervention_Covariates_Distinct$daily_average_crave_intervention, intervention_cigs=EMA_Intervention_Covariates_Distinct$daily_cigs_intervention, intervention_FTND=EMA_Intervention_Covariates_Distinct$FTND_score_intervention, intervention_stress=EMA_Intervention_Covariates_Distinct$daily_stress_intervention,intervention_cond=EMA_Intervention_Covariates_Distinct$cond), by = list(pid=EMA_Intervention_Covariates_Distinct$pid), mean, na.rm=TRUE)
+
+data_averages_comb <- merge(baseline_means,intervention_means,by=c('pid'))
+
+```
+
+## Create average smoking and craving variables (baseline, intervention) for each person - long 
+```{r}
+baseline_means <- aggregate(list(crave=EMA_Baseline_Covariates_Distinct$daily_average_crave_baseline, cigs=EMA_Baseline_Covariates_Distinct$daily_cigs_baseline, FTND=EMA_Baseline_Covariates_Distinct$FTND_score_baseline, stress=EMA_Baseline_Covariates_Distinct$daily_stress_baseline,cond=EMA_Baseline_Covariates_Distinct$cond), by = list(pid=EMA_Baseline_Covariates_Distinct$pid), mean, na.rm=TRUE)
+baseline_means$phase<-"baseline"
+
+intervention_means <- aggregate(list(crave=EMA_Intervention_Covariates_Distinct$daily_average_crave_intervention, cigs=EMA_Intervention_Covariates_Distinct$daily_cigs_intervention, FTND=EMA_Intervention_Covariates_Distinct$FTND_score_intervention, stress=EMA_Intervention_Covariates_Distinct$daily_stress_intervention,cond=EMA_Intervention_Covariates_Distinct$cond), by = list(pid=EMA_Intervention_Covariates_Distinct$pid), mean, na.rm=TRUE)
+intervention_means$phase<-"intervention"
+
+data_averages_long <- rbind(baseline_means,intervention_means)
+
+condition_averages <- aggregate(list(crave=data_averages_long$crave, cigs=data_averages_long$crave, stress=data_averages_long$stress), by=list(cond=data_averages_long$cond), mean, na.rm=TRUE)
+
+condition_sds <- aggregate(list(crave=data_averages_long$crave, cigs=data_averages_long$crave, stress=data_averages_long$stress), by=list(cond=data_averages_long$cond), sd, na.rm=TRUE) 
+```
+
+## Merge mobility variables
+```{r}
+#add phase column with different capitalization to match data_averages_long
+Mobility_Distinct$phase<-ifelse(Mobility_Distinct$type=="Baseline","baseline","intervention")
+#merge EMA and mobility data
+allvars <- merge(data_averages_long, Mobility_Distinct,by=c("pid","phase"))
+
+```
+
+
+## Look at aggregate comparisons, including only those who completed the intervention
+```{r}
+EMA_Intervention_Covariates_Distinct_complete <- EMA_Intervention_Covariates_Distinct[which(EMA_Intervention_Covariates_Distinct$intervention_complete==1),]
+
+completelist<-data.frame(unique(EMA_Intervention_Covariates_Distinct_complete$pid))
+colnames(completelist)<-c("pid")
+
+allvars_complete<-merge(allvars,completelist,by=c("pid"))
+```
+
+
+```{r}
+condition_averages <- aggregate(list(crave=allvars$crave, cigs=allvars$cigs, stress=allvars$stress,loc=allvars$uniqueLocations,home=allvars$timeSpentAtHome,travel=allvars$travelTime,entropy=allvars$entropy,places=allvars$placesVisited), by=list(cond=allvars$cond,phase=allvars$phase), mean, na.rm=TRUE)
+
+condition_sds <- aggregate(list(crave=allvars$crave, cigs=allvars$cigs, stress=allvars$stress,loc=allvars$uniqueLocations,home=allvars$timeSpentAtHome,travel=allvars$travelTime,entropy=allvars$entropy,places=allvars$placesVisited), by=list(cond=allvars$cond,phase=allvars$phase), sd, na.rm=TRUE)
+
+
+complete_condition_averages <- aggregate(list(crave=allvars_complete$crave, cigs=allvars_complete$cigs, stress=allvars_complete$stress,loc=allvars_complete$uniqueLocations,home=allvars_complete$timeSpentAtHome,travel=allvars_complete$travelTime,entropy=allvars_complete$entropy,places=allvars_complete$placesVisited), by=list(cond=allvars_complete$cond,phase=allvars_complete$phase), mean, na.rm=TRUE)
+
+complete_condition_sds <- aggregate(list(crave=allvars_complete$crave, cigs=allvars_complete$cigs, stress=allvars_complete$stress,loc=allvars_complete$uniqueLocations,home=allvars_complete$timeSpentAtHome,travel=allvars_complete$travelTime,entropy=allvars_complete$entropy,places=allvars_complete$placesVisited), by=list(cond=allvars_complete$cond,phase=allvars_complete$phase), sd, na.rm=TRUE)
+
+```
+
+## Test change 
+[look at Aim 3 models Ben wrote for a regression base, and code for plots]
+
+## Reshape long to wide for change scores 
+```{r}
+allvars_complete_wide<- reshape(allvars_complete,idvar=c("pid"),timevar=c("phase"),direction="wide")
+
+```
+
+
+
+## Change variables
+```{r}
+allvars_complete_wide$change_cigs <- (allvars_complete_wide$cigs.baseline - allvars_complete_wide$cigs.intervention) / allvars_complete_wide$cigs.baseline
+
+allvars_complete_wide$change_crave <- (allvars_complete_wide$crave.baseline - allvars_complete_wide$crave.intervention) / allvars_complete_wide$crave.baseline
+
+allvars_complete_wide$change_stress <- (allvars_complete_wide$stress.baseline - allvars_complete_wide$stress.intervention) / allvars_complete_wide$stress.baseline
+
+allvars_complete_wide$change_uniqueLoc <- (allvars_complete_wide$uniqueLocations.baseline - allvars_complete_wide$uniqueLocations.intervention) / allvars_complete_wide$uniqueLocations.baseline
+
+allvars_complete_wide$change_timeHome <- (allvars_complete_wide$timeSpentAtHome.baseline - allvars_complete_wide$timeSpentAtHome.intervention) / allvars_complete_wide$timeSpentAtHome.baseline
+
+allvars_complete_wide$change_entropy <- (allvars_complete_wide$entropy.baseline - allvars_complete_wide$entropy.intervention) / allvars_complete_wide$entropy.baseline
+
+allvars_complete_wide$change_placesVisited <- (allvars_complete_wide$placesVisited.baseline - allvars_complete_wide$placesVisited.intervention) / allvars_complete_wide$placesVisited.baseline
+```
+
+## Change variable correlations
+```{r}
+cor.test(allvars_complete_wide$change_cigs, allvars_complete_wide$change_stress, na.rm=TRUE)
+cor.test(allvars_complete_wide$change_cigs, allvars_complete_wide$change_uniqueLoc, na.rm=TRUE)
+cor.test(allvars_complete_wide$change_cigs, allvars_complete_wide$change_timeHome, na.rm=TRUE)
+cor.test(allvars_complete_wide$change_cigs, allvars_complete_wide$change_entropy, na.rm=TRUE)
+cor.test(allvars_complete_wide$change_cigs, allvars_complete_wide$change_placesVisited, na.rm=TRUE)
+
+cor.test(allvars_complete_wide$change_crave, allvars_complete_wide$change_stress, na.rm=TRUE)
+cor.test(allvars_complete_wide$change_crave, allvars_complete_wide$change_uniqueLoc, na.rm=TRUE)
+cor.test(allvars_complete_wide$change_crave, allvars_complete_wide$change_timeHome, na.rm=TRUE)
+cor.test(allvars_complete_wide$change_crave, allvars_complete_wide$change_entropy, na.rm=TRUE)
+cor.test(allvars_complete_wide$change_crave, allvars_complete_wide$change_placesVisited, na.rm=TRUE)
+
+```
+
+# Winsorize
+```{r}
+allvars_complete_wide_wins <- allvars_complete_wide %>%
+    mutate(
+        crave_baseline_winsorized = Winsorize(crave.baseline, probs = c(0.05, 0.95), na.rm = TRUE),
+        crave_intervention_winsorized = Winsorize(crave.intervention, probs = c(0.05, 0.95), na.rm = TRUE),
+        cigs_baseline_winsorized = Winsorize(cigs.baseline, probs = c(0.05, 0.95), na.rm = TRUE),
+        cigs_intervention_winsorized = Winsorize(cigs.intervention, probs = c(0.05, 0.95), na.rm = TRUE),
+        stress_baseline_winsorized = Winsorize(stress.baseline, probs = c(0.05, 0.95), na.rm = TRUE),
+        stress_intervention_winsorized = Winsorize(stress.intervention, probs = c(0.05, 0.95), na.rm = TRUE),
+        uniqueLocations_intervention_winsorized = Winsorize(uniqueLocations.intervention, probs = c(0.05, 0.95), na.rm = TRUE),
+        uniqueLocations_baseline_winsorized = Winsorize(uniqueLocations.baseline, probs = c(0.05, 0.95), na.rm = TRUE),
+        entropy_baseline_winsorized = Winsorize(entropy.baseline, probs = c(0.05, 0.95), na.rm = TRUE),
+        entropy_intervention_winsorized = Winsorize(entropy.intervention, probs = c(0.05, 0.95), na.rm = TRUE),
+        timeHome_intervention_winsorized = Winsorize(timeSpentAtHome.intervention, probs = c(0.05, 0.95), na.rm = TRUE),
+        timeHome_baseline_winsorized = Winsorize(timeSpentAtHome.baseline, probs = c(0.05, 0.95), na.rm = TRUE),
+        places_intervention_winsorized = Winsorize(placesVisited.intervention, probs = c(0.05, 0.95), na.rm = TRUE),
+        places_baseline_winsorized = Winsorize(placesVisited.baseline, probs = c(0.05, 0.95), na.rm = TRUE)
+    ) 
+```
+
+
+
+
+## Change variables winsorized
+```{r}
+allvars_complete_wide_wins$cond <- factor(allvars_complete_wide_wins$cond.intervention)
+allvars_complete_wide_wins$condR <- relevel(allvars_complete_wide_wins$cond, ref = 2)
+
+allvars_complete_wide_wins$change_cigs <- (allvars_complete_wide_wins$cigs_baseline_winsorized - allvars_complete_wide_wins$cigs_intervention_winsorized) / allvars_complete_wide_wins$cigs_baseline_winsorized
+
+allvars_complete_wide_wins$change_crave <- (allvars_complete_wide_wins$crave_baseline_winsorized - allvars_complete_wide_wins$crave_intervention_winsorized) / allvars_complete_wide_wins$crave_baseline_winsorized
+
+allvars_complete_wide_wins$change_stress <- (allvars_complete_wide_wins$stress_baseline_winsorized - allvars_complete_wide_wins$stress_intervention_winsorized) / allvars_complete_wide_wins$stress_baseline_winsorized
+
+allvars_complete_wide_wins$change_uniqueLoc <- (allvars_complete_wide_wins$uniqueLocations_baseline_winsorized - allvars_complete_wide_wins$uniqueLocations_intervention_winsorized) / allvars_complete_wide_wins$uniqueLocations_baseline_winsorized
+
+allvars_complete_wide_wins$change_timeHome <- (allvars_complete_wide_wins$timeHome_baseline_winsorized - allvars_complete_wide_wins$timeHome_intervention_winsorized) / allvars_complete_wide_wins$timeHome_baseline_winsorized
+
+allvars_complete_wide_wins$change_entropy <- (allvars_complete_wide_wins$entropy_baseline_winsorized - allvars_complete_wide_wins$entropy_intervention_winsorized) / allvars_complete_wide_wins$entropy_baseline_winsorized
+
+allvars_complete_wide_wins$change_placesVisited <- (allvars_complete_wide_wins$places_baseline_winsorized - allvars_complete_wide_wins$places_intervention_winsorized) / allvars_complete_wide_wins$places_baseline_winsorized
+```
+
+## Change variable winsorized correlations
+```{r}
+cor.test(allvars_complete_wide_wins$change_cigs, allvars_complete_wide_wins$change_stress, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_cigs, allvars_complete_wide_wins$change_uniqueLoc, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_cigs, allvars_complete_wide_wins$change_timeHome, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_cigs, allvars_complete_wide_wins$change_entropy, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_cigs, allvars_complete_wide_wins$change_placesVisited, na.rm=TRUE)
+
+cor.test(allvars_complete_wide_wins$change_crave, allvars_complete_wide_wins$change_stress, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_crave, allvars_complete_wide_wins$change_uniqueLoc, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_crave, allvars_complete_wide_wins$change_timeHome, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_crave, allvars_complete_wide_wins$change_entropy, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_crave, allvars_complete_wide_wins$change_placesVisited, na.rm=TRUE)
+
+```
+
+
+# Winsorize change variables 
+```{r}
+allvars_complete_wide_wins <- allvars_complete_wide_wins %>%
+    mutate(
+        change_cigs_winsorized = Winsorize(change_cigs, probs = c(0.05, 0.95), na.rm = TRUE),
+        change_crave_winsorized = Winsorize(change_crave, probs = c(0.05, 0.95), na.rm = TRUE),
+        change_stress_winsorized = Winsorize(change_stress, probs = c(0.05, 0.95), na.rm = TRUE),
+        change_uniqueLoc_winsorized = Winsorize(change_uniqueLoc, probs = c(0.05, 0.95), na.rm = TRUE),
+        change_timeHome_winsorized = Winsorize(change_timeHome, probs = c(0.05, 0.95), na.rm = TRUE),
+        change_entropy_winsorized = Winsorize(change_entropy, probs = c(0.05, 0.95), na.rm = TRUE),
+        change_placesVisited_winsorized = Winsorize(change_placesVisited, probs = c(0.05, 0.95), na.rm = TRUE)
+    ) 
+```
+
+
+
+## Change variable winsorized correlations
+```{r}
+cor.test(allvars_complete_wide_wins$change_cigs_winsorized, allvars_complete_wide_wins$change_stress_winsorized, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_cigs_winsorized, allvars_complete_wide_wins$change_uniqueLoc_winsorized, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_cigs_winsorized, allvars_complete_wide_wins$change_timeHome_winsorized, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_cigs_winsorized, allvars_complete_wide_wins$change_entropy_winsorized, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_cigs_winsorized, allvars_complete_wide_wins$change_placesVisited_winsorized, na.rm=TRUE)
+
+cor.test(allvars_complete_wide_wins$change_crave_winsorized, allvars_complete_wide_wins$change_stress_winsorized, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_crave_winsorized, allvars_complete_wide_wins$change_uniqueLoc_winsorized, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_crave_winsorized, allvars_complete_wide_wins$change_timeHome_winsorized, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_crave_winsorized, allvars_complete_wide_wins$change_entropy_winsorized, na.rm=TRUE)
+cor.test(allvars_complete_wide_wins$change_crave_winsorized, allvars_complete_wide_wins$change_placesVisited_winsorized, na.rm=TRUE)
+
+```
+## Change variable winsorized correlations
+```{r}
+summary(lm(change_cigs_winsorized ~ change_stress_winsorized * as.factor(condR), data=allvars_complete_wide_wins))
+summary(lm(change_cigs_winsorized ~ change_uniqueLoc_winsorized * as.factor(condR), data=allvars_complete_wide_wins))
+summary(lm(change_cigs_winsorized ~ change_timeHome_winsorized * as.factor(condR), data=allvars_complete_wide_wins))
+summary(lm(change_cigs_winsorized ~ change_entropy_winsorized * as.factor(condR), data=allvars_complete_wide_wins))
+summary(lm(change_cigs_winsorized ~ change_placesVisited_winsorized * as.factor(condR), data=allvars_complete_wide_wins))
+
+summary(lm(change_crave_winsorized ~ change_stress_winsorized * as.factor(condR), data=allvars_complete_wide_wins))
+summary(lm(change_crave_winsorized ~ change_uniqueLoc_winsorized * as.factor(condR), data=allvars_complete_wide_wins))
+summary(lm(change_crave_winsorized ~ change_timeHome_winsorized * as.factor(condR), data=allvars_complete_wide_wins))
+summary(lm(change_crave_winsorized ~ change_entropy_winsorized * as.factor(condR), data=allvars_complete_wide_wins))
+summary(lm(change_crave_winsorized ~ change_placesVisited_winsorized * as.factor(condR), data=allvars_complete_wide_wins))
+
+```
+
+
+
+
+
+
+
+
+#### Does mobility change from baseline to intervention?
+is there a larger mobility change in the experimental groups than in the control group;Does mo is there a difference in mobility change in the CVS vs 7-Eleven groups 
+```{r}
+summary(lm(allvars_complete$crave ~ as.factor(allvars_complete$cond), data=allvars_complete))
+
+```
+
+
+#### regressions predicting smoking / craving from mobility interaction with time period? 
+#### ^^ this wouldn't account for experimental condition 
+```{r}
+
+```
+#### regression predicting % CHANGE in smoking / craving from % CHANGE in mobility, interacting with experimental group assignment? 
+```{r}
+
+```
+
+
+## Plot stress
+
+```{r, echo=FALSE}
+
+ggplot(avg_stress_baseline, aes(x = cond, y = avg_value, fill = cond)) +
+  geom_bar(stat = "identity") +
+  geom_errorbar(aes(ymin = avg_value - se_value, ymax = avg_value + se_value), width = 0.2) +
+  scale_fill_manual(values = palette_condition) +
+  labs(title = "Average Daily Stress",
+       x = "Condition",
+       y = "Average Daily Stress") +
+  plot_aes
+```
+

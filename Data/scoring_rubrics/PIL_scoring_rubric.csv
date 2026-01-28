@@ -1,0 +1,10 @@
+scale name,column name,reverse,min,max,transform,sum,mean,pil_ben_1,pil_ben_2
+PIL,pil_1,0,1,6,0,sum,mean,,
+PIL,pil_2,1,1,6,0,sum,mean,,
+PIL,pil_3,0,1,6,0,sum,mean,,
+PIL,pil_4,1,1,6,0,sum,mean,,
+PIL,pil_5,1,1,6,0,sum,mean,,
+PIL,pil_6,1,1,6,0,sum,mean,,
+PIL,pil_7,0,1,6,0,sum,mean,,
+PIL,pil_ben_1,0,1,6,0,,,1,
+PIL,pil_ben_2,0,1,6,0,,,,1

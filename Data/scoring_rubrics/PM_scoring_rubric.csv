@@ -1,0 +1,4 @@
+scale name,column name,reverse,min,max,transform,sum,mean,pm_self,pm_pa,pm_smk
+PM,pm_self,0,1,4,0,sum,mean,1,,
+PM,pm_pa,0,1,4,0,sum,mean,,1,
+PM,pm_smk,0,1,4,0,sum,mean,,,1

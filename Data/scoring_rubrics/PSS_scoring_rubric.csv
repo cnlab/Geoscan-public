@@ -1,0 +1,11 @@
+scale name,column name,reverse,min,max,transform,sum,mean,pss_01,pss_02,pss_03,pss_04,pss_05,pss_06,pss_07,pss_08,pss_09,pss_10
+PSS,pss_01,0,0,4,0,sum,mean,1,,,,,,,,,
+PSS,pss_02,0,0,4,0,sum,mean,,1,,,,,,,,
+PSS,pss_03,0,0,4,0,sum,mean,,,1,,,,,,,
+PSS,pss_04,1,0,4,0,sum,mean,,,,1,,,,,,
+PSS,pss_05,1,0,4,0,sum,mean,,,,,1,,,,,
+PSS,pss_06,0,0,4,0,sum,mean,,,,,,1,,,,
+PSS,pss_07,1,0,4,0,sum,mean,,,,,,,1,,,
+PSS,pss_08,1,0,4,0,sum,mean,,,,,,,,1,,
+PSS,pss_09,0,0,4,0,sum,mean,,,,,,,,,1,
+PSS,pss_10,0,0,4,0,sum,mean,,,,,,,,,,1

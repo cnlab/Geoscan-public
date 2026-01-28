@@ -1,0 +1,9 @@
+scale name,column name,reverse,min,max,transform,approve,norm_01_1,norm_01_2,norm_01_3,norm_01_4,norm_02,norm_03,norm_04,norm_05
+NORM,norm_01_1,0,1,6,0,sum,1,,,,,,,
+NORM,norm_01_2,0,1,6,0,sum,,1,,,,,,
+NORM,norm_01_3,0,1,6,0,sum,,,1,,,,,
+NORM,norm_01_4,0,1,6,0,sum,,,,1,,,,
+NORM,norm_02,0,1,5,0,,,,,,1,,,
+NORM,norm_03,0,1,4,0,,,,,,,1,,
+NORM,norm_04,0,1,6,0,,,,,,,,1,
+NORM,norm_05,0,1,5,0,,,,,,,,,1

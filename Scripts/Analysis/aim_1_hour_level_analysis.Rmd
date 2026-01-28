@@ -1,0 +1,868 @@
+---
+title: "Aim 1 Analysis"
+author: "Ben Muzekari"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    df_print: paged
+    highlight: tango
+    theme: united
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,      # Show code by default
+  message = FALSE,  # Suppress messages by default
+  warning = FALSE   # Suppress warnings by default
+)
+```
+
+# Setup {.tabset}
+## Set scripts directory
+```{r, echo=FALSE}
+if ("Scripts" %in% unlist(strsplit(normalizePath("."), "/"))) {
+  scripts_directory = paste(unlist(strsplit(normalizePath("."), "/"))[1:which(unlist(strsplit(normalizePath("."), "/"))=="Scripts")],collapse="/")
+} else {
+  print("Select any file within Scripts to set up the path")
+  temp = file.choose()
+  scripts_directory = paste(unlist(strsplit(temp, "/"))[1:which(unlist(strsplit(temp, "/"))=="Scripts")],collapse="/")
+}
+```
+
+## Load analysis functions
+```{r}
+source(file.path(scripts_directory, 
+                 "Utility Scripts", 
+                 "geo_analysis.r"))
+```
+
+## Load EMA, and covariate data
+```{r}
+EMA_Baseline_Covariates_Distinct = load_ema_with_covs(Type="Baseline",
+                                                      ema_variables = c("Responded","Session Name", "Notification Time", "Response_Time", "day", "crave", "daily_average_crave", "daily_cigs", "daily_stress", "cvg_1", "cvg_2", "cigs", "neg", "pos"),
+                        redcap_variables = c("pid","age","gender","ethnicity","race")) %>%
+  add_survey_measure("FTND", session=1) %>%
+  add_descriptives(vars="platformType") %>%
+  distinct()
+```
+
+## Hour-level data
+Run cell below to create the within-day hour-level data:
+```{r}
+# geo_baseline_1000ft_100ft_exposures = load_geodata_within_day_exposures("Baseline","1000ft")
+# 
+# df = create_ema_var_to_geodata(ema=EMA_Baseline_Covariates_Distinct,
+#                           geodata=geo_baseline_1000ft_100ft_exposures, t=1, unit="hours")
+```
+
+Run cell below to load the within-day hour-level data:
+```{r}
+within_day_hour_df = merge_ema_with_geo_exposures(EMA_Baseline_Covariates_Distinct, type="baseline", buffer = "1000ft", t=1,unit="hours") %>%
+  arrange(pid, day, Response_Time)
+```
+### Clean and process data further
+```{r}
+# remove duplicates
+within_day_hour_df <- within_day_hour_df %>% distinct(pid, day, Response_Time, .keep_all = TRUE)
+
+# remove participants with no geo data (i.e. values in before_prompt_exposures_1000ft_100ft that are NA)
+within_day_hour_df <- within_day_hour_df %>%
+  filter(!is.na(before_prompt_exposures_1000ft_100ft))
+
+# calculate time since start
+within_day_hour_df <- within_day_hour_df %>%
+  mutate(
+    start_time_static = case_when(
+      `Session Name` == "Summary_1" ~ as_hms(format(as.POSIXct(`Notification Time`) - hours(5), "%H:%M:%S")), # select first coverage survey and subtract 5 hours to obtain static start time
+      TRUE ~ as_hms(NA) 
+    )
+  ) %>%
+  group_by(pid) %>%
+  fill(start_time_static, .direction = "downup") %>%
+  ungroup()
+
+# compute time since start
+within_day_hour_df <- within_day_hour_df %>% # clean time since start
+  mutate(
+    response_time_hms = as_hms(format(Response_Time, "%H:%M:%S")),  # convert response time to hms format
+    time_since_start_static = as.numeric(if_else(
+      response_time_hms < start_time_static,  # if response time is before the start time (i.e. responses that occur after midnight)
+      response_time_hms + 86400 - start_time_static,  # add 24 hours (i.e. 86400 seconds) before subtracting to ensure there are no negative time since start values
+      response_time_hms - start_time_static  # if response time is not before start time, just subtract
+    )) / 60  # convert seconds to minutes
+  ) 
+
+# df excluding outlier
+within_day_hour_df_no_outlier <- within_day_hour_df %>%
+  filter(!(pid %in% c("GR293")))
+  
+# filter, winsorize, and split (no outlier)
+within_day_hour_df_no_outlier <- within_day_hour_df_no_outlier %>%
+  filter(`Session Name` == "Check-Ins") %>% # filter to only 'Check-Ins'
+  # convert values to numeric
+  mutate(crave = as.numeric(crave), 
+         hour_cigs = as.numeric(cigs
+            )) %>%
+  # winsorize variables
+  winsorize_variables(c(
+    "before_prompt_exposures_1000ft_100ft",
+    "after_prompt_exposures_1000ft_100ft",
+    "crave",
+    "hour_cigs"
+    )) %>%
+  # split variables into within and between
+  split_within_between(c(
+    "crave_wins",
+    "hour_cigs_wins",
+    "before_prompt_exposures_1000ft_100ft_wins",
+    "after_prompt_exposures_1000ft_100ft_wins"
+  )) %>% 
+  ungroup()
+
+# filter, winsorize, and split
+within_day_hour_df <- within_day_hour_df %>%
+  filter(`Session Name` == "Check-Ins") %>% # filter to only 'Check-Ins'
+  # convert values to numeric
+  mutate(crave = as.numeric(crave), 
+         hour_cigs = as.numeric(cigs
+            )) %>%
+  # winsorize variables
+  winsorize_variables(c(
+    "before_prompt_exposures_1000ft_100ft",
+    "after_prompt_exposures_1000ft_100ft",
+    "crave",
+    "hour_cigs"
+    )) %>%
+  # split variables into within and between
+  split_within_between(c(
+    "crave_wins",
+    "hour_cigs_wins",
+    "before_prompt_exposures_1000ft_100ft_wins",
+    "after_prompt_exposures_1000ft_100ft_wins"
+  )) %>% 
+  ungroup()
+```
+
+### Plot static start times
+```{r}
+# convert to minutes since midnight
+within_day_hour_df <- within_day_hour_df %>%
+  mutate(start_time_static_numeric = hour(start_time_static) * 60 + minute(start_time_static) + second(start_time_static) / 60)
+
+within_day_hour_df_no_outlier <- within_day_hour_df_no_outlier %>%
+  mutate(start_time_static_numeric = hour(start_time_static) * 60 + minute(start_time_static) + second(start_time_static) / 60)
+
+# plot histogram
+ggplot(within_day_hour_df, aes(x = start_time_static_numeric)) +
+  geom_histogram(binwidth = 30, fill = "blue", color = "black") + 
+  labs(title = "Distribution of start Times",
+       x = "Start Time",
+       y = "Count") +
+  scale_x_continuous(breaks = seq(0, 1440, by = 120), labels = function(x) sprintf("%02d:%02d", x %/% 60, x %% 60)) +
+  theme_minimal()
+```
+
+## create time since start static quadratic and cubic
+```{r}
+within_day_hour_df$time_since_start_static_quadratic <- within_day_hour_df$time_since_start_static^2
+within_day_hour_df$time_since_start_static_cubic <- within_day_hour_df$time_since_start_static^3
+
+within_day_hour_df_no_outlier$time_since_start_static_quadratic <- within_day_hour_df_no_outlier$time_since_start_static^2
+within_day_hour_df_no_outlier$time_since_start_static_cubic <- within_day_hour_df_no_outlier$time_since_start_static^3
+```
+
+## Define models
+```{r}
+exposure_before_model_1000ft_wins <- create_model_function_lme(
+  model = "before_prompt_exposures_1000ft_100ft_wins_wn + before_prompt_exposures_1000ft_100ft_wins_bw + day",
+  random_effects = ~ before_prompt_exposures_1000ft_100ft_wins_wn | pid,
+  correlation = NULL,
+  method = "REML"
+)
+
+exposure_after_model_craving_wins <- create_model_function_lme(
+  model = "crave_wins_wn + crave_wins_bw + day",
+  random_effects = ~ crave_wins_wn | pid,
+  correlation = NULL,
+  method = "REML"
+)
+
+exposure_after_model_cigs_wins <- create_model_function_lme(
+  model = "hour_cigs_wins_wn + hour_cigs_wins_bw + day",
+  random_effects = ~ hour_cigs_wins_wn | pid,
+  correlation = NULL,
+  method = "REML"
+)
+```
+
+### crave ~ before prompt 1000ft (linear, quadratic, cubic)
+```{r}
+lme_craving_1000ft_100ft_linear_quadratic_cubic =
+  exposure_before_model_1000ft_wins(
+    within_day_hour_df,
+    dv= "crave_wins",
+    covs=c("time_since_start_static","time_since_start_static_quadratic", "time_since_start_static_cubic"))
+
+summary(lme_craving_1000ft_100ft_linear_quadratic_cubic)
+get_lme_stats(lme_craving_1000ft_100ft_linear_quadratic_cubic)
+intervals(lme_craving_1000ft_100ft_linear_quadratic_cubic, which = "fixed")
+```
+
+### crave ~ before prompt 1000ft (controlling for cigs)
+```{r}
+lme_craving_1000ft_100ft_linear_quadratic_cubic_cigs_control =
+    exposure_before_model_1000ft_wins(
+        within_day_hour_df,
+        dv = "crave_wins",
+        covs = c("time_since_start_static","time_since_start_static_quadratic", 
+                 "time_since_start_static_cubic", "hour_cigs_wins_wn"))
+
+summary(lme_craving_1000ft_100ft_linear_quadratic_cubic_cigs_control)
+get_lme_stats(lme_craving_1000ft_100ft_linear_quadratic_cubic_cigs_control)
+intervals(lme_craving_1000ft_100ft_linear_quadratic_cubic_cigs_control, which = "fixed")
+```
+
+### crave ~ before prompt 1000ft (no_time_since_start_static)
+```{r}
+lme_craving_1000ft_100ft_no_time_since_start_static =
+  exposure_before_model_1000ft_wins(
+    within_day_hour_df,
+    dv= "crave_wins")
+
+summary(lme_craving_1000ft_100ft_no_time_since_start_static)
+get_lme_stats(lme_craving_1000ft_100ft_no_time_since_start_static)
+intervals(lme_craving_1000ft_100ft_no_time_since_start_static, which = "fixed")
+```
+
+### crave ~ before prompt 1000ft (no_time_since_start_static; controlling for cigs)
+```{r}
+lme_craving_1000ft_100ft_no_time_since_start_static_cigs_control =
+  exposure_before_model_1000ft_wins(
+    within_day_hour_df,
+    dv= "crave_wins",
+    covs = c("hour_cigs_wins_wn"))
+
+summary(lme_craving_1000ft_100ft_no_time_since_start_static_cigs_control)
+get_lme_stats(lme_craving_1000ft_100ft_no_time_since_start_static_cigs_control)
+intervals(lme_craving_1000ft_100ft_no_time_since_start_static_cigs_control)
+```
+
+### after prompt 1000ft ~ crave 
+```{r}
+lme_craving_1000ft_100ft_reverse = 
+  exposure_after_model_craving_wins(
+    within_day_hour_df, 
+    dv= "after_prompt_exposures_1000ft_100ft_wins",
+    covs=c("time_since_start_static","time_since_start_static_quadratic", "time_since_start_static_cubic"))
+
+summary(lme_craving_1000ft_100ft_reverse)
+get_lme_stats(lme_craving_1000ft_100ft_reverse)
+intervals(lme_craving_1000ft_100ft_reverse)
+```
+
+### after prompt 1000ft ~ crave (no_time_since_start_static)
+```{r}
+lme_craving_1000ft_100ft_reverse_no_time_since_start_static = 
+  exposure_after_model_craving_wins(
+    within_day_hour_df, 
+    dv= "after_prompt_exposures_1000ft_100ft_wins")
+
+summary(lme_craving_1000ft_100ft_reverse_no_time_since_start_static)
+get_lme_stats(lme_craving_1000ft_100ft_reverse_no_time_since_start_static)
+intervals(lme_craving_1000ft_100ft_reverse_no_time_since_start_static)
+```
+
+### cigs ~ before prompt 1000ft
+```{r}
+lme_cigs_1000ft_100ft_linear_quadratic_cubic = 
+  exposure_before_model_1000ft_wins(
+    within_day_hour_df, 
+    dv= "hour_cigs_wins",
+    covs=c("time_since_start_static","time_since_start_static_quadratic", "time_since_start_static_cubic"))
+
+summary(lme_cigs_1000ft_100ft_linear_quadratic_cubic)
+get_lme_stats(lme_cigs_1000ft_100ft_linear_quadratic_cubic)
+intervals(lme_cigs_1000ft_100ft_linear_quadratic_cubic)
+```
+### cigs ~ before prompt 1000ft (no outlier)
+```{r}
+lme_cigs_1000ft_100ft_linear_quadratic_cubic_no_outlier = 
+  exposure_before_model_1000ft_wins(
+    within_day_hour_df_no_outlier, 
+    dv= "hour_cigs_wins",
+    covs=c("time_since_start_static","time_since_start_static_quadratic", "time_since_start_static_cubic"))
+
+summary(lme_cigs_1000ft_100ft_linear_quadratic_cubic_no_outlier)
+get_lme_stats(lme_cigs_1000ft_100ft_linear_quadratic_cubic_no_outlier)
+intervals(lme_cigs_1000ft_100ft_linear_quadratic_cubic_no_outlier)
+```
+
+
+### cigs ~ before prompt 1000ft (no_time_since_start_static)
+```{r}
+lme_cigs_1000ft_100ft_no_time_since_start_static = 
+  exposure_before_model_1000ft_wins(
+    within_day_hour_df, 
+    dv= "hour_cigs_wins")
+
+summary(lme_cigs_1000ft_100ft_no_time_since_start_static)
+get_lme_stats(lme_cigs_1000ft_100ft_no_time_since_start_static)
+intervals(lme_cigs_1000ft_100ft_no_time_since_start_static)
+```
+
+### after prompt 1000ft ~ cigs
+```{r}
+lme_cigs_1000ft_100ft_reverse = 
+  exposure_after_model_cigs_wins(
+    within_day_hour_df, 
+    dv= "after_prompt_exposures_1000ft_100ft_wins",
+    covs=c("time_since_start_static", "time_since_start_static_quadratic", "time_since_start_static_cubic"))
+
+summary(lme_cigs_1000ft_100ft_reverse)
+get_lme_stats(lme_cigs_1000ft_100ft_reverse)
+intervals(lme_cigs_1000ft_100ft_reverse)
+```
+
+### after prompt 1000ft ~ cigs (no_time_since_start_static)
+```{r}
+lme_cigs_1000ft_100ft_reverse_no_time_since_start_static = 
+  exposure_after_model_cigs_wins(
+    within_day_hour_df, 
+    dv= "after_prompt_exposures_1000ft_100ft_wins")
+
+summary(lme_cigs_1000ft_100ft_reverse_no_time_since_start_static)
+get_lme_stats(lme_cigs_1000ft_100ft_reverse_no_time_since_start_static)
+intervals(lme_cigs_1000ft_100ft_reverse_no_time_since_start_static)
+```
+
+### crave ~ cigs 
+```{r}
+lme_cigs_craving = 
+  exposure_after_model_cigs_wins(
+    within_day_hour_df, 
+    dv= "crave_wins",
+    covs=c("time_since_start_static","time_since_start_static_quadratic", "time_since_start_static_cubic"))
+
+summary(lme_cigs_craving)
+get_lme_stats(lme_cigs_craving)
+intervals(lme_cigs_craving)
+```
+
+### crave ~ cigs (no_time_since_start_static)
+```{r}
+lme_cigs_craving_no_time_since_start_static = 
+  exposure_after_model_cigs_wins(
+    within_day_hour_df, 
+    dv= "crave_wins")
+
+summary(lme_cigs_craving_no_time_since_start_static)
+get_lme_stats(lme_cigs_craving_no_time_since_start_static)
+intervals(lme_cigs_craving_no_time_since_start_static, which = "fixed")
+```
+
+## 2-1 hour lag
+Run cell below to create the within-day hour-level data using a 2 to 1 hour lag assess exposures prior to hourly cigarettes:
+```{r}
+# df = create_ema_var_to_geodata_2_hours(ema=EMA_Baseline_Covariates_Distinct,
+#                           geodata=geo_baseline_1000ft_100ft_exposures, t=1, unit="hours")
+```
+
+Run cell below to load the within-day hour-level data using a 2 to 1 hour lag assess exposures prior to hourly cigarettes:
+```{r}
+within_day_2_hour_lag_df = merge_ema_with_geo_exposures(EMA_Baseline_Covariates_Distinct, type="baseline", buffer = "1000ft", t="2_to_1",unit="hours") %>%
+  arrange(pid, day, Response_Time)
+```
+
+### Clean and process data further
+```{r}
+# remove duplicates
+within_day_2_hour_lag_df <- within_day_2_hour_lag_df %>% distinct(pid, day, Response_Time, .keep_all = TRUE)
+
+# remove participants with no geo data (i.e. values in before_prompt_exposures_1000ft_100ft that NA)
+within_day_2_hour_lag_df <- within_day_2_hour_lag_df %>%
+  filter(!is.na(before_prompt_exposures_1000ft_100ft))
+
+# calculate time since start
+within_day_2_hour_lag_df <- within_day_2_hour_lag_df %>%
+  mutate(
+    start_time_static = case_when(
+      `Session Name` == "Summary_1" ~ as_hms(format(as.POSIXct(`Notification Time`) - hours(5), "%H:%M:%S")), # select first coverage survey and subtract 5 hours to obtain static start time
+      TRUE ~ as_hms(NA) 
+    )
+  ) %>%
+  group_by(pid) %>%
+  fill(start_time_static, .direction = "downup") %>%
+  ungroup()
+
+# clean time since start
+within_day_2_hour_lag_df <- within_day_2_hour_lag_df %>% # clean time since start
+  mutate(
+    response_time_hms = as_hms(format(Response_Time, "%H:%M:%S")),  # convert response time to hms format
+    time_since_start_static = as.numeric(if_else(
+      response_time_hms < start_time_static,  # if response time is before the start time (i.e. responses that occur after midnight)
+      response_time_hms + 86400 - start_time_static,  # add 24 hours (i.e. 86400 seconds) before subtracting to ensure there are no negative time since start values
+      response_time_hms - start_time_static  # if response time is not before start time, just subtract
+    )) / 60  # convert seconds to minutes
+  ) 
+
+# df excluding outlier
+within_day_2_hour_lag_df_no_outlier <- within_day_2_hour_lag_df %>%
+  filter(!(pid %in% c("GR293")))
+  
+# filter, winsorize, and split (no outlier)
+within_day_2_hour_lag_df_no_outlier <- within_day_2_hour_lag_df_no_outlier %>%
+  filter(`Session Name` == "Check-Ins") %>% # filter to only 'Check-Ins'
+  # convert values to numeric
+  mutate(crave = as.numeric(crave), 
+         hour_cigs = as.numeric(cigs
+            )) %>%
+  # winsorize variables
+  winsorize_variables(c(
+    "before_prompt_exposures_1000ft_100ft",
+    "after_prompt_exposures_1000ft_100ft",
+    "crave",
+    "hour_cigs"
+    )) %>%
+  # split variables into within and between
+  split_within_between(c(
+    "crave_wins",
+    "hour_cigs_wins",
+    "before_prompt_exposures_1000ft_100ft_wins",
+    "after_prompt_exposures_1000ft_100ft_wins"
+  )) %>% 
+  ungroup()
+
+# filter, winsorize, and split
+within_day_2_hour_lag_df <- within_day_2_hour_lag_df %>%
+  filter(`Session Name` == "Check-Ins") %>% # filter to only 'Check-Ins'
+  # convert values to numeric
+  mutate(crave = as.numeric(crave), 
+         hour_cigs = as.numeric(cigs
+            )) %>%
+  # winsorize variables
+  winsorize_variables(c(
+    "before_prompt_exposures_1000ft_100ft",
+    "after_prompt_exposures_1000ft_100ft",
+    "crave",
+    "hour_cigs"
+    )) %>%
+  # split variables into within and between
+  split_within_between(c(
+    "crave_wins",
+    "hour_cigs_wins",
+    "before_prompt_exposures_1000ft_100ft_wins",
+    "after_prompt_exposures_1000ft_100ft_wins"
+  )) %>% 
+  ungroup()
+```
+
+## create time since start static quadratic and cubic
+```{r}
+within_day_2_hour_lag_df$time_since_start_static_quadratic <- within_day_2_hour_lag_df$time_since_start_static^2
+within_day_2_hour_lag_df$time_since_start_static_cubic <- within_day_2_hour_lag_df$time_since_start_static^3
+
+within_day_2_hour_lag_df_no_outlier$time_since_start_static_quadratic <- within_day_2_hour_lag_df_no_outlier$time_since_start_static^2
+within_day_2_hour_lag_df_no_outlier$time_since_start_static_cubic <- within_day_2_hour_lag_df_no_outlier$time_since_start_static^3
+```
+
+### cigs ~ before prompt 1000ft (2-1 hours)
+```{r}
+lme_cigs_2_hour_lag_1000ft_100ft = 
+  exposure_before_model_1000ft_wins(
+    within_day_2_hour_lag_df, 
+    dv= "hour_cigs_wins",
+    covs=c("time_since_start_static","time_since_start_static_quadratic", "time_since_start_static_cubic"))
+
+summary(lme_cigs_2_hour_lag_1000ft_100ft)
+get_lme_stats(lme_cigs_2_hour_lag_1000ft_100ft)
+intervals(lme_cigs_2_hour_lag_1000ft_100ft)
+```
+
+### cigs ~ before prompt 1000ft (no outlier)
+```{r}
+lme_cigs_2_hour_lag_1000ft_100ft_no_outlier = 
+  exposure_before_model_1000ft_wins(
+    within_day_2_hour_lag_df_no_outlier, 
+    dv= "hour_cigs_wins",
+    covs=c("time_since_start_static","time_since_start_static_quadratic", "time_since_start_static_cubic"))
+
+summary(lme_cigs_2_hour_lag_1000ft_100ft_no_outlier)
+get_lme_stats(lme_cigs_2_hour_lag_1000ft_100ft_no_outlier)
+intervals(lme_cigs_2_hour_lag_1000ft_100ft_no_outlier)
+```
+
+### cigs ~ before prompt 1000ft (no_time_since_start_static)
+```{r}
+lme_cigs_2_hour_lag_1000ft_100ft_no_time_since_start_static = 
+  exposure_before_model_1000ft_wins(
+    within_day_2_hour_lag_df, 
+    dv= "hour_cigs_wins")
+
+summary(lme_cigs_2_hour_lag_1000ft_100ft_no_time_since_start_static)
+get_lme_stats(lme_cigs_2_hour_lag_1000ft_100ft_no_time_since_start_static)
+intervals(lme_cigs_2_hour_lag_1000ft_100ft_no_time_since_start_static)
+```
+
+### plots
+```{r}
+# get fixed effects 
+fixed_effects_crave <- fixef(lme_craving_1000ft_100ft_linear_quadratic_cubic)
+fixed_effects_cigs <- fixef(lme_cigs_1000ft_100ft_linear_quadratic_cubic)
+fixed_effects_cigs_lag <- fixef(lme_cigs_2_hour_lag_1000ft_100ft)
+
+# get random effects (intercepts and slopes)
+random_effects_crave <- ranef(lme_craving_1000ft_100ft_linear_quadratic_cubic) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("pid") %>%
+  dplyr::rename(
+    intercept = `(Intercept)`,
+    slope = `before_prompt_exposures_1000ft_100ft_wins_wn`
+  )
+
+random_effects_cigs <- ranef(lme_cigs_1000ft_100ft_linear_quadratic_cubic) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("pid") %>%
+  dplyr::rename(
+    intercept = `(Intercept)`,
+    slope = `before_prompt_exposures_1000ft_100ft_wins_wn`
+  )
+
+random_effects_cigs_lag <- ranef(lme_cigs_2_hour_lag_1000ft_100ft) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("pid") %>%
+  dplyr::rename(
+    intercept = `(Intercept)`,
+    slope = `before_prompt_exposures_1000ft_100ft_wins_wn`
+  )
+
+# compute predictions
+within_day_hour_df_crave <- within_day_hour_df %>%
+  left_join(random_effects_crave, by = "pid") %>%
+  mutate(predicted = (fixed_effects_crave["(Intercept)"] + intercept) +
+                     (fixed_effects_crave["before_prompt_exposures_1000ft_100ft_wins_wn"] + slope) * 
+                     before_prompt_exposures_1000ft_100ft_wins_wn)
+
+within_day_hour_df_cigs <- within_day_hour_df %>%
+  left_join(random_effects_cigs, by = "pid") %>%
+  mutate(predicted = (fixed_effects_cigs["(Intercept)"] + intercept) +
+                     (fixed_effects_cigs["before_prompt_exposures_1000ft_100ft_wins_wn"] + slope) * 
+                     before_prompt_exposures_1000ft_100ft_wins_wn)
+
+within_day_2_hour_lag_df_cigs <- within_day_2_hour_lag_df %>%
+  left_join(random_effects_cigs_lag, by = "pid") %>%
+  mutate(predicted = (fixed_effects_cigs_lag["(Intercept)"] + intercept) +
+                     (fixed_effects_cigs_lag["before_prompt_exposures_1000ft_100ft_wins_wn"] + slope) * 
+                     before_prompt_exposures_1000ft_100ft_wins_wn)
+
+# get betas and p-values
+get_labels <- function(model, term) {
+  s <- summary(model)
+  beta <- s$tTable[term, "Value"]
+  p <- s$tTable[term, "p-value"]
+  
+  beta_label <- bquote(italic(b) == .(round(beta, 2)))
+  
+  # Proper conditional formatting for p-values
+  p_label <- if (p < 0.001) {
+    bquote(italic(p) < 0.001)
+  } else {
+    bquote(italic(p) == .(round(p, 2)))
+  }
+  
+  list(beta_label = beta_label, p_label = p_label)
+}
+
+labels_crave <- get_labels(lme_craving_1000ft_100ft_linear_quadratic_cubic, "before_prompt_exposures_1000ft_100ft_wins_wn")
+labels_cigs  <- get_labels(lme_cigs_1000ft_100ft_linear_quadratic_cubic, "before_prompt_exposures_1000ft_100ft_wins_wn")
+labels_lag   <- get_labels(lme_cigs_2_hour_lag_1000ft_100ft, "before_prompt_exposures_1000ft_100ft_wins_wn")
+
+# label positions
+x_crave <- max(within_day_hour_df_crave$before_prompt_exposures_1000ft_100ft_wins_wn, na.rm = TRUE) * 0.99
+y_crave <- max(within_day_hour_df_crave$predicted, na.rm = TRUE) * 0.99
+
+x_cigs <- max(within_day_hour_df_cigs$before_prompt_exposures_1000ft_100ft_wins_wn, na.rm = TRUE) * 0.99
+y_cigs <- max(within_day_hour_df_cigs$predicted, na.rm = TRUE) * 0.99
+
+x_lag <- max(within_day_2_hour_lag_df_cigs$before_prompt_exposures_1000ft_100ft_wins_wn, na.rm = TRUE) * 0.99
+y_lag <- max(within_day_2_hour_lag_df_cigs$predicted, na.rm = TRUE) * 0.99
+
+# plot function
+make_plot <- function(df, ylab, x, y, beta_label, p_label) {
+  ggplot(df, aes(x = before_prompt_exposures_1000ft_100ft_wins_wn, y = predicted)) +
+    geom_line(aes(group = pid), color = "gray", alpha = 0.5, size = 0.8) +
+    geom_smooth(method = "lm", se = TRUE, color = "maroon", fill = "maroon", size = 1.5, alpha = 0.7) +
+    labs(x = "", y = ylab) +
+    annotate("text", x = x, y = y, label = beta_label, size = 6, hjust = 1) +
+    annotate("text", x = x, y = y * 0.9, label = p_label, size = 6, hjust = 1) +
+    theme_minimal() +
+    theme(
+      axis.text = element_text(size = 14),
+      axis.title = element_text(size = 16),
+      panel.grid = element_blank(),
+      axis.line = element_line(color = "black")
+    )
+}
+
+# build plots
+plot_crave <- make_plot(
+  within_day_hour_df_crave,
+  "Current craving",
+  x_crave,
+  y_crave,
+  labels_crave$beta_label,
+  labels_crave$p_label
+) +
+  labs(x = "\nLast-hour tobacco retail exposure (within-person)",
+       y = "Current craving") +
+  theme(axis.title.x = element_text(hjust = -0.100, size = 13))
+
+plot_cigs <- make_plot(
+  within_day_hour_df_cigs,
+  "Last-hour cigarettes",
+  x_cigs,
+  y_cigs,
+  labels_cigs$beta_label,
+  labels_cigs$p_label
+) +
+  labs(x = NULL, y = "Last-hour cigarettes")
+
+plot_cigs_lag <- make_plot(
+  within_day_2_hour_lag_df_cigs,
+  "Last-hour cigarettes (2-hour lag)",
+  x_lag,
+  y_lag,
+  labels_lag$beta_label,
+  labels_lag$p_label
+) +
+  labs(x = "  Last-hour (2 hour lag)\ntobacco retail exposure\n       (within-person)",
+       y = NULL) +
+  theme(axis.title.x = element_text(hjust = 0.1, size = 13))  
+
+
+# combine plots
+final_plot <- wrap_plots(plot_crave, plot_cigs, plot_cigs_lag, ncol = 3) +
+  plot_annotation(
+    theme = theme(plot.caption = element_text(size = 12, hjust = 0.5))
+  )
+
+# show plot
+print(final_plot)
+```
+
+# check outliers
+```{r}
+average_within_day_hour_df_pid <- within_day_hour_df %>%
+  group_by(pid) %>%
+  dplyr::summarize(
+    hour_cigs = mean(hour_cigs, na.rm = TRUE),
+    crave = mean(crave, na.rm = TRUE)
+  )
+```
+
+# GR293 outlier z-score (cigs)
+```{r}
+max_val <- max(average_within_day_hour_df_pid$hour_cigs, na.rm = TRUE)
+mean_val <- mean(average_within_day_hour_df_pid$hour_cigs, na.rm = TRUE)
+sd_val <- sd(average_within_day_hour_df_pid$hour_cigs, na.rm = TRUE)
+z_max <- (max_val - mean_val) / sd_val
+z_max
+```
+
+# second highest z-score (cigs)
+```{r}
+sorted_vals <- sort(average_within_day_hour_df_pid$hour_cigs, decreasing = TRUE, na.last = NA)
+second_highest <- sorted_vals[2]
+
+mean_val <- mean(average_within_day_hour_df_pid$hour_cigs, na.rm = TRUE)
+sd_val <- sd(average_within_day_hour_df_pid$hour_cigs, na.rm = TRUE)
+z_second_highest <- (second_highest - mean_val) / sd_val
+z_second_highest
+```
+
+# lowest (cigs)
+```{r}
+sorted_vals <- sort(average_within_day_hour_df_pid$hour_cigs, decreasing = TRUE, na.last = NA)
+lowest <- sorted_vals[273]
+
+mean_val <- mean(average_within_day_hour_df_pid$hour_cigs, na.rm = TRUE)
+sd_val <- sd(average_within_day_hour_df_pid$hour_cigs, na.rm = TRUE)
+lowest <- (lowest - mean_val) / sd_val
+lowest
+```
+
+# max (crave)
+```{r}
+max_val <- max(average_within_day_hour_df_pid$crave, na.rm = TRUE)
+mean_val <- mean(average_within_day_hour_df_pid$crave, na.rm = TRUE)
+sd_val <- sd(average_within_day_hour_df_pid$crave, na.rm = TRUE)
+z_max <- (max_val - mean_val) / sd_val
+z_max
+```
+
+# lowest (crave)
+```{r}
+sorted_vals <- sort(average_within_day_hour_df_pid$crave, decreasing = TRUE, na.last = NA)
+lowest <- sorted_vals[273]
+
+mean_val <- mean(average_within_day_hour_df_pid$crave, na.rm = TRUE)
+sd_val <- sd(average_within_day_hour_df_pid$crave, na.rm = TRUE)
+z_lowest <- (lowest - mean_val) / sd_val
+z_lowest
+```
+
+
+### plots excluding outlier
+```{r}
+# get fixed effects 
+fixed_effects_crave <- fixef(lme_craving_1000ft_100ft_linear_quadratic_cubic)
+fixed_effects_cigs <- fixef(lme_cigs_1000ft_100ft_linear_quadratic_cubic)
+fixed_effects_cigs_lag <- fixef(lme_cigs_2_hour_lag_1000ft_100ft)
+
+# get random effects (intercepts and slopes)
+random_effects_crave <- ranef(lme_craving_1000ft_100ft_linear_quadratic_cubic) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("pid") %>%
+  dplyr::rename(
+    intercept = `(Intercept)`,
+    slope = `before_prompt_exposures_1000ft_100ft_wins_wn`
+  )
+
+random_effects_cigs <- ranef(lme_cigs_1000ft_100ft_linear_quadratic_cubic) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("pid") %>%
+  dplyr::rename(
+    intercept = `(Intercept)`,
+    slope = `before_prompt_exposures_1000ft_100ft_wins_wn`
+  )
+
+random_effects_cigs_lag <- ranef(lme_cigs_2_hour_lag_1000ft_100ft) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("pid") %>%
+  dplyr::rename(
+    intercept = `(Intercept)`,
+    slope = `before_prompt_exposures_1000ft_100ft_wins_wn`
+  )
+
+# compute predictions
+within_day_hour_df_crave <- within_day_hour_df %>%
+  left_join(random_effects_crave, by = "pid") %>%
+  mutate(predicted = (fixed_effects_crave["(Intercept)"] + intercept) +
+                     (fixed_effects_crave["before_prompt_exposures_1000ft_100ft_wins_wn"] + slope) * 
+                     before_prompt_exposures_1000ft_100ft_wins_wn)
+
+within_day_hour_df_cigs <- within_day_hour_df %>%
+  left_join(random_effects_cigs, by = "pid") %>%
+  mutate(predicted = (fixed_effects_cigs["(Intercept)"] + intercept) +
+                     (fixed_effects_cigs["before_prompt_exposures_1000ft_100ft_wins_wn"] + slope) * 
+                     before_prompt_exposures_1000ft_100ft_wins_wn)
+
+within_day_2_hour_lag_df_cigs <- within_day_2_hour_lag_df %>%
+  left_join(random_effects_cigs_lag, by = "pid") %>%
+  mutate(predicted = (fixed_effects_cigs_lag["(Intercept)"] + intercept) +
+                     (fixed_effects_cigs_lag["before_prompt_exposures_1000ft_100ft_wins_wn"] + slope) * 
+                     before_prompt_exposures_1000ft_100ft_wins_wn)
+
+# get betas and p-values
+get_labels <- function(model, term) {
+  s <- summary(model)
+  beta <- s$tTable[term, "Value"]
+  p <- s$tTable[term, "p-value"]
+  
+  beta_label <- bquote(italic(b) == .(round(beta, 2)))
+  
+  # Proper conditional formatting for p-values
+  p_label <- if (p < 0.001) {
+    bquote(italic(p) < 0.001)
+  } else {
+    bquote(italic(p) == .(round(p, 2)))
+  }
+  
+  list(beta_label = beta_label, p_label = p_label)
+}
+
+labels_crave <- get_labels(lme_craving_1000ft_100ft_linear_quadratic_cubic, "before_prompt_exposures_1000ft_100ft_wins_wn")
+labels_cigs  <- get_labels(lme_cigs_1000ft_100ft_linear_quadratic_cubic, "before_prompt_exposures_1000ft_100ft_wins_wn")
+labels_lag   <- get_labels(lme_cigs_2_hour_lag_1000ft_100ft, "before_prompt_exposures_1000ft_100ft_wins_wn")
+
+# label positions
+x_crave <- max(within_day_hour_df_crave$before_prompt_exposures_1000ft_100ft_wins_wn, na.rm = TRUE) * 0.99
+y_crave <- max(within_day_hour_df_crave$predicted, na.rm = TRUE) * 0.99
+
+x_cigs <- max(within_day_hour_df_cigs$before_prompt_exposures_1000ft_100ft_wins_wn, na.rm = TRUE) * 0.99
+#y_cigs <- max(within_day_hour_df_cigs$predicted, na.rm = TRUE) * 0.99
+y_cigs <- 5
+
+x_lag <- max(within_day_2_hour_lag_df_cigs$before_prompt_exposures_1000ft_100ft_wins_wn, na.rm = TRUE) * 0.99
+#y_lag <- max(within_day_2_hour_lag_df_cigs$predicted, na.rm = TRUE) * 0.99
+y_lag <- 5
+
+# plot function
+make_plot <- function(df, ylab, x, y, beta_label, p_label) {
+  ggplot(df, aes(x = before_prompt_exposures_1000ft_100ft_wins_wn, y = predicted)) +
+    geom_line(aes(group = pid), color = "gray", alpha = 0.5, size = 0.8) +
+    geom_smooth(method = "lm", se = TRUE, color = "maroon", fill = "maroon", size = 1.5, alpha = 0.7) +
+    labs(x = "", y = ylab) +
+    annotate("text", x = x, y = y, label = beta_label, size = 6, hjust = 1) +
+    annotate("text", x = x, y = y * 0.9, label = p_label, size = 6, hjust = 1) +
+    theme_minimal() +
+    theme(
+      axis.text = element_text(size = 14),
+      axis.title = element_text(size = 16),
+      panel.grid = element_blank(),
+      axis.line = element_line(color = "black")
+    )
+}
+
+# no outlier version
+within_day_hour_df_cigs_no_outlier <- within_day_hour_df_cigs %>% filter(pid != "GR293")
+within_day_2_hour_lag_df_cigs_no_outlier <- within_day_2_hour_lag_df_cigs %>% filter(pid != "GR293")
+
+# build plots
+plot_crave <- make_plot(
+  within_day_hour_df_crave,
+  "Current craving",
+  x_crave,
+  y_crave,
+  labels_crave$beta_label,
+  labels_crave$p_label
+) +
+  labs(x = "\nLast-hour tobacco retail exposure (within-person)",
+       y = "Current craving") +
+  theme(axis.title.x = element_text(hjust = -0.100, size = 13))
+
+plot_cigs <- make_plot(
+  within_day_hour_df_cigs_no_outlier,
+  "Last-hour cigarettes",
+  x_cigs,
+  y_cigs,
+  labels_cigs$beta_label,
+  labels_cigs$p_label
+) +
+  labs(x = NULL, y = "Last-hour cigarettes")
+
+plot_cigs_lag <- make_plot(
+  within_day_2_hour_lag_df_cigs_no_outlier,
+  "Last-hour cigarettes (2-hour lag)",
+  x_lag,
+  y_lag,
+  labels_lag$beta_label,
+  labels_lag$p_label
+) +
+  labs(x = "  Last-hour (2 hour lag)\ntobacco retail exposure\n       (within-person)",
+       y = NULL) +
+  theme(axis.title.x = element_text(hjust = 0.1, size = 13))  
+
+# combine plots
+final_plot <- wrap_plots(plot_crave, plot_cigs, plot_cigs_lag, ncol = 3) +
+  plot_annotation(
+    theme = theme(plot.caption = element_text(size = 12, hjust = 0.5))
+  )
+
+# show plot
+print(final_plot)
+```

@@ -1,0 +1,9 @@
+scale name,column name,reverse,min,max,transform,exp_01,exp_02_1,exp_02_2,exp_02_3,exp_02_4,exp_02_5,exp_02_6,exp_03
+EXP,exp_01,0,1,2,0,1,,,,,,,
+EXP,exp_02_1,0,1,2,0,,1,,,,,,
+EXP,exp_02_2,0,1,2,0,,,1,,,,,
+EXP,exp_02_3,0,1,2,0,,,,1,,,,
+EXP,exp_02_4,0,1,2,0,,,,,1,,,
+EXP,exp_02_5,0,1,2,0,,,,,,1,,
+EXP,exp_02_6,0,1,2,0,,,,,,,1,
+EXP,exp_03,0,1,5,0,,,,,,,,1

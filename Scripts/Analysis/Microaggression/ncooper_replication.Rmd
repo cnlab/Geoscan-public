@@ -1,0 +1,436 @@
+---
+title: "baseline_analysis"
+author: "Ben Muzekari"
+date: "2024-08-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#R Packages ##Fuction to load and install packages simultaneously
+```{r}
+ipak <- function(pkg){
+  new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+  if (length(new.pkg)) 
+    install.packages(new.pkg, dependencies = TRUE)
+  sapply(pkg, require, character.only = TRUE)
+}
+```
+
+##load and install
+```{r, results = FALSE}
+packages <- c("plyr", "tidyverse", "ggplot2", "DescTools", "psych", "lmerTest") #need to run plyr first or else it will cause problems!!!!
+ipak(packages)
+```
+
+## Load in REDCap Data
+```{r}
+# If your working directory is in the GeoRemote Scripts folder, it'll set the correct path. If it's not, it will ask you to select a file in the directory
+if ("Scripts" %in% unlist(strsplit(normalizePath("."), "/"))) {
+  scripts_directory = paste(unlist(strsplit(normalizePath("."), "/"))[1:which(unlist(strsplit(normalizePath("."), "/"))=="Scripts")],collapse="/")
+} else {
+  print("Select any file within Scripts to set up the path")
+  temp = file.choose()
+  scripts_directory = paste(unlist(strsplit(temp, "/"))[1:which(unlist(strsplit(temp, "/"))=="Scripts")],collapse="/")
+}
+
+source(file.path(scripts_directory, "Utility Scripts/geo_redcap.r"))
+redcap <- load_redcap()
+```
+
+## Select variables of interest
+```{r}
+redcap_vars <-redcap[, c("pid","age_calc","gender","ethnicity",
+                         "race___1", "race___2", "race___3","race___4",
+                         "race___5","race___6","race___7")]
+```
+
+## Recode race into one variable and drop old columns
+```{r}
+# Create a race column based on existing columns
+redcap_vars$races_selected <- apply(redcap_vars[, c("race___1", "race___2", "race___3", "race___4", "race___5", "race___6", "race___7")], 1, function(row) {
+  selected_indices <- which(row == 1)
+  if(length(selected_indices) == 0) {
+    NA
+  } else {
+    as.numeric(selected_indices)
+  }
+})
+
+# Drop old race columns
+cols_to_remove <- grep("^race___", names(redcap_vars))
+redcap_vars <- redcap_vars[, -cols_to_remove]
+```
+
+## How variables are coded
+```{r}
+#Gender
+# 1	Man
+# 4	Non-binary
+# 5	Genderqueer
+# 6	Agender
+# 7	Gender fluid
+# 2	Woman
+# 8	I prefer to self-describe
+# 3	Prefer not to say
+
+# Latino/Hispanic Ethnicity
+# 1	Yes
+# 0	No
+# 2	Prefer not to say
+
+#Race
+# 4	race___4	American Indian or Alaska Native
+# 1	race___1	Asian
+# 2	race___2	Black
+# 3	race___3	Pacific Islander or Hawaiian Native
+# 5	race___5	White
+# 6	race___6	Prefer to self-describe
+# 7	race___7	Prefer not to say
+```
+
+
+## Recode variables to factors
+```{r}
+# Convert race column to character
+redcap_vars$races_selected <- as.character(redcap_vars$races_selected)
+
+# Recode if multiple values are selected
+redcap_vars$races_selected <- sapply(redcap_vars$races_selected, function(x) {
+  # check if value is a list (indicates more than one selection)
+  if (grepl("c\\(", x)) {
+    return("8")  # If it is a list, recode as 8 (More than one)
+  } else {
+    return(x)  # If it is not a list, keep as is
+  }
+})
+
+# Define levels for gender factor
+gender_levels <- c("1", "2", "3", "4", "5", "6", "7", "8")
+gender_labels <- c("Man", "Woman", "Prefer not to say", "Non-binary", "Genderqueer", 
+                   "Agender", "Gender fluid", "I prefer to self-describe")
+
+# Define levels for race factor
+race_levels <- c("1", "2", "3", "4", "5", "6", "7", "8")
+race_labels <- c("Asian", "Black", "Pacific Islander or Hawaiian Native", "American Indian or Alaska Native", "White", "Prefer to self-describe", "Prefer not to say", "More than one")
+
+# Define levels for ethnicity factor
+ethnicity_levels <- c("0", "1", "2")
+ethnicity_labels <- c("No", "Yes", "Prefer not to say")
+
+# Rename vars
+names(redcap_vars)[names(redcap_vars) == "races_selected"] <- "race"
+names(redcap_vars)[names(redcap_vars) == "age_calc"] <- "age"
+
+# Convert columns to factors
+redcap_vars <- redcap_vars %>%
+  mutate(
+    ethnicity = factor(ethnicity, levels = ethnicity_levels, labels = ethnicity_labels),
+    gender = factor(gender, levels = gender_levels, labels = gender_labels),
+    race = factor(race, levels = race_levels, labels = race_labels)
+  )
+```
+
+## Read in FTND data
+```{r}
+FTND <- read_csv("/Volumes/cnlab/GeoRemote/Data/Qualtrics/scored_survey_measures/ftsd.csv")
+```
+
+# Rename score column and subset to first session
+```{r}
+#FTND_Session_1 <- FTND %>%
+#  rename(FTND_score = score) %>%
+#  filter(sm_session == 1)
+
+
+FTND_Session_1 <-FTND[which(FTND$sm_session==1),]
+FTND_Session_1$FTND_score=FTND_Session_1$score
+```
+
+# Merge redcap variables with FTND
+```{r}
+Covariates <- redcap_vars %>%
+  left_join(FTND_Session_1 %>% select(pid, FTND_score), by = "pid")
+```
+
+## Read in EMA data
+```{r}
+source(file.path(scripts_directory, "Utility Scripts/geo_lifedata.r"))
+ema = load_lifedata()
+```
+
+# Filter to only Baseline period
+```{r}
+ema_baseline <- ema %>%
+  filter(Type == 'Baseline')
+```
+
+
+## Merge EMA data and demographics data
+```{r}
+EMA_Baseline_Covariates <- ema_baseline %>%
+  left_join(Covariates, by = c("pid")) 
+```
+
+## Add average negative mood
+```{r}
+avg_neg <- EMA_Baseline_Covariates %>%
+        filter(`Prompt Label` == "neg") %>%
+        group_by(pid, `Notification Date`) %>%
+        summarise(daily_average_neg = mean(as.numeric(Response), na.rm = TRUE))
+
+# Merge the result back to the original dataframe
+EMA_Baseline_Covariates <- left_join(EMA_Baseline_Covariates, select(avg_neg, pid, `Notification Date`, daily_average_neg), by = c("pid", "Notification Date"))
+```
+
+## Subset to daily stress value 
+```{r}
+EMA_Baseline_Covariates_Distinct_stress <- EMA_Baseline_Covariates[which(EMA_Baseline_Covariates$`Prompt Label`=="stress"),]
+EMA_Baseline_Covariates_Distinct_stress$stress_rating <- EMA_Baseline_Covariates_Distinct_stress$Response
+```
+
+## Obtain distinct rows --- not using since I'm subsetting for stress
+#```{r}
+#EMA_Baseline_Covariates_Distinct <- EMA_Baseline_Covariates  %>% 
+#  distinct(pid, day, daily_average_crave, daily_average_neg, daily_cigs, age, gender, ethnicity, race)
+#```
+
+
+## Load in geo data.  ----- change to "no expired" version
+```{r}
+baseline_1000ft_100ft <- read.csv("/Volumes/cnlab/GeoRemote/Data/RetailerExposure/ConditionalBuffer/Baseline/1000ft_100ft_exposures_activeRetailersOnly.csv")
+```
+
+
+## Get exposure counts by pid and day
+```{r}
+baseline_1000ft_100ft_exposures <- baseline_1000ft_100ft %>%
+  group_by(pid, Notification.Date, day) %>%
+  ## I added day in the line above
+  summarise(
+    exposures = ifelse(all(is.na(exposure_id)), 0, n_distinct(exposure_id, na.rm = TRUE))
+  )
+
+# print pid count
+num_unique_values <- length(unique(baseline_1000ft_100ft_exposures$pid))
+print(num_unique_values)
+#[1] 273
+```
+
+```{r}
+# check if people have less than x days
+
+# Sample data creation for illustration purposes
+# ema <- data.frame(pid = c(rep(1, 14), rep(2, 13), rep(3, 14)), day = c(1:14, 1:13, 1:14))
+
+# Define the expected days
+expected_days <- 1:14
+
+# Function to check if all expected days are present
+check_days <- function(df) {
+  # Get the unique pid values
+  pids <- unique(df$pid)
+  
+  # Initialize a vector to store pids that don't have all days
+  missing_days_pids <- c()
+  
+  # Loop through each pid and check for missing days
+  for (pid in pids) {
+    # Subset the dataframe for the current pid
+    pid_df <- df[df$pid == pid, ]
+    
+    # Get the days present for the current pid
+    pid_days <- pid_df$day
+    
+    # Check if any expected day is missing
+    if (!all(expected_days %in% pid_days)) {
+      missing_days_pids <- c(missing_days_pids, pid)
+    }
+  }
+  
+  return(missing_days_pids)
+}
+
+# Apply the function to the ema dataframe
+missing_pids <- check_days(baseline_1000ft_100ft_exposures)
+#missing_pids <- check_days(All_data)
+
+# Print the pids with missing days
+missing_pids
+```
+
+
+## Merge Geo data and EMA_Demographics data
+```{r}
+All_data <- left_join(baseline_1000ft_100ft_exposures, EMA_Baseline_Covariates_Distinct_stress, by = c("pid", "day"))
+
+All_data$stress_rating<-as.numeric(All_data$stress_rating)
+```
+
+## Create df with averages by pid
+```{r}
+average_df_by_pid <- All_data %>%
+  group_by(pid) %>%
+  summarize(
+    exposures = mean(exposures, na.rm = TRUE),
+    daily_average_crave = mean(daily_average_crave, na.rm = TRUE),
+    daily_average_neg = mean(daily_average_crave, na.rm = TRUE),
+    daily_cigs = mean(daily_cigs, na.rm = TRUE),
+    daily_stress = mean(as.numeric(stress_rating), na.rm = TRUE),
+    daily_micro_count = mean(microagg_count, na.rm = TRUE)
+  )
+```
+
+# Get exposures summary and plot hists
+```{r}
+describe(All_data$exposures)
+hist(na.omit(All_data$exposures), breaks = 2000) # each row
+#hist(average_df_by_pid$exposures, breaks = 100, main = "Histogram of Average Exposures by PID", xlab = "Average Exposures") # each person's average
+```
+
+## Calculate within and between exposure, microaggression, stress, and negative mood measures
+```{r}
+#splitting exposures into within and between components
+All_data$exposureSplit <- with(All_data, ave(exposures, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+All_data$discrim_any_split <- with(All_data, ave(microagg, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+All_data$discrim_count_split <- with(All_data, ave(microagg_count, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+All_data$neg_split <- with(All_data, ave(daily_average_neg, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+All_data$stress_split <- with(All_data, ave(stress_rating, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+
+#Set the grand mean
+All_data$exposureGMean <- ave(All_data$exposureSplit, na.rm = TRUE)
+All_data$discrim_any_GMean <- ave(All_data$discrim_any_split, na.rm = TRUE)
+All_data$discrim_count_GMean <- ave(All_data$discrim_count_split, na.rm = TRUE)
+All_data$neg_GMean <- ave(All_data$neg_split, na.rm = TRUE)
+All_data$stress_GMean <- ave(All_data$stress_split, na.rm = TRUE)
+
+#Subtract grand mean from the raw exposures
+All_data$exposurec <- All_data$exposures - All_data$exposureGMean
+All_data$discrim_any_c <- All_data$microagg - All_data$discrim_any_GMean
+All_data$discrim_count_c <- All_data$microagg_count - All_data$discrim_count_GMean
+All_data$neg_c <- All_data$daily_average_neg - All_data$neg_GMean
+All_data$stress_c <- All_data$stress_rating - All_data$stress_GMean
+
+#Now we create a between-subjects mean from this grand mean centered variable
+All_data$exposurebw <- with(All_data, ave(exposurec, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+All_data$discrim_any_bw <- with(All_data, ave(discrim_any_c, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+All_data$discrim_count_bw <- with(All_data, ave(discrim_count_c, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+All_data$neg_bw <- with(All_data, ave(neg_c, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+All_data$stress_bw <- with(All_data, ave(stress_c, pid, FUN=function(x) mean(x, na.rm=TRUE)))
+
+#And then a within-subjects mean using this between-subject mean
+All_data$exposurewn <- All_data$exposurec - All_data$exposurebw
+All_data$discrim_any_wn <- All_data$discrim_any_c - All_data$discrim_any_bw
+All_data$discrim_count_wn <- All_data$discrim_count_c - All_data$discrim_count_bw
+All_data$neg_wn <- All_data$neg_c - All_data$neg_bw
+All_data$stress_wn <- All_data$stress_c - All_data$stress_bw
+
+```
+
+# correlation of negative affect variables
+```{r}
+cor(All_data$daily_average_neg, All_data$stress_rating, use = "complete.obs")
+
+rmcorr(pid, daysNeg_wn, stress_wn, All_data)
+```
+# Hypotheses & Research Questions
+(switched all models from lme to lmer becuase lme was getting errors when I tried adding random effects)
+
+##Stress as an outcome
+
+### Hypothesis 1:
+On days when smokers experience interpersonal discrimination, they will feel more stressed and negative than they will on days when they don’t experience interpersonal discrimination 
+```{r}
+H1a <- lmer(stress_rating ~ 1 + discrim_any_wn + discrim_any_bw + day + (1 + discrim_any_wn | pid), 
+            data = All_data)
+summary(H1a)
+
+summary(lmer(stress_rating ~ 1 + discrim_count_wn + discrim_count_bw + day + (1 + discrim_count_wn | pid), 
+            data = All_data))
+
+H1a <- lmer(stress_rating ~ 1 + microagg+ day + (1 | pid), 
+            data = All_data)
+
+summary(H1a)
+
+```
+
+
+### main effect of exposure
+```{r}
+Slow.Stress<- lmer(stress_rating ~ 1 + exposurewn + exposurebw + day + (1 | pid), 
+             data=All_data) #model failed to converge so took out random effects 
+summary(Slow.Stress)
+```
+### H4 interactions on stress outcome
+```{r}
+#only main effect of wn and bw discrim
+H4aSlow.Stress<- lmer(stress_rating ~ 1 + discrim_any_wn + discrim_any_bw + exposurewn + exposurebw + discrim_any_wn*exposurewn + day + (1 | pid), 
+             data=All_data) #model failed to converge so took out random effects 
+
+summary(H4aSlow.Stress)
+```
+
+##Stress as an outcome
+
+### Hypothesis 1:
+On days when smokers experience interpersonal discrimination, they will feel more stressed and negative than they will on days when they don’t experience interpersonal discrimination 
+```{r}
+H1a_neg <- lmer(daily_average_neg ~ 1 + discrim_any_wn + discrim_any_bw + day + (1 + discrim_any_wn | pid), 
+            data = All_data)
+summary(H1a_neg)
+
+
+# following model is rank deficient with or without random effects
+summary(lmer(daily_average_neg ~ 1 + discrim_count_wn + discrim_count_bw + day + (1  | pid), 
+            data = All_data))
+
+```
+
+
+### main effect of exposure
+```{r}
+Slow.Neg<- lmer(daily_average_neg ~ 1 + exposurewn + exposurebw + day + (1 | pid), 
+             data=All_data) #model failed to converge so took out random effects 
+summary(Slow.Neg)
+```
+### H4 interactions on neg mood outcome
+```{r}
+#only main effect of wn and bw discrim
+H4aSlow.Neg<- lmer(daily_average_neg ~ 1 + discrim_any_wn + discrim_any_bw + exposurewn + exposurebw + discrim_any_wn*exposurewn + day + (1 | pid), 
+             data=All_data) #model failed to converge so took out random effects 
+
+summary(H4aSlow.Neg)
+```
+
+## Cig craving as an outcome
+```{r}
+H2 <- lmer(daily_average_crave ~ 1 + discrim_any_wn + discrim_any_bw + day + (1  | pid), 
+            data = All_data)
+summary(H2)
+
+summary(lmer(daily_average_crave ~ 1 + discrim_count_wn + discrim_count_bw + day + (1 + discrim_count_wn | pid), 
+            data = All_data))
+
+```
+
+
+
+###Craving, exposure, microaggression
+```{r}
+H4crave <- lmer(daily_average_crave ~ 1 + discrim_any_wn + discrim_any_bw + exposurewn + exposurebw + discrim_any_wn*exposurewn + day + (1  | pid), data = All_data, na.action = na.omit) #took out discrim_any_wn and discrim_any_wn*regSpeedExpo_100ft_wn random effects to to singularity error; also exposurewn
+
+summary(H4crave)
+```
+```{r}
+#library(robustHD)
+winsorizedDF <- All_data %>% group_by(pid) %>%
+ mutate(exposures = (Winsorize(exposures, na.rm = TRUE)),
+         daily_average_crave = (Winsorize(daily_average_crave, na.rm = TRUE)),
+         daily_average_neg = (Winsorize(daily_average_neg, na.rm = TRUE)),
+         stress_rating = (Winsorize(stress_rating, na.rm = TRUE)),
+         microagg = (Winsorize(microagg, na.rm = TRUE)))
+```
+

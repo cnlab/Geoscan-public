@@ -1,0 +1,8 @@
+scale name,column name,reverse,min,max,transform,sum,mean,cosw_1,cosw_2,cosw_3,cosw_4,cosw_5,q272,q273
+COSW,cosw_1,0,1,6,0,sum,mean,1,,,,,,
+COSW,cosw_2,0,1,6,0,sum,mean,,1,,,,,
+COSW,cosw_3,0,1,6,0,sum,mean,,,1,,,,
+COSW,cosw_4,0,1,6,0,sum,mean,,,,1,,,
+COSW,cosw_5,0,1,6,0,sum,mean,,,,,1,,
+COSW,q272,0,NA,NA,0,,,,,,,,I,
+COSW,q273,0,1,3,0,,,,,,,,,1
