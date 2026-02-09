@@ -1,0 +1,11 @@
+.DS_Store
+.AppleDouble
+.LSOverride
+.smbdelete*
+._*
+.Rhistory
+.RData
+.Rproj.user
+.Rapp.history
+*.Rproj
+.Ruserdata
