@@ -560,9 +560,9 @@ This study will be conducted in accordance with the following publication and da
 
 - **NIH Public Access Policy:** Final peer-reviewed manuscripts arising from NIH funds will be submitted to PubMed Central upon acceptance for publication.
 - **NIH Data Sharing Policy and Clinical Trial Information Policy:** This trial has been registered at ClinicalTrials.gov and results information will be submitted accordingly.
-- **Data Sharing:** Final research data, with identity-related information deleted, will be made available to the scientific community upon request after the study's primary results have been published. Non-imaging data will be shared in spreadsheet format; fMRI data in NIFTI format. Geolocation data will be shared at an aggregate level with restrictions to protect participant privacy.
+- **Data Sharing:** Final research data, with identity-related information deleted, will be made available to the scientific community upon request after the study's primary results have been published. Non-imaging data will be shared in spreadsheet format; fMRI data in NIFTI format. Geolocation data will be shared at an aggregate level with restrictions to protect participant privacy. Please fill out a form [here](https://tinyurl.com/geoscan-data-request) to request data access.
 - **Imaging Data:** Will be made available through a secure file-sharing interface once the main findings have been published.
-- **Study Tasks and Code:** Will be made available on the Falk Lab GitHub account at [https://github.com/cnlab/](https://github.com/cnlab/).
+- **Study Tasks and Code:** Will be made available on the Falk Lab GitHub account at [https://github.com/cnlab/Geoscan-public/](https://github.com/cnlab/geoscan-public/).
 
 ---
 
