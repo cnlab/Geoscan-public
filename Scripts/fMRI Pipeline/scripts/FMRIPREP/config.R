@@ -1,37 +1,44 @@
-# This script specifies the following user inputs for auto_motion_fmriprep.R:
-# * confoundDir = path to the fmriprep confounds files; define as a string
-# * outputDir = path to output directory; will create a new folder called auto-motion-fmriprep here; define as a string
-# * version = fMRIPrep version (e.g., 1.1.8); define as a string
-# * study = study name; define as a string
-# * ses = include session; use TRUE if ses is part of the file name, use FALSE if not
-# * noRP = suppress motion regressor text files; use TRUE or FALSE
-# * nonames = suppress motion regressor text file column names; use TRUE or FALSE
-# * noPlots = suppress plots for each subject run; use TRUE or FALSE
-# * noEuclidean = do not use the Euclidean distance; use the raw realigment parameters instead
-#   when exporting motion regressors files; use TRUE or FALSE. If FALSE, motion regressors files will include the following columns:
-#   Euclidean distance translation, Euclidean distance rotation, Euclidean distance derivative translation, 
-#   Euclidean distance derivative rotation, trash. If TRUE, motion regressors files will include the following columns: 
-#   X, Y, Z, RotX, RotY RotZ, trash.
-# * figIndicators = motion indicators to print in plot; define as a character vector
-# * figFormat = file format for plot; define as a string
-# * figHeight = plot height in inches; define as a number
-# * figWidth = plot width in inches; define as a number
-# * figDPI = plot resolution in dots per inch; define as a number
+# config.R
+#
+# Configuration for auto_motion_fmriprep.R
+# Used by generate_outlier_report.ipynb (called via Rscript)
+#
+# Set BASE_DIR to the project root. All other paths are derived from it.
+# If running this file directly from scripts/FMRIPREP/, the default value
+# using dirname(dirname(getwd())) will resolve correctly automatically.
 
-# paths
-confoundDir = '/data00/projects/geoscan_v2/data/bids_data/derivatives_nocorrection'
-outputDir = '/data00/projects/geoscan_v2/data/bids_data/derivatives_nocorrection/outlier'
+# ── Project root ──────────────────────────────────────────────────────────────
+# Default: derive from the location of this config file (scripts/FMRIPREP/)
+BASE_DIR <- dirname(dirname(normalizePath(getwd())))
 
-# variables
-version = '25.0.0'
-study = 'geoscan_v2'
-ses = "t3"
-noRP = FALSE
-noNames = FALSE
-noPlot = FALSE
-noEuclidean = FALSE
+# Override manually if needed:
+# BASE_DIR <- '/data00/projects/geoscan_v2'
+
+# ── Derived paths ─────────────────────────────────────────────────────────────
+confoundDir <- file.path(BASE_DIR, 'data/bids_data/derivatives_nocorrection')
+outputDir   <- file.path(BASE_DIR, 'data/bids_data/derivatives_nocorrection/outlier')
+
+cat('BASE_DIR    :', BASE_DIR,    '\n')
+cat('confoundDir :', confoundDir, '\n')
+cat('outputDir   :', outputDir,   '\n')
+
+# ── Study variables ───────────────────────────────────────────────────────────
+version = '25.0.0'     # fMRIPrep version used
+study   = 'geoscan_v2' # Study name label in output
+ses     = 't3'         # Session label (used in file matching; set to FALSE if no sessions)
+
+# ── Output options ────────────────────────────────────────────────────────────
+noRP        = FALSE    # Suppress motion regressor text files
+noNames     = FALSE    # Suppress column headers in regressor files
+noPlot      = FALSE    # Suppress per-subject-run motion plots
+noEuclidean = FALSE    # Use raw realignment params instead of Euclidean distance
+                       # If FALSE (default): output cols = euclidean_trans, euclidean_rot,
+                       #   euclidean_trans_deriv, euclidean_rot_deriv, trash
+                       # If TRUE: output cols = X, Y, Z, RotX, RotY, RotZ, trash
+
+# ── Plot settings ─────────────────────────────────────────────────────────────
 figIndicators = c('FramewiseDisplacement', 'GlobalSignal', 'stdDVARS')
-figFormat = '.png'
-figHeight = 5.5
-figWidth = 7
-figDPI = 250
+figFormat     = '.png'
+figHeight     = 5.5
+figWidth      = 7
+figDPI        = 250

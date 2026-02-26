@@ -1,6 +1,0 @@
-You are using fMRIPrep-20.0.6, and a newer version of fMRIPrep is available: 25.0.0.
-Please check out our documentation about how and when to upgrade:
-https://fmriprep.readthedocs.io/en/latest/faq.html#upgrading
-slurmstepd: error: *** JOB 23670 ON cls02 CANCELLED AT 2025-05-11T13:50:53 DUE TO TIME LIMIT ***
-srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
-slurmstepd: error: *** STEP 23670.0 ON cls02 CANCELLED AT 2025-05-11T13:50:53 DUE TO TIME LIMIT ***

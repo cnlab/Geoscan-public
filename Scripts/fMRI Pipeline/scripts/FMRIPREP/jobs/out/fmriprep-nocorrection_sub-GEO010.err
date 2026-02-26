@@ -1,27 +1,0 @@
-You are using fMRIPrep-25.0.0, and a newer version of fMRIPrep is available: 25.1.1.
-Please check out our documentation about how and when to upgrade:
-https://fmriprep.readthedocs.io/en/latest/faq.html#upgrading
-Downloading https://templateflow.s3.amazonaws.com/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz
-  0%|          | 0.00/13.7M [00:00<?, ?B/s]  3%|▎         | 400k/13.7M [00:00<00:03, 3.88MB/s] 10%|▉         | 1.36M/13.7M [00:00<00:01, 7.14MB/s] 25%|██▌       | 3.48M/13.7M [00:00<00:00, 13.5MB/s] 62%|██████▏   | 8.47M/13.7M [00:00<00:00, 27.8MB/s]100%|██████████| 13.7M/13.7M [00:00<00:00, 29.4MB/s]
-Downloading https://templateflow.s3.amazonaws.com/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-01_desc-brain_mask.nii.gz
-  0%|          | 0.00/160k [00:00<?, ?B/s] 76%|███████▋  | 122k/160k [00:00<00:00, 1.12MB/s]100%|██████████| 160k/160k [00:00<00:00, 1.27MB/s]
-Downloading https://templateflow.s3.amazonaws.com/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-01_T2w.nii.gz
-  0%|          | 0.00/13.3M [00:00<?, ?B/s] 56%|█████▋    | 7.49M/13.3M [00:00<00:00, 74.9MB/s]100%|██████████| 13.3M/13.3M [00:00<00:00, 92.2MB/s]
-Downloading https://templateflow.s3.amazonaws.com/tpl-OASIS30ANTs/tpl-OASIS30ANTs_res-01_T1w.nii.gz
-  0%|          | 0.00/32.4M [00:00<?, ?B/s] 29%|██▉       | 9.44M/32.4M [00:00<00:00, 94.1MB/s] 58%|█████▊    | 18.9M/32.4M [00:00<00:00, 54.5MB/s] 95%|█████████▍| 30.6M/32.4M [00:00<00:00, 62.8MB/s]100%|██████████| 32.4M/32.4M [00:00<00:00, 65.3MB/s]
-Downloading https://templateflow.s3.amazonaws.com/tpl-OASIS30ANTs/tpl-OASIS30ANTs_res-01_label-brain_probseg.nii.gz
-  0%|          | 0.00/2.59M [00:00<?, ?B/s]100%|██████████| 2.59M/2.59M [00:00<00:00, 37.6MB/s]
-Downloading https://templateflow.s3.amazonaws.com/tpl-OASIS30ANTs/tpl-OASIS30ANTs_res-01_desc-BrainCerebellumExtraction_mask.nii.gz
-  0%|          | 0.00/265k [00:00<?, ?B/s]100%|██████████| 265k/265k [00:00<00:00, 9.82MB/s]
-Downloading https://templateflow.s3.amazonaws.com/tpl-OASIS30ANTs/tpl-OASIS30ANTs_res-01_label-WM_probseg.nii.gz
-  0%|          | 0.00/4.06M [00:00<?, ?B/s]100%|██████████| 4.06M/4.06M [00:00<00:00, 49.6MB/s]
-Downloading https://templateflow.s3.amazonaws.com/tpl-OASIS30ANTs/tpl-OASIS30ANTs_res-01_label-BS_probseg.nii.gz
-  0%|          | 0.00/447k [00:00<?, ?B/s]100%|██████████| 447k/447k [00:00<00:00, 29.5MB/s]
-Downloading https://templateflow.s3.amazonaws.com/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz
-  0%|          | 0.00/1.75M [00:00<?, ?B/s]100%|██████████| 1.75M/1.75M [00:00<00:00, 67.6MB/s]
-Downloading https://templateflow.s3.amazonaws.com/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz
-  0%|          | 0.00/29.6k [00:00<?, ?B/s]100%|██████████| 29.6k/29.6k [00:00<00:00, 71.7MB/s]
-Downloading https://templateflow.s3.amazonaws.com/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-01_label-brain_probseg.nii.gz
-  0%|          | 0.00/3.93M [00:00<?, ?B/s]100%|██████████| 3.93M/3.93M [00:00<00:00, 55.2MB/s]
-Downloading https://templateflow.s3.amazonaws.com/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-01_desc-carpet_dseg.nii.gz
-  0%|          | 0.00/451k [00:00<?, ?B/s]100%|██████████| 451k/451k [00:00<00:00, 8.05MB/s]

@@ -1,0 +1,58 @@
+#!/bin/bash
+# mriqc_single.bsh
+#
+# Run MRIQC on a single participant.
+# Use this to test your paths and confirm MRIQC works before submitting the full batch.
+#
+# Usage:
+#   bash mriqc_single.bsh
+#
+# Requirements:
+#   - BIDS-converted data must exist at bids_dir/sub-{ID}/
+#   - Output and working directories will be created if they don't exist
+
+# ── Edit these variables ───────────────────────────────────────────────────────
+
+PROJECT="your_project"
+SUBJECT="001"   # Subject ID WITHOUT the 'sub-' prefix (e.g. "001", not "sub-001")
+
+# ── Derived paths (edit only if your structure differs) ───────────────────────
+
+BIDS_DIR="/data00/projects/${PROJECT}/data/bids_data"
+OUTPUT_DIR="/data00/projects/${PROJECT}/data/bids_data/derivatives/mriqc"
+WORKING_DIR="/data00/projects/${PROJECT}/data/bids_data/derivatives/working"
+MRIQC_SIF="/data00/tools/singularity_images/mriqc-0.15.1.simg"
+
+# ── Create output directories if needed ───────────────────────────────────────
+
+mkdir -p "${OUTPUT_DIR}"
+mkdir -p "${WORKING_DIR}"
+
+# ── Run MRIQC ──────────────────────────────────────────────────────────────────
+#
+# Flag reference:
+#   -B src:dst        bind-mount a host path into the Singularity container
+#   /data /out        BIDS input and output paths inside the container
+#   participant       run in participant (single-subject) mode
+#   --nprocs          number of parallel processes
+#   -m bold           modality filter — remove or change to "T1w T2w bold" for all modalities
+#   --work-dir        intermediate working files (can be deleted after a successful run)
+#   --participant_label  subject ID without the 'sub-' prefix
+
+echo "Running MRIQC for subject: ${SUBJECT}"
+echo "  BIDS input : ${BIDS_DIR}"
+echo "  Output     : ${OUTPUT_DIR}"
+echo ""
+
+singularity run --cleanenv \
+    -B "${BIDS_DIR}":/data \
+    -B "${OUTPUT_DIR}":/out \
+    -B "${WORKING_DIR}":/work \
+    "${MRIQC_SIF}" /data /out participant \
+    --nprocs 8 \
+    -m bold \
+    --work-dir /work \
+    --participant_label "${SUBJECT}"
+
+echo ""
+echo "MRIQC complete. Check output at: ${OUTPUT_DIR}"
