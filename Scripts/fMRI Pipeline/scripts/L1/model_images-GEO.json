@@ -1,0 +1,36 @@
+{   
+    "Description": ["Model by condition"],
+    "Template": ["/data00/projects/geoscan_v2/scripts/L1/study-geoscanR01-GEO.json",
+                 "/data00/projects/geoscan_v2/scripts/L1/task_images-GEO.json"],
+    
+    "Info": {
+        "model": "GEO-condition"
+    },
+    
+    "SpecifySPMModel": {
+        "event_options": {
+              "map_event": {
+                "retail_smoke_familiar": ["stimuli_retail_smoke_familiar"],
+                "retail_smoke_unfamiliar": ["stimuli_retail_smoke_unfamiliar"],
+                "retail_nonsmoke_familiar": ["stimuli_retail_nonsmoke_familiar"],
+                "retail_nonsmoke_unfamiliar": ["stimuli_retail_nonsmoke_unfamiliar"],
+                "standard_smoke": ["stimuli_standard_smoke"],
+                "standard_nonsmoke": ["stimuli_standard_nonsmoke"],
+                "personal_smoke": ["stimuli_personal_smoke"],
+                "personal_nonsmoke": ["stimuli_personal_nonsmoke"],
+                "rating": ["rating"]
+             },
+        "exclude_events": ["stimuli_rest"]
+        }
+    },
+    
+    "EstimateContrast": {
+    "contrasts": [
+      ["standardSmoke_v_standardNonsmoke", "T", ["standard_smoke", "standard_nonsmoke"], [1, -1]],
+      ["retailSmokeFamiliar_v_retailNonsmokeFamiliar", "T", ["retail_smoke_familiar", "retail_nonsmoke_familiar"], [1, -1]],
+      ["retailSmoke_v_retailNonsmoke", "T", ["retail_smoke_familiar", "retail_smoke_unfamiliar", "retail_nonsmoke_familiar", "retail_nonsmoke_unfamiliar"], [0.5, 0.5, -0.5, -0.5]],
+        ["smoke_v_nonsmoke_all", "T", ["standard_smoke","standard_nonsmoke","personal_smoke","personal_nonsmoke", "retail_smoke_familiar", "retail_smoke_unfamiliar", "retail_nonsmoke_familiar", "retail_nonsmoke_unfamiliar"],[0.25, -0.25,0.25,-0.25,0.25, 0.25, -0.25, -0.25]],
+         ["smoke_v_nonsmoke_nopersonal", "T", ["standard_smoke", "standard_nonsmoke", "retail_smoke_familiar", "retail_smoke_unfamiliar", "retail_nonsmoke_familiar", "retail_nonsmoke_unfamiliar"],[0.33, -0.33,0.33, 0.33, -0.33, -0.33]]
+    ]
+  }
+}

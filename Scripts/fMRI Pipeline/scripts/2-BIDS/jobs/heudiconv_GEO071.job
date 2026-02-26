@@ -1,0 +1,8 @@
+#!/bin/bash
+singularity run --cleanenv \
+    -B /data00/projects/geoscan_v2:/base  \
+    -B /fmriDataRaw/fmri_data_raw:/raw \
+    /data00/tools/singularity_images/heudiconv_0.8.0 \
+    -d /raw/geoscan/T3/{subject}_T3/*.dcm \
+    -o /base/data/bids_data/ \
+    -f /base/scripts/BIDS/heudiconv/code/heuristic.py -ss t3 -s GEO071 -c dcm2niix -b --overwrite

@@ -1,0 +1,51 @@
+250602-12:13:04,985 nipype.workflow IMPORTANT:
+	 Running fMRIPrep version 25.0.0
+
+         License NOTICE ##################################################
+         fMRIPrep 25.0.0
+         Copyright The NiPreps Developers.
+         
+         This product includes software developed by
+         the NiPreps Community (https://nipreps.org/).
+         
+         Portions of this software were developed at the Department of
+         Psychology at Stanford University, Stanford, CA, US.
+         
+         This software is also distributed as a Docker container image.
+         The bootstrapping file for the image ("Dockerfile") is licensed
+         under the MIT License.
+         
+         This software may be distributed through an add-on package called
+         "Docker Wrapper" that is under the BSD 3-clause License.
+         #################################################################
+250602-13:38:44,716 nipype.workflow IMPORTANT:
+	 Building fMRIPrep's workflow:
+           * BIDS dataset path: /data.
+           * Participant list: ['GEO021'].
+           * Run identifier: 20250602-083954_10f35d0c-23c6-4bf7-8bab-842ff109eab2.
+           * Output spaces: MNI152NLin2009cAsym:res-native.
+           * Pre-run FreeSurfer's SUBJECTS_DIR: /out/sourcedata/freesurfer.
+250602-13:39:04,182 nipype.workflow INFO:
+	 ANAT Stage 1: Adding template workflow
+250602-13:39:14,540 nipype.workflow INFO:
+	 ANAT Stage 2: Preparing brain extraction workflow
+250602-13:39:14,732 nipype.workflow INFO:
+	 ANAT Stage 3: Preparing segmentation workflow
+250602-13:39:14,736 nipype.workflow INFO:
+	 ANAT Stage 4: Preparing normalization workflow for ['MNI152NLin2009cAsym']
+250602-13:39:14,778 nipype.workflow INFO:
+	 ANAT Stage 5: Preparing surface reconstruction workflow
+250602-13:39:14,796 nipype.workflow INFO:
+	 ANAT Stage 6: Preparing mask refinement workflow
+250602-13:39:14,798 nipype.workflow INFO:
+	 ANAT Stage 7: Creating T2w template
+250602-13:39:14,805 nipype.workflow INFO:
+	 ANAT Stage 8: Creating GIFTI surfaces for ['white', 'pial', 'midthickness', 'sphere_reg', 'sphere']
+250602-13:39:14,819 nipype.workflow INFO:
+	 ANAT Stage 8: Creating GIFTI metrics for ['thickness', 'sulc']
+250602-13:39:14,825 nipype.workflow INFO:
+	 ANAT Stage 8a: Creating cortical ribbon mask
+250602-13:39:14,828 nipype.workflow INFO:
+	 ANAT Stage 9: Creating fsLR registration sphere
+250602-13:39:14,831 nipype.workflow INFO:
+	 ANAT Stage 10: Creating MSM-Sulc registration sphere

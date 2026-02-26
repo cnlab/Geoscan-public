@@ -1,0 +1,23 @@
+#!/bin/bash
+#SBATCH --job-name=fmriprep-nocorrection_sub-GEO010.job
+#SBATCH --output=out/fmriprep-nocorrection_sub-GEO010.out
+#SBATCH --error=out/fmriprep-nocorrection_sub-GEO010.err
+#SBATCH --time=2-00:00
+#SBATCH --cpus-per-task=6
+#SBATCH --mem=15GB
+
+srun singularity run --cleanenv \
+    -B /data00/tools/freesurfer/license.txt:/opt/freesurfer/license.txt  \
+    -B /data00/projects/geoscan_v2/data/bids_data:/data \
+    -B /data00/projects/geoscan_v2/data/bids_data/derivatives_nocorrection:/out  \
+    -B /data00/projects/geoscan_v2/data/bids_data/derivatives_nocorrection/working:/work \
+    -B /data00/projects/geoscan_v2/scripts/FMRIPREP/home_dir:/home/fmriprep \
+    --home /home/fmriprep \
+    /data00/tools/singularity_images/fmriprep-25.0.0.simg \
+    /data /out participant \
+    --participant-label sub-GEO010 \
+    -w /work \
+    --ignore slicetiming fieldmaps \
+    --nthreads 8 \
+    --skip-bids-validation
+        

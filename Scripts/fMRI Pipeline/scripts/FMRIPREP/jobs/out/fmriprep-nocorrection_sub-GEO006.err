@@ -1,0 +1,6 @@
+You are using fMRIPrep-25.0.0, and a newer version of fMRIPrep is available: 25.1.1.
+Please check out our documentation about how and when to upgrade:
+https://fmriprep.readthedocs.io/en/latest/faq.html#upgrading
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** JOB 23809 ON cls02 CANCELLED AT 2025-05-27T15:03:22 ***
+slurmstepd: error: *** STEP 23809.0 ON cls02 CANCELLED AT 2025-05-27T15:03:22 ***

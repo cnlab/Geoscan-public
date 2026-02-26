@@ -1,0 +1,73 @@
+{
+  "analysis_name": "level1_combined_sessions",
+  "analysis_type": "level1_combined",
+  "description": "Combined session Level 1 analysis for geoscan task",
+  "parameters": {
+    "tr": 2.0,
+    "hpf": 128,
+    "smoothing": 6.0,
+    "mask_threshold": 0.8,
+    "model_basis": "hrf",
+    "model_derivatives": [
+      0,
+      0
+    ]
+  },
+  "conditions": {
+    "main_conditions": [
+      "task",
+      "rest"
+    ],
+    "parametric_modulators": [
+      {
+        "condition": "task",
+        "modulator_name": "difficulty",
+        "column_name": "difficulty_rating",
+        "polynomial": 1
+      }
+    ]
+  },
+  "contrasts": [
+    {
+      "name": "task_vs_rest",
+      "description": "Main task effect across sessions",
+      "type": "t",
+      "vector": [
+        1,
+        -1,
+        0
+      ]
+    },
+    {
+      "name": "session_effect",
+      "description": "Session difference (ses-t3 vs ses-t2)",
+      "type": "t",
+      "vector": [
+        0,
+        0,
+        1
+      ]
+    },
+    {
+      "name": "task_main_effect",
+      "description": "F-test for any task effect",
+      "type": "f",
+      "matrix": [
+        [
+          1,
+          -1,
+          0
+        ],
+        [
+          0,
+          0,
+          1
+        ]
+      ]
+    }
+  ],
+  "output_dir": "/data00/projects/geoscan_v2/derivatives/level1_combined_sessions",
+  "template_type": "analysis",
+  "created": "2025-06-05T17:45:58.786039",
+  "modified": "2025-06-05T17:45:58.786047"
+}

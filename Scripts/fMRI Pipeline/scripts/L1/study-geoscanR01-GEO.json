@@ -1,0 +1,53 @@
+{
+    "Description": [
+        "GEoscan R01 default pipeline",
+        "4mm FWHM smoothing",
+        "No global scaling",
+        "FAST correlation",
+        "x_trans, y_trans, z_trans, x_rot, y_rot, z_rot, trash regressor (FD > 0.75 | GS > 3 SD)"
+    ],
+    
+    "Environment": {
+        "job_path": "models",
+        "spm_path": "/data00/tools/spm12mega",
+        "fsl_path": "/data00/tools/fsl",
+        
+        "data_path": "/data00/projects/geoscan_v2",
+        "output_path": "/data00/projects/geoscan_v2/data/bids_data/derivatives_nocorrection/nipype",
+        "working_path": "/data00/projects/geoscan_v2/data/bids_data/derivatives_nocorrection/working/nipype"
+    },
+    
+    "Info": {
+        "tr": 1,
+        "sub_container": "data/bids_data/derivatives_nocorrection/"
+    },
+    
+    "IsotropicSmooth": {
+        "fwhm": 4
+    },
+    
+    "SpecifySPMModel": {
+        "input_units": "secs",
+        "output_units": "secs",
+        "high_pass_filter_cutoff": 180,
+        "regressor_names": [
+            "trans_x", "trans_y", "trans_z", "rot_x", "rot_y", "rot_z", "trash"
+        ]
+    },
+
+    "Level1Design": {
+        "bases": { "hrf": { "derivs": [0,0] } },
+        "timing_units": "secs",
+        "global_intensity_normalization": "none",
+        "model_serial_correlations": "FAST"
+    },
+    
+    "EstimateModel": {
+        "estimation_method": { "Classical": 1 },
+        "write_residuals": false
+    },
+
+    "EstimateContrast": {
+        "basic_contrasts": true
+    }
+}

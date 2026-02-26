@@ -1,0 +1,1513 @@
+220623-11:39:47,90 nipype.workflow IMPORTANT:
+	 
+    Running fMRIPREP version 20.0.6:
+      * BIDS dataset path: /data.
+      * Participant list: ['GEO070'].
+      * Run identifier: 20220623-113924_dc9cb71c-2100-45ad-9ae6-5ed5ee402c08.
+
+    Spatial References: <none>.
+    
+220623-11:39:48,204 nipype.utils WARNING:
+	 Could not check for version updates: 
+Connection to server could not be made
+220623-11:39:52,301 nipype.workflow IMPORTANT:
+	 Creating bold processing workflow for "/data/sub-GEO070/ses-t2/func/sub-GEO070_ses-t2_task-image_run-1_bold.nii.gz" (0.24 GB / 395 TRs). Memory resampled/largemem=0.97/1.93 GB.
+220623-11:39:52,372 nipype.workflow IMPORTANT:
+	 No single-band-reference found for sub-GEO070_ses-t2_task-image_run-1_bold.nii.gz
+220623-11:39:57,64 nipype.workflow IMPORTANT:
+	 Creating bold processing workflow for "/data/sub-GEO070/ses-t2/func/sub-GEO070_ses-t2_task-image_run-2_bold.nii.gz" (0.24 GB / 395 TRs). Memory resampled/largemem=0.98/1.94 GB.
+220623-11:39:57,131 nipype.workflow IMPORTANT:
+	 No single-band-reference found for sub-GEO070_ses-t2_task-image_run-2_bold.nii.gz
+220623-11:40:01,675 nipype.workflow IMPORTANT:
+	 Creating bold processing workflow for "/data/sub-GEO070/ses-t2/func/sub-GEO070_ses-t2_task-image_run-3_bold.nii.gz" (0.24 GB / 395 TRs). Memory resampled/largemem=0.98/1.94 GB.
+220623-11:40:01,744 nipype.workflow IMPORTANT:
+	 No single-band-reference found for sub-GEO070_ses-t2_task-image_run-3_bold.nii.gz
+220623-11:40:06,247 nipype.workflow IMPORTANT:
+	 Creating bold processing workflow for "/data/sub-GEO070/ses-t2/func/sub-GEO070_ses-t2_task-image_run-4_bold.nii.gz" (0.24 GB / 395 TRs). Memory resampled/largemem=0.97/1.94 GB.
+220623-11:40:06,314 nipype.workflow IMPORTANT:
+	 No single-band-reference found for sub-GEO070_ses-t2_task-image_run-4_bold.nii.gz
+220623-11:40:10,934 nipype.workflow IMPORTANT:
+	 Creating bold processing workflow for "/data/sub-GEO070/ses-t2/func/sub-GEO070_ses-t2_task-image_run-5_bold.nii.gz" (0.24 GB / 395 TRs). Memory resampled/largemem=0.98/1.94 GB.
+220623-11:40:11,0 nipype.workflow IMPORTANT:
+	 No single-band-reference found for sub-GEO070_ses-t2_task-image_run-5_bold.nii.gz
+220623-11:40:24,73 nipype.workflow IMPORTANT:
+	 Works derived from this fMRIPrep execution should include the following boilerplate:
+
+
+Results included in this manuscript come from preprocessing
+performed using *fMRIPrep* 20.0.6
+(@fmriprep1; @fmriprep2; RRID:SCR_016216),
+which is based on *Nipype* 1.4.2
+(@nipype1; @nipype2; RRID:SCR_002502).
+
+Anatomical data preprocessing
+
+: The T1-weighted (T1w) image was corrected for intensity non-uniformity (INU)
+with `N4BiasFieldCorrection` [@n4], distributed with ANTs 2.2.0 [@ants, RRID:SCR_004757], and used as T1w-reference throughout the workflow.
+The T1w-reference was then skull-stripped with a *Nipype* implementation of
+the `antsBrainExtraction.sh` workflow (from ANTs), using OASIS30ANTs
+as target template.
+Brain tissue segmentation of cerebrospinal fluid (CSF),
+white-matter (WM) and gray-matter (GM) was performed on
+the brain-extracted T1w using `fast` [FSL 5.0.9, RRID:SCR_002823,
+@fsl_fast].
+Brain surfaces were reconstructed using `recon-all` [FreeSurfer 6.0.1,
+RRID:SCR_001847, @fs_reconall], and the brain mask estimated
+previously was refined with a custom variation of the method to reconcile
+ANTs-derived and FreeSurfer-derived segmentations of the cortical
+gray-matter of Mindboggle [RRID:SCR_002438, @mindboggle].
+Volume-based spatial normalization to one standard space (MNI152NLin2009cAsym) was performed through
+nonlinear registration with `antsRegistration` (ANTs 2.2.0),
+using brain-extracted versions of both T1w reference and the T1w template.
+The following template was selected for spatial normalization:
+*ICBM 152 Nonlinear Asymmetrical template version 2009c* [@mni152nlin2009casym, RRID:SCR_008796; TemplateFlow ID: MNI152NLin2009cAsym], 
+
+Functional data preprocessing
+
+: For each of the 5 BOLD runs found per subject (across all
+tasks and sessions), the following preprocessing was performed.
+First, a reference volume and its skull-stripped version were generated
+using a custom methodology of *fMRIPrep*.
+A deformation field to correct for susceptibility distortions was estimated
+based on *fMRIPrep*'s *fieldmap-less* approach.
+The deformation field is that resulting from co-registering the BOLD reference
+to the same-subject T1w-reference with its intensity inverted [@fieldmapless1;
+@fieldmapless2].
+Registration is performed with `antsRegistration` (ANTs 2.2.0), and
+the process regularized by constraining deformation to be nonzero only
+along the phase-encoding direction, and modulated with an average fieldmap
+template [@fieldmapless3].
+Based on the estimated susceptibility distortion, a corrected
+EPI (echo-planar imaging) reference was calculated for a more
+accurate co-registration with the anatomical reference.
+The BOLD reference was then co-registered to the T1w reference using
+`bbregister` (FreeSurfer) which implements boundary-based registration [@bbr].
+Co-registration was configured with six degrees of freedom.
+Head-motion parameters with respect to the BOLD reference
+(transformation matrices, and six corresponding rotation and translation
+parameters) are estimated before any spatiotemporal filtering using
+`mcflirt` [FSL 5.0.9, @mcflirt].
+The BOLD time-series (including slice-timing correction when applied)
+were resampled onto their original, native space by applying
+a single, composite transform to correct for head-motion and
+susceptibility distortions.
+These resampled BOLD time-series will be referred to as *preprocessed
+BOLD in original space*, or just *preprocessed BOLD*.
+The BOLD time-series were resampled into standard space,
+generating a *preprocessed BOLD run in MNI152NLin2009cAsym space*.
+First, a reference volume and its skull-stripped version were generated
+using a custom methodology of *fMRIPrep*.
+Several confounding time-series were calculated based on the
+*preprocessed BOLD*: framewise displacement (FD), DVARS and
+three region-wise global signals.
+FD and DVARS are calculated for each functional run, both using their
+implementations in *Nipype* [following the definitions by @power_fd_dvars].
+The three global signals are extracted within the CSF, the WM, and
+the whole-brain masks.
+Additionally, a set of physiological regressors were extracted to
+allow for component-based noise correction [*CompCor*, @compcor].
+Principal components are estimated after high-pass filtering the
+*preprocessed BOLD* time-series (using a discrete cosine filter with
+128s cut-off) for the two *CompCor* variants: temporal (tCompCor)
+and anatomical (aCompCor).
+tCompCor components are then calculated from the top 5% variable
+voxels within a mask covering the subcortical regions.
+This subcortical mask is obtained by heavily eroding the brain mask,
+which ensures it does not include cortical GM regions.
+For aCompCor, components are calculated within the intersection of
+the aforementioned mask and the union of CSF and WM masks calculated
+in T1w space, after their projection to the native space of each
+functional run (using the inverse BOLD-to-T1w transformation). Components
+are also calculated separately within the WM and CSF masks.
+For each CompCor decomposition, the *k* components with the largest singular
+values are retained, such that the retained components' time series are
+sufficient to explain 50 percent of variance across the nuisance mask (CSF,
+WM, combined, or temporal). The remaining components are dropped from
+consideration.
+The head-motion estimates calculated in the correction step were also
+placed within the corresponding confounds file.
+The confound time series derived from head motion estimates and global
+signals were expanded with the inclusion of temporal derivatives and
+quadratic terms for each [@confounds_satterthwaite_2013].
+Frames that exceeded a threshold of 0.5 mm FD or 1.5 standardised DVARS
+were annotated as motion outliers.
+All resamplings can be performed with *a single interpolation
+step* by composing all the pertinent transformations (i.e. head-motion
+transform matrices, susceptibility distortion correction when available,
+and co-registrations to anatomical and output spaces).
+Gridded (volumetric) resamplings were performed using `antsApplyTransforms` (ANTs),
+configured with Lanczos interpolation to minimize the smoothing
+effects of other kernels [@lanczos].
+Non-gridded (surface) resamplings were performed using `mri_vol2surf`
+(FreeSurfer).
+
+
+Many internal operations of *fMRIPrep* use
+*Nilearn* 0.6.2 [@nilearn, RRID:SCR_001362],
+mostly within the functional processing workflow.
+For more details of the pipeline, see [the section corresponding
+to workflows in *fMRIPrep*'s documentation](https://fmriprep.readthedocs.io/en/latest/workflows.html "FMRIPrep's documentation").
+
+
+### Copyright Waiver
+
+The above boilerplate text was automatically generated by fMRIPrep
+with the express intention that users should copy and paste this
+text into their manuscripts *unchanged*.
+It is released under the [CC0](https://creativecommons.org/publicdomain/zero/1.0/) license.
+
+### References
+
+
+220623-11:41:05,28 nipype.workflow WARNING:
+	 Some nodes exceed the total amount of memory available (13.96GB).
+220623-11:41:13,500 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.func_derivatives_wf.raw_sources" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/func_derivatives_wf/raw_sources".
+220623-11:41:13,512 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.func_derivatives_wf.raw_sources" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/func_derivatives_wf/raw_sources".
+220623-11:41:13,535 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.func_derivatives_wf.raw_sources" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/func_derivatives_wf/raw_sources".
+220623-11:41:13,542 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.func_derivatives_wf.raw_sources" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/func_derivatives_wf/raw_sources".
+220623-11:41:13,801 nipype.workflow INFO:
+	 [Node] Running "raw_sources" ("nipype.interfaces.utility.wrappers.Function")
+220623-11:41:13,802 nipype.workflow INFO:
+	 [Node] Running "raw_sources" ("nipype.interfaces.utility.wrappers.Function")
+220623-11:41:13,869 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.func_derivatives_wf.raw_sources".
+220623-11:41:13,875 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.func_derivatives_wf.raw_sources".
+220623-11:41:13,880 nipype.workflow INFO:
+	 [Node] Running "raw_sources" ("nipype.interfaces.utility.wrappers.Function")
+220623-11:41:14,11 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.func_derivatives_wf.raw_sources".
+220623-11:41:14,36 nipype.workflow INFO:
+	 [Node] Running "raw_sources" ("nipype.interfaces.utility.wrappers.Function")
+220623-11:41:14,105 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.func_derivatives_wf.raw_sources".
+220623-11:41:17,375 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.func_derivatives_wf.raw_sources" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/func_derivatives_wf/raw_sources".
+220623-11:41:17,658 nipype.workflow INFO:
+	 [Node] Running "raw_sources" ("nipype.interfaces.utility.wrappers.Function")
+220623-11:41:17,717 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.func_derivatives_wf.raw_sources".
+220623-11:41:19,185 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.validate" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/validate".
+220623-11:41:19,204 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.validate" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/validate".
+220623-11:41:19,208 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.validate" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/validate".
+220623-11:41:19,370 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.validate" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/validate".
+220623-11:41:19,534 nipype.workflow INFO:
+	 [Node] Running "validate" ("niworkflows.interfaces.images.ValidateImage")
+220623-11:41:19,547 nipype.workflow INFO:
+	 [Node] Running "validate" ("niworkflows.interfaces.images.ValidateImage")
+220623-11:41:19,600 nipype.workflow INFO:
+	 [Node] Running "validate" ("niworkflows.interfaces.images.ValidateImage")
+220623-11:41:19,647 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.validate".
+220623-11:41:19,657 nipype.workflow INFO:
+	 [Node] Running "validate" ("niworkflows.interfaces.images.ValidateImage")
+220623-11:41:19,770 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.validate".
+220623-11:41:19,790 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.validate".
+220623-11:41:19,973 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.validate".
+220623-11:41:20,108 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_split" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_split".
+220623-11:41:20,495 nipype.workflow INFO:
+	 [Node] Running "bold_split" ("nipype.interfaces.fsl.utils.Split"), a CommandLine Interface with command:
+fslsplit /data/sub-GEO070/ses-t2/func/sub-GEO070_ses-t2_task-image_run-3_bold.nii.gz -t
+220623-11:41:22,120 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_split" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_split".
+220623-11:41:22,462 nipype.workflow INFO:
+	 [Node] Running "bold_split" ("nipype.interfaces.fsl.utils.Split"), a CommandLine Interface with command:
+fslsplit /data/sub-GEO070/ses-t2/func/sub-GEO070_ses-t2_task-image_run-1_bold.nii.gz -t
+220623-11:41:22,960 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.res_tmpl" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/res_tmpl".
+220623-11:41:22,996 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.validate" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/validate".
+220623-11:41:23,142 nipype.workflow INFO:
+	 [Node] Running "res_tmpl" ("niworkflows.interfaces.ants.ResampleImageBySpacing"), a CommandLine Interface with command:
+ResampleImageBySpacing 3 /home/fmriprep/.cache/templateflow/tpl-OASIS30ANTs/tpl-OASIS30ANTs_res-01_T1w.nii.gz tpl-OASIS30ANTs_res-01_T1w_resampled.nii.gz 4 4 4 1
+220623-11:41:23,160 nipype.workflow INFO:
+	 [Node] Running "validate" ("niworkflows.interfaces.images.ValidateImage")
+220623-11:41:23,270 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.gen_ref" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/gen_ref".
+220623-11:41:23,271 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_split" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_split".
+220623-11:41:23,286 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.lap_tmpl" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/lap_tmpl".
+220623-11:41:23,298 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.validate".
+220623-11:41:23,493 nipype.workflow INFO:
+	 [Node] Running "gen_ref" ("niworkflows.interfaces.registration.EstimateReferenceImage")
+220623-11:41:23,528 nipype.workflow INFO:
+	 [Node] Running "bold_split" ("nipype.interfaces.fsl.utils.Split"), a CommandLine Interface with command:
+fslsplit /data/sub-GEO070/ses-t2/func/sub-GEO070_ses-t2_task-image_run-2_bold.nii.gz -t
+220623-11:41:23,548 nipype.workflow INFO:
+	 [Node] Running "lap_tmpl" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 tpl-OASIS30ANTs_res-01_T1w_maths.nii.gz Laplacian /home/fmriprep/.cache/templateflow/tpl-OASIS30ANTs/tpl-OASIS30ANTs_res-01_T1w.nii.gz 1.5 1
+220623-11:41:24,761 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.bidssrc" in "/work/fmriprep_wf/single_subject_GEO070_wf/bidssrc".
+220623-11:41:25,336 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.gen_ref" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/gen_ref".
+220623-11:41:25,570 nipype.workflow INFO:
+	 [Node] Running "bidssrc" ("niworkflows.interfaces.bids.BIDSDataGrabber")
+220623-11:41:25,572 nipype.interface INFO:
+	 No "flair" images found for sub-GEO070
+220623-11:41:25,572 nipype.interface INFO:
+	 No "fmap" images found for sub-GEO070
+220623-11:41:25,572 nipype.interface INFO:
+	 No "sbref" images found for sub-GEO070
+220623-11:41:25,572 nipype.interface INFO:
+	 No "roi" images found for sub-GEO070
+220623-11:41:25,626 nipype.workflow INFO:
+	 [Node] Running "gen_ref" ("niworkflows.interfaces.registration.EstimateReferenceImage")
+220623-11:41:25,730 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.bidssrc".
+220623-11:41:26,323 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.res_tmpl".
+220623-11:41:26,338 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:26.338484:++ 3dvolreg: AFNI version=Debian-16.2.07~dfsg.1-5~nd16.04+1 (Jun 12 2017) [64-bit]
+220623-11:41:26,339 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:26.338484:++ Authored by: RW Cox
+220623-11:41:26,347 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:26.347340:** AFNI converts NIFTI_datatype=512 (UINT16) in file /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/gen_ref/slice.nii.gz to FLOAT32
+220623-11:41:26,347 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:26.347340:     Warnings of this type will be muted for this session.
+220623-11:41:26,347 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:26.347340:     Set AFNI_NIFTI_TYPE_WARN to YES to see them all, NO to see none.
+220623-11:41:26,376 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:26.376859:[7m*+ WARNING:[0m   If you are performing spatial transformations on an oblique dset, 
+220623-11:41:26,377 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:26.376859:  such as /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/gen_ref/slice.nii.gz,
+220623-11:41:26,377 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:26.376859:  or viewing/combining it with volumes of differing obliquity,
+220623-11:41:26,377 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:26.376859:  you should consider running: 
+220623-11:41:26,377 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:26.376859:     3dWarp -deoblique 
+220623-11:41:26,377 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:26.376859:  on this and  other oblique datasets in the same session.
+220623-11:41:26,377 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:26.376859: See 3dWarp -help for details.
+220623-11:41:26,377 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:26.376859:++ Oblique dataset:/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/gen_ref/slice.nii.gz is 38.300011 degrees from plumb.
+220623-11:41:26,377 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:26.376859:++ Coarse del was 10, replaced with 6
+220623-11:41:26,732 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.gen_ref".
+220623-11:41:26,895 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.gen_ref" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/gen_ref".
+220623-11:41:27,168 nipype.workflow INFO:
+	 [Node] Running "gen_ref" ("niworkflows.interfaces.registration.EstimateReferenceImage")
+220623-11:41:28,109 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_hmc_wf.mcflirt" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_hmc_wf/mcflirt".
+220623-11:41:28,295 nipype.workflow INFO:
+	 [Node] Running "mcflirt" ("nipype.interfaces.fsl.preprocess.MCFLIRT"), a CommandLine Interface with command:
+mcflirt -in /data/sub-GEO070/ses-t2/func/sub-GEO070_ses-t2_task-image_run-2_bold.nii.gz -out /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_hmc_wf/mcflirt/sub-GEO070_ses-t2_task-image_run-2_bold_mcf.nii.gz -reffile /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz -mats -plots
+220623-11:41:28,665 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_split" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_split".
+220623-11:41:28,835 nipype.workflow INFO:
+	 [Node] Running "bold_split" ("nipype.interfaces.fsl.utils.Split"), a CommandLine Interface with command:
+fslsplit /data/sub-GEO070/ses-t2/func/sub-GEO070_ses-t2_task-image_run-4_bold.nii.gz -t
+220623-11:41:29,176 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:29.176659:++ 3dvolreg: AFNI version=Debian-16.2.07~dfsg.1-5~nd16.04+1 (Jun 12 2017) [64-bit]
+220623-11:41:29,177 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:29.176659:++ Authored by: RW Cox
+220623-11:41:29,184 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:29.184572:** AFNI converts NIFTI_datatype=512 (UINT16) in file /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/gen_ref/slice.nii.gz to FLOAT32
+220623-11:41:29,184 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:29.184572:     Warnings of this type will be muted for this session.
+220623-11:41:29,184 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:29.184572:     Set AFNI_NIFTI_TYPE_WARN to YES to see them all, NO to see none.
+220623-11:41:29,188 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:29.188522:[7m*+ WARNING:[0m   If you are performing spatial transformations on an oblique dset, 
+220623-11:41:29,188 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:29.188522:  such as /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/gen_ref/slice.nii.gz,
+220623-11:41:29,188 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:29.188522:  or viewing/combining it with volumes of differing obliquity,
+220623-11:41:29,188 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:29.188522:  you should consider running: 
+220623-11:41:29,188 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:29.188522:     3dWarp -deoblique 
+220623-11:41:29,188 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:29.188522:  on this and  other oblique datasets in the same session.
+220623-11:41:29,188 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:29.188522: See 3dWarp -help for details.
+220623-11:41:29,188 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:29.188522:++ Oblique dataset:/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/gen_ref/slice.nii.gz is 38.300011 degrees from plumb.
+220623-11:41:29,189 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:29.188522:++ Coarse del was 10, replaced with 6
+220623-11:41:36,14 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.lap_tmpl".
+220623-11:41:38,743 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.gen_ref" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/gen_ref".
+220623-11:41:38,953 nipype.workflow INFO:
+	 [Node] Running "gen_ref" ("niworkflows.interfaces.registration.EstimateReferenceImage")
+220623-11:41:40,993 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:40.992833:++ 3dvolreg: AFNI version=Debian-16.2.07~dfsg.1-5~nd16.04+1 (Jun 12 2017) [64-bit]
+220623-11:41:40,993 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:40.992833:++ Authored by: RW Cox
+220623-11:41:40,998 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:40.998451:** AFNI converts NIFTI_datatype=512 (UINT16) in file /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/gen_ref/slice.nii.gz to FLOAT32
+220623-11:41:40,998 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:40.998451:     Warnings of this type will be muted for this session.
+220623-11:41:40,998 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:40.998451:     Set AFNI_NIFTI_TYPE_WARN to YES to see them all, NO to see none.
+220623-11:41:41,2 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:41.002038:[7m*+ WARNING:[0m   If you are performing spatial transformations on an oblique dset, 
+220623-11:41:41,2 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:41.002038:  such as /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/gen_ref/slice.nii.gz,
+220623-11:41:41,2 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:41.002038:  or viewing/combining it with volumes of differing obliquity,
+220623-11:41:41,2 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:41.002038:  you should consider running: 
+220623-11:41:41,2 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:41.002038:     3dWarp -deoblique 
+220623-11:41:41,2 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:41.002038:  on this and  other oblique datasets in the same session.
+220623-11:41:41,2 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:41.002038: See 3dWarp -help for details.
+220623-11:41:41,2 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:41.002038:++ Oblique dataset:/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/gen_ref/slice.nii.gz is 38.300011 degrees from plumb.
+220623-11:41:41,2 nipype.interface INFO:
+	 stderr 2022-06-23T11:41:41.002038:++ Coarse del was 10, replaced with 6
+220623-11:42:04,453 nipype.interface INFO:
+	 stderr 2022-06-23T11:42:04.453623:++ Max displacement in automask = 1.80 (mm) at sub-brick 4
+220623-11:42:04,453 nipype.interface INFO:
+	 stderr 2022-06-23T11:42:04.453623:++ Max delta displ  in automask = 1.84 (mm) at sub-brick 3
+220623-11:42:08,160 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.gen_ref".
+220623-11:42:10,181 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_hmc_wf.mcflirt" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_hmc_wf/mcflirt".
+220623-11:42:10,375 nipype.workflow INFO:
+	 [Node] Running "mcflirt" ("nipype.interfaces.fsl.preprocess.MCFLIRT"), a CommandLine Interface with command:
+mcflirt -in /data/sub-GEO070/ses-t2/func/sub-GEO070_ses-t2_task-image_run-1_bold.nii.gz -out /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_hmc_wf/mcflirt/sub-GEO070_ses-t2_task-image_run-1_bold_mcf.nii.gz -reffile /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz -mats -plots
+220623-11:42:14,463 nipype.interface INFO:
+	 stderr 2022-06-23T11:42:14.463199:++ Max displacement in automask = 22.49 (mm) at sub-brick 19
+220623-11:42:14,463 nipype.interface INFO:
+	 stderr 2022-06-23T11:42:14.463199:++ Max delta displ  in automask = 14.91 (mm) at sub-brick 3
+220623-11:42:18,142 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.gen_ref".
+220623-11:42:19,969 nipype.interface INFO:
+	 stderr 2022-06-23T11:42:19.969500:++ Max displacement in automask = 8.89 (mm) at sub-brick 15
+220623-11:42:19,969 nipype.interface INFO:
+	 stderr 2022-06-23T11:42:19.969500:++ Max delta displ  in automask = 7.28 (mm) at sub-brick 15
+220623-11:42:20,712 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_hmc_wf.mcflirt" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_hmc_wf/mcflirt".
+220623-11:42:20,901 nipype.workflow INFO:
+	 [Node] Running "mcflirt" ("nipype.interfaces.fsl.preprocess.MCFLIRT"), a CommandLine Interface with command:
+mcflirt -in /data/sub-GEO070/ses-t2/func/sub-GEO070_ses-t2_task-image_run-3_bold.nii.gz -out /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_hmc_wf/mcflirt/sub-GEO070_ses-t2_task-image_run-3_bold_mcf.nii.gz -reffile /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz -mats -plots
+220623-11:42:23,548 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.gen_ref".
+220623-11:42:24,720 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_hmc_wf.mcflirt" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_hmc_wf/mcflirt".
+220623-11:42:24,896 nipype.workflow INFO:
+	 [Node] Running "mcflirt" ("nipype.interfaces.fsl.preprocess.MCFLIRT"), a CommandLine Interface with command:
+mcflirt -in /data/sub-GEO070/ses-t2/func/sub-GEO070_ses-t2_task-image_run-4_bold.nii.gz -out /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_hmc_wf/mcflirt/sub-GEO070_ses-t2_task-image_run-4_bold_mcf.nii.gz -reffile /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz -mats -plots
+220623-11:43:40,574 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_split".
+220623-11:43:42,377 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_std_trans_wf.gen_ref" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_std_trans_wf/_std_target_MNI152NLin2009cAsym./gen_ref".
+220623-11:43:43,134 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_split".
+220623-11:43:43,279 nipype.workflow INFO:
+	 [Node] Running "gen_ref" ("niworkflows.interfaces.utils.GenerateSamplingReference")
+220623-11:43:43,440 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_split".
+220623-11:43:43,555 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_std_trans_wf.gen_ref".
+220623-11:43:44,289 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_std_trans_wf.gen_ref" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_std_trans_wf/_std_target_MNI152NLin2009cAsym./gen_ref".
+220623-11:43:44,306 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_std_trans_wf.gen_ref" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_std_trans_wf/_std_target_MNI152NLin2009cAsym./gen_ref".
+220623-11:43:44,927 nipype.workflow INFO:
+	 [Node] Running "gen_ref" ("niworkflows.interfaces.utils.GenerateSamplingReference")
+220623-11:43:44,985 nipype.workflow INFO:
+	 [Node] Running "gen_ref" ("niworkflows.interfaces.utils.GenerateSamplingReference")
+220623-11:43:45,47 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_std_trans_wf.gen_ref".
+220623-11:43:45,89 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_std_trans_wf.gen_ref".
+220623-11:43:45,348 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_split" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_split".
+220623-11:43:45,843 nipype.workflow INFO:
+	 [Node] Running "bold_split" ("nipype.interfaces.fsl.utils.Split"), a CommandLine Interface with command:
+fslsplit /data/sub-GEO070/ses-t2/func/sub-GEO070_ses-t2_task-image_run-5_bold.nii.gz -t
+220623-11:43:47,99 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.gen_ref" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/gen_ref".
+220623-11:43:47,111 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.mrg_tmpl" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/mrg_tmpl".
+220623-11:43:47,306 nipype.workflow INFO:
+	 [Node] Running "gen_ref" ("niworkflows.interfaces.registration.EstimateReferenceImage")
+220623-11:43:47,396 nipype.workflow INFO:
+	 [Node] Running "mrg_tmpl" ("nipype.interfaces.utility.base.Merge")
+220623-11:43:47,514 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.mrg_tmpl".
+220623-11:43:48,295 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_template_wf.t1w_ref_dimensions" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/anat_template_wf/t1w_ref_dimensions".
+220623-11:43:49,142 nipype.workflow INFO:
+	 [Node] Running "t1w_ref_dimensions" ("niworkflows.interfaces.images.TemplateDimensions")
+220623-11:43:49,942 nipype.interface INFO:
+	 stderr 2022-06-23T11:43:49.942785:++ 3dvolreg: AFNI version=Debian-16.2.07~dfsg.1-5~nd16.04+1 (Jun 12 2017) [64-bit]
+220623-11:43:49,943 nipype.interface INFO:
+	 stderr 2022-06-23T11:43:49.942785:++ Authored by: RW Cox
+220623-11:43:49,950 nipype.interface INFO:
+	 stderr 2022-06-23T11:43:49.950262:** AFNI converts NIFTI_datatype=512 (UINT16) in file /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/gen_ref/slice.nii.gz to FLOAT32
+220623-11:43:49,950 nipype.interface INFO:
+	 stderr 2022-06-23T11:43:49.950262:     Warnings of this type will be muted for this session.
+220623-11:43:49,950 nipype.interface INFO:
+	 stderr 2022-06-23T11:43:49.950262:     Set AFNI_NIFTI_TYPE_WARN to YES to see them all, NO to see none.
+220623-11:43:49,957 nipype.interface INFO:
+	 stderr 2022-06-23T11:43:49.957818:[7m*+ WARNING:[0m   If you are performing spatial transformations on an oblique dset, 
+220623-11:43:49,957 nipype.interface INFO:
+	 stderr 2022-06-23T11:43:49.957818:  such as /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/gen_ref/slice.nii.gz,
+220623-11:43:49,958 nipype.interface INFO:
+	 stderr 2022-06-23T11:43:49.957818:  or viewing/combining it with volumes of differing obliquity,
+220623-11:43:49,958 nipype.interface INFO:
+	 stderr 2022-06-23T11:43:49.957818:  you should consider running: 
+220623-11:43:49,958 nipype.interface INFO:
+	 stderr 2022-06-23T11:43:49.957818:     3dWarp -deoblique 
+220623-11:43:49,958 nipype.interface INFO:
+	 stderr 2022-06-23T11:43:49.957818:  on this and  other oblique datasets in the same session.
+220623-11:43:49,958 nipype.interface INFO:
+	 stderr 2022-06-23T11:43:49.957818: See 3dWarp -help for details.
+220623-11:43:49,958 nipype.interface INFO:
+	 stderr 2022-06-23T11:43:49.957818:++ Oblique dataset:/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/gen_ref/slice.nii.gz is 38.300011 degrees from plumb.
+220623-11:43:49,958 nipype.interface INFO:
+	 stderr 2022-06-23T11:43:49.957818:++ Coarse del was 10, replaced with 6
+220623-11:43:50,527 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_template_wf.t1w_ref_dimensions".
+220623-11:43:52,274 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_derivatives_wf.raw_sources" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/anat_derivatives_wf/raw_sources".
+220623-11:43:52,439 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_split".
+220623-11:43:52,823 nipype.workflow INFO:
+	 [Node] Running "raw_sources" ("nipype.interfaces.utility.wrappers.Function")
+220623-11:43:52,901 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_derivatives_wf.raw_sources".
+220623-11:43:54,300 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_derivatives_wf.t1w_name" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/anat_derivatives_wf/t1w_name".
+220623-11:43:54,300 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_std_trans_wf.gen_ref" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_std_trans_wf/_std_target_MNI152NLin2009cAsym./gen_ref".
+220623-11:43:54,705 nipype.workflow INFO:
+	 [Node] Running "t1w_name" ("nipype.interfaces.utility.wrappers.Function")
+220623-11:43:54,721 nipype.workflow INFO:
+	 [Node] Running "gen_ref" ("niworkflows.interfaces.utils.GenerateSamplingReference")
+220623-11:43:54,787 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_derivatives_wf.t1w_name".
+220623-11:43:54,824 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_std_trans_wf.gen_ref".
+220623-11:43:57,32 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_template_wf.t1w_conform" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/anat_template_wf/t1w_conform".
+220623-11:43:57,377 nipype.workflow INFO:
+	 [Node] Setting-up "_t1w_conform0" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/anat_template_wf/t1w_conform/mapflow/_t1w_conform0".
+220623-11:43:57,611 nipype.workflow INFO:
+	 [Node] Running "_t1w_conform0" ("niworkflows.interfaces.images.Conform")
+220623-11:43:57,784 nipype.workflow INFO:
+	 [Node] Finished "_t1w_conform0".
+220623-11:43:57,878 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_template_wf.t1w_conform".
+220623-11:43:57,996 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.bids_info" in "/work/fmriprep_wf/single_subject_GEO070_wf/bids_info".
+220623-11:43:58,258 nipype.workflow INFO:
+	 [Node] Running "bids_info" ("niworkflows.interfaces.bids.BIDSInfo")
+220623-11:43:58,289 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_template_wf.get1st" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/anat_template_wf/get1st".
+220623-11:43:58,568 nipype.workflow INFO:
+	 [Node] Running "get1st" ("nipype.interfaces.utility.base.Select")
+220623-11:43:58,712 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_template_wf.get1st".
+220623-11:44:02,301 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.surface_recon_wf.fov_check" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/surface_recon_wf/fov_check".
+220623-11:44:02,590 nipype.workflow INFO:
+	 [Node] Running "fov_check" ("nipype.interfaces.utility.wrappers.Function")
+220623-11:44:02,935 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.surface_recon_wf.fov_check".
+220623-11:44:04,575 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.surface_recon_wf.recon_config" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/surface_recon_wf/recon_config".
+220623-11:44:04,751 nipype.workflow INFO:
+	 [Node] Running "recon_config" ("niworkflows.interfaces.freesurfer.FSDetectInputs")
+220623-11:44:04,965 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.surface_recon_wf.recon_config".
+220623-11:44:06,342 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.truncate_images" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/truncate_images".
+220623-11:44:06,532 nipype.workflow INFO:
+	 [Node] Setting-up "_truncate_images0" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/truncate_images/mapflow/_truncate_images0".
+220623-11:44:06,700 nipype.workflow INFO:
+	 [Node] Running "_truncate_images0" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 sub-GEO070_ses-t2_T1w_maths.nii.gz TruncateImageIntensity /data/sub-GEO070/ses-t2/anat/sub-GEO070_ses-t2_T1w.nii.gz 0.01 0.999 256
+220623-11:44:16,598 nipype.workflow INFO:
+	 [Node] Finished "_truncate_images0".
+220623-11:44:16,675 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.truncate_images".
+220623-11:44:16,696 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.bids_info".
+220623-11:44:24,473 nipype.utils WARNING:
+	 Could not check for version updates: 
+Connection to server could not be made
+220623-11:44:30,955 nipype.interface INFO:
+	 stderr 2022-06-23T11:44:30.954936:++ Max displacement in automask = 1.85 (mm) at sub-brick 18
+220623-11:44:30,955 nipype.interface INFO:
+	 stderr 2022-06-23T11:44:30.954936:++ Max delta displ  in automask = 1.36 (mm) at sub-brick 3
+220623-11:44:38,124 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.gen_ref".
+220623-11:44:39,595 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_hmc_wf.mcflirt" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_hmc_wf/mcflirt".
+220623-11:44:39,896 nipype.workflow INFO:
+	 [Node] Running "mcflirt" ("nipype.interfaces.fsl.preprocess.MCFLIRT"), a CommandLine Interface with command:
+mcflirt -in /data/sub-GEO070/ses-t2/func/sub-GEO070_ses-t2_task-image_run-5_bold.nii.gz -out /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_hmc_wf/mcflirt/sub-GEO070_ses-t2_task-image_run-5_bold_mcf.nii.gz -reffile /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz -mats -plots
+220623-11:44:59,368 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_hmc_wf.mcflirt".
+220623-11:45:01,606 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_hmc_wf.normalize_motion" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_hmc_wf/normalize_motion".
+220623-11:45:01,933 nipype.workflow INFO:
+	 [Node] Running "normalize_motion" ("niworkflows.interfaces.utils.NormalizeMotionParams")
+220623-11:45:02,100 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_hmc_wf.normalize_motion".
+220623-11:45:04,435 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_confounds_wf.fdisp" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_confounds_wf/fdisp".
+220623-11:45:04,730 nipype.workflow INFO:
+	 [Node] Running "fdisp" ("nipype.algorithms.confounds.FramewiseDisplacement")
+220623-11:45:04,903 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_confounds_wf.fdisp".
+220623-11:45:36,951 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_hmc_wf.mcflirt".
+220623-11:45:37,646 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_hmc_wf.normalize_motion" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_hmc_wf/normalize_motion".
+220623-11:45:38,227 nipype.workflow INFO:
+	 [Node] Running "normalize_motion" ("niworkflows.interfaces.utils.NormalizeMotionParams")
+220623-11:45:38,463 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_hmc_wf.normalize_motion".
+220623-11:45:39,771 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_hmc_wf.mcflirt".
+220623-11:45:40,433 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_confounds_wf.fdisp" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_confounds_wf/fdisp".
+220623-11:45:40,663 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_hmc_wf.mcflirt".
+220623-11:45:40,703 nipype.workflow INFO:
+	 [Node] Running "fdisp" ("nipype.algorithms.confounds.FramewiseDisplacement")
+220623-11:45:40,890 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_confounds_wf.fdisp".
+220623-11:45:41,650 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_hmc_wf.normalize_motion" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_hmc_wf/normalize_motion".
+220623-11:45:41,652 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_hmc_wf.normalize_motion" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_hmc_wf/normalize_motion".
+220623-11:45:42,10 nipype.workflow INFO:
+	 [Node] Running "normalize_motion" ("niworkflows.interfaces.utils.NormalizeMotionParams")
+220623-11:45:42,64 nipype.workflow INFO:
+	 [Node] Running "normalize_motion" ("niworkflows.interfaces.utils.NormalizeMotionParams")
+220623-11:45:42,177 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_hmc_wf.normalize_motion".
+220623-11:45:42,329 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_hmc_wf.normalize_motion".
+220623-11:45:44,172 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_confounds_wf.fdisp" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_confounds_wf/fdisp".
+220623-11:45:44,333 nipype.workflow INFO:
+	 [Node] Running "fdisp" ("nipype.algorithms.confounds.FramewiseDisplacement")
+220623-11:45:44,508 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_confounds_wf.fdisp".
+220623-11:45:45,332 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_confounds_wf.fdisp" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_confounds_wf/fdisp".
+220623-11:45:45,753 nipype.workflow INFO:
+	 [Node] Running "fdisp" ("nipype.algorithms.confounds.FramewiseDisplacement")
+220623-11:45:45,936 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_confounds_wf.fdisp".
+220623-11:46:11,420 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_split".
+220623-11:46:13,649 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_hmc_wf.fsl2itk" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_hmc_wf/fsl2itk".
+220623-11:46:14,241 nipype.workflow INFO:
+	 [Node] Running "fsl2itk" ("niworkflows.interfaces.itk.MCFLIRT2ITK")
+220623-11:47:13,297 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_hmc_wf.fsl2itk".
+220623-11:47:13,726 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.init_aff" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/init_aff".
+220623-11:47:13,900 nipype.workflow INFO:
+	 [Node] Running "init_aff" ("niworkflows.interfaces.ants.AI"), a CommandLine Interface with command:
+antsAI -c [10,0.000001,10] -d 3 -x /home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz -m Mattes[/home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz,/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz,32,Regular,0.200000] -o initialization.mat -p 0 -s [20.000000,0.120000] -t Affine[0.100000] -v 1
+220623-11:47:18,196 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.init_aff".
+220623-11:47:19,713 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.norm" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/norm".
+220623-11:47:19,970 nipype.workflow INFO:
+	 [Node] Running "norm" ("niworkflows.interfaces.fixes.FixHeaderRegistration"), a CommandLine Interface with command:
+antsRegistration --collapse-output-transforms 1 --dimensionality 3 --float 1 --initial-moving-transform [ /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/init_aff/initialization.mat, 0 ] --initialize-transforms-per-stage 0 --interpolation Linear --output transform --transform Affine[ 0.1 ] --metric Mattes[ /home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz, /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz, 1, 64, Random, 0.2 ] --convergence [ 200, 1e-09, 10 ] --smoothing-sigmas 2.0mm --shrink-factors 2 --use-estimate-learning-rate-once 1 --use-histogram-matching 1 --winsorize-image-intensities [ 0.05, 0.98 ]  --write-composite-transform 0
+220623-11:47:21,481 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.norm".
+220623-11:47:23,733 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.map_brainmask" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/map_brainmask".
+220623-11:47:23,747 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_std_trans_wf.gen_ref" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_std_trans_wf/_std_target_MNI152NLin2009cAsym./gen_ref".
+220623-11:47:24,45 nipype.workflow INFO:
+	 [Node] Running "map_brainmask" ("niworkflows.interfaces.fixes.FixHeaderApplyTransforms"), a CommandLine Interface with command:
+antsApplyTransforms --default-value 0 --float 1 --input /home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz --interpolation MultiLabel --output tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans.nii.gz --reference-image /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz --transform [ /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/norm/transform0GenericAffine.mat, 1 ]
+220623-11:47:25,296 nipype.workflow INFO:
+	 [Node] Running "gen_ref" ("niworkflows.interfaces.utils.GenerateSamplingReference")
+220623-11:47:25,357 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_std_trans_wf.gen_ref".
+220623-11:47:29,384 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.map_brainmask".
+220623-11:47:29,726 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.pre_mask_dilate" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/pre_mask_dilate".
+220623-11:47:29,897 nipype.workflow INFO:
+	 [Node] Running "pre_mask_dilate" ("nipype.interfaces.fsl.maths.DilateImage"), a CommandLine Interface with command:
+fslmaths -dt char /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/map_brainmask/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans.nii.gz -kernel sphere 3.0000 -dilF /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/pre_mask_dilate/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans_dil.nii.gz
+220623-11:47:30,460 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.pre_mask_dilate".
+220623-11:47:32,630 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_hmc_wf.fsl2itk" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_hmc_wf/fsl2itk".
+220623-11:47:34,3 nipype.workflow INFO:
+	 [Node] Running "fsl2itk" ("niworkflows.interfaces.itk.MCFLIRT2ITK")
+220623-11:47:57,599 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_hmc_wf.mcflirt".
+220623-11:47:59,758 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.n4_correct" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/n4_correct".
+220623-11:47:59,942 nipype.workflow INFO:
+	 [Node] Running "n4_correct" ("niworkflows.interfaces.fixes.FixN4BiasFieldCorrection"), a CommandLine Interface with command:
+N4BiasFieldCorrection --bspline-fitting [ 200 ] -d 3 --input-image /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz --mask-image /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/check_hdr/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans_dil_hdr.nii.gz --output ref_bold_corrected.nii.gz -r
+220623-11:48:05,968 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.n4_correct".
+220623-11:48:07,772 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_pass" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass".
+220623-11:48:08,350 nipype.workflow INFO:
+	 [Node] Running "skullstrip_first_pass" ("nipype.interfaces.fsl.preprocess.BET"), a CommandLine Interface with command:
+bet /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/n4_correct/ref_bold_corrected.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain.nii.gz -f 0.20 -m
+220623-11:48:10,315 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_pass".
+220623-11:48:11,769 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_dilate" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_dilate".
+220623-11:48:11,920 nipype.workflow INFO:
+	 [Node] Running "skullstrip_first_dilate" ("nipype.interfaces.fsl.maths.DilateImage"), a CommandLine Interface with command:
+fslmaths -dt char /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain_mask.nii.gz -kernel sphere 6.0000 -dilF /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_dilate/ref_bold_corrected_brain_mask_dil.nii.gz
+220623-11:48:13,422 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_dilate".
+220623-11:48:13,769 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_mask" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_mask".
+220623-11:48:14,152 nipype.workflow INFO:
+	 [Node] Running "skullstrip_first_mask" ("nipype.interfaces.fsl.maths.ApplyMask"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain.nii.gz -mas /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_dilate/ref_bold_corrected_brain_mask_dil.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_mask/ref_bold_corrected_brain_masked.nii.gz
+220623-11:48:14,449 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_mask".
+220623-11:48:15,783 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.unifize" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/unifize".
+220623-11:48:16,112 nipype.workflow INFO:
+	 [Node] Running "unifize" ("nipype.interfaces.afni.utils.Unifize"), a CommandLine Interface with command:
+3dUnifize -clfrac 0.2 -rbt 18.3 65.0 90.0 -prefix uni.nii.gz -T2 -input /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/unifize/ref_bold_corrected_brain_masked.nii.gz
+220623-11:48:20,257 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.unifize".
+220623-11:48:21,762 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_unifize" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_unifize".
+220623-11:48:22,452 nipype.workflow INFO:
+	 [Node] Running "fixhdr_unifize" ("niworkflows.interfaces.utils.CopyXForm")
+220623-11:48:22,651 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_unifize".
+220623-11:48:23,771 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_second_pass" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_second_pass".
+220623-11:48:24,105 nipype.workflow INFO:
+	 [Node] Running "skullstrip_second_pass" ("nipype.interfaces.afni.preprocess.Automask"), a CommandLine Interface with command:
+3dAutomask -apply_prefix uni_xform_masked.nii.gz -dilate 1 -prefix uni_xform_mask.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_second_pass/uni_xform.nii.gz
+220623-11:48:24,943 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_second_pass".
+220623-11:48:25,784 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_skullstrip2" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_skullstrip2".
+220623-11:48:25,934 nipype.workflow INFO:
+	 [Node] Running "fixhdr_skullstrip2" ("niworkflows.interfaces.utils.CopyXForm")
+220623-11:48:26,119 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_skullstrip2".
+220623-11:48:27,508 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_hmc_wf.fsl2itk".
+220623-11:48:27,791 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.combine_masks" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/combine_masks".
+220623-11:48:27,793 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.init_aff" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/init_aff".
+220623-11:48:28,28 nipype.workflow INFO:
+	 [Node] Running "init_aff" ("niworkflows.interfaces.ants.AI"), a CommandLine Interface with command:
+antsAI -c [10,0.000001,10] -d 3 -x /home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz -m Mattes[/home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz,/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz,32,Regular,0.200000] -o initialization.mat -p 0 -s [20.000000,0.120000] -t Affine[0.100000] -v 1
+220623-11:48:28,33 nipype.workflow INFO:
+	 [Node] Running "combine_masks" ("nipype.interfaces.fsl.maths.BinaryMaths"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain_mask.nii.gz -mul /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_skullstrip2/uni_xform_mask_xform.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/combine_masks/ref_bold_corrected_brain_mask_maths.nii.gz
+220623-11:48:28,484 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.combine_masks".
+220623-11:48:29,779 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.apply_mask" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/apply_mask".
+220623-11:48:30,10 nipype.workflow INFO:
+	 [Node] Running "apply_mask" ("nipype.interfaces.fsl.maths.ApplyMask"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_unifize/uni_xform.nii.gz -mas /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/combine_masks/ref_bold_corrected_brain_mask_maths.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_1_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/apply_mask/uni_xform_masked.nii.gz
+220623-11:48:30,370 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_1_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.apply_mask".
+220623-11:48:31,790 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_hmc_wf.normalize_motion" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_hmc_wf/normalize_motion".
+220623-11:48:32,323 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.init_aff".
+220623-11:48:32,575 nipype.workflow INFO:
+	 [Node] Running "normalize_motion" ("niworkflows.interfaces.utils.NormalizeMotionParams")
+220623-11:48:32,882 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_hmc_wf.normalize_motion".
+220623-11:48:33,800 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.norm" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/norm".
+220623-11:48:34,754 nipype.workflow INFO:
+	 [Node] Running "norm" ("niworkflows.interfaces.fixes.FixHeaderRegistration"), a CommandLine Interface with command:
+antsRegistration --collapse-output-transforms 1 --dimensionality 3 --float 1 --initial-moving-transform [ /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/init_aff/initialization.mat, 0 ] --initialize-transforms-per-stage 0 --interpolation Linear --output transform --transform Affine[ 0.1 ] --metric Mattes[ /home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz, /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz, 1, 64, Random, 0.2 ] --convergence [ 200, 1e-09, 10 ] --smoothing-sigmas 2.0mm --shrink-factors 2 --use-estimate-learning-rate-once 1 --use-histogram-matching 1 --winsorize-image-intensities [ 0.05, 0.98 ]  --write-composite-transform 0
+220623-11:48:35,44 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_confounds_wf.fdisp" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_confounds_wf/fdisp".
+220623-11:48:35,421 nipype.workflow INFO:
+	 [Node] Running "fdisp" ("nipype.algorithms.confounds.FramewiseDisplacement")
+220623-11:48:35,746 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_confounds_wf.fdisp".
+220623-11:48:36,201 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.norm".
+220623-11:48:37,820 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.map_brainmask" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/map_brainmask".
+220623-11:48:37,827 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_hmc_wf.fsl2itk" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_hmc_wf/fsl2itk".
+220623-11:48:38,120 nipype.workflow INFO:
+	 [Node] Running "map_brainmask" ("niworkflows.interfaces.fixes.FixHeaderApplyTransforms"), a CommandLine Interface with command:
+antsApplyTransforms --default-value 0 --float 1 --input /home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz --interpolation MultiLabel --output tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans.nii.gz --reference-image /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz --transform [ /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/norm/transform0GenericAffine.mat, 1 ]
+220623-11:48:39,106 nipype.workflow INFO:
+	 [Node] Running "fsl2itk" ("niworkflows.interfaces.itk.MCFLIRT2ITK")
+220623-11:48:43,95 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.map_brainmask".
+220623-11:48:43,798 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.pre_mask_dilate" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/pre_mask_dilate".
+220623-11:48:44,142 nipype.workflow INFO:
+	 [Node] Running "pre_mask_dilate" ("nipype.interfaces.fsl.maths.DilateImage"), a CommandLine Interface with command:
+fslmaths -dt char /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/map_brainmask/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans.nii.gz -kernel sphere 3.0000 -dilF /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/pre_mask_dilate/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans_dil.nii.gz
+220623-11:48:44,729 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.pre_mask_dilate".
+220623-11:48:47,804 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.n4_correct" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/n4_correct".
+220623-11:48:48,35 nipype.workflow INFO:
+	 [Node] Running "n4_correct" ("niworkflows.interfaces.fixes.FixN4BiasFieldCorrection"), a CommandLine Interface with command:
+N4BiasFieldCorrection --bspline-fitting [ 200 ] -d 3 --input-image /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz --mask-image /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/check_hdr/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans_dil_hdr.nii.gz --output ref_bold_corrected.nii.gz -r
+220623-11:48:53,779 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.n4_correct".
+220623-11:48:55,812 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_pass" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass".
+220623-11:48:55,941 nipype.workflow INFO:
+	 [Node] Running "skullstrip_first_pass" ("nipype.interfaces.fsl.preprocess.BET"), a CommandLine Interface with command:
+bet /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/n4_correct/ref_bold_corrected.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain.nii.gz -f 0.20 -m
+220623-11:48:57,779 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_pass".
+220623-11:48:59,808 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_dilate" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_dilate".
+220623-11:49:00,6 nipype.workflow INFO:
+	 [Node] Running "skullstrip_first_dilate" ("nipype.interfaces.fsl.maths.DilateImage"), a CommandLine Interface with command:
+fslmaths -dt char /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain_mask.nii.gz -kernel sphere 6.0000 -dilF /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_dilate/ref_bold_corrected_brain_mask_dil.nii.gz
+220623-11:49:01,517 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_dilate".
+220623-11:49:01,871 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_mask" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_mask".
+220623-11:49:02,616 nipype.workflow INFO:
+	 [Node] Running "skullstrip_first_mask" ("nipype.interfaces.fsl.maths.ApplyMask"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain.nii.gz -mas /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_dilate/ref_bold_corrected_brain_mask_dil.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_mask/ref_bold_corrected_brain_masked.nii.gz
+220623-11:49:02,945 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_mask".
+220623-11:49:03,873 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.unifize" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/unifize".
+220623-11:49:04,88 nipype.workflow INFO:
+	 [Node] Running "unifize" ("nipype.interfaces.afni.utils.Unifize"), a CommandLine Interface with command:
+3dUnifize -clfrac 0.2 -rbt 18.3 65.0 90.0 -prefix uni.nii.gz -T2 -input /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/unifize/ref_bold_corrected_brain_masked.nii.gz
+220623-11:49:07,839 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.unifize".
+220623-11:49:09,822 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_unifize" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_unifize".
+220623-11:49:10,350 nipype.workflow INFO:
+	 [Node] Running "fixhdr_unifize" ("niworkflows.interfaces.utils.CopyXForm")
+220623-11:49:10,558 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_unifize".
+220623-11:49:11,835 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_second_pass" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_second_pass".
+220623-11:49:12,36 nipype.workflow INFO:
+	 [Node] Running "skullstrip_second_pass" ("nipype.interfaces.afni.preprocess.Automask"), a CommandLine Interface with command:
+3dAutomask -apply_prefix uni_xform_masked.nii.gz -dilate 1 -prefix uni_xform_mask.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_second_pass/uni_xform.nii.gz
+220623-11:49:12,604 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_second_pass".
+220623-11:49:13,823 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_skullstrip2" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_skullstrip2".
+220623-11:49:14,29 nipype.workflow INFO:
+	 [Node] Running "fixhdr_skullstrip2" ("niworkflows.interfaces.utils.CopyXForm")
+220623-11:49:14,261 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_skullstrip2".
+220623-11:49:15,855 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.combine_masks" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/combine_masks".
+220623-11:49:16,175 nipype.workflow INFO:
+	 [Node] Running "combine_masks" ("nipype.interfaces.fsl.maths.BinaryMaths"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain_mask.nii.gz -mul /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_skullstrip2/uni_xform_mask_xform.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/combine_masks/ref_bold_corrected_brain_mask_maths.nii.gz
+220623-11:49:16,470 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.combine_masks".
+220623-11:49:17,823 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.apply_mask" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/apply_mask".
+220623-11:49:18,72 nipype.workflow INFO:
+	 [Node] Running "apply_mask" ("nipype.interfaces.fsl.maths.ApplyMask"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_unifize/uni_xform.nii.gz -mas /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/combine_masks/ref_bold_corrected_brain_mask_maths.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_2_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/apply_mask/uni_xform_masked.nii.gz
+220623-11:49:18,387 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_2_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.apply_mask".
+220623-11:49:31,788 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_hmc_wf.fsl2itk".
+220623-11:49:33,850 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.init_aff" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/init_aff".
+220623-11:49:34,34 nipype.workflow INFO:
+	 [Node] Running "init_aff" ("niworkflows.interfaces.ants.AI"), a CommandLine Interface with command:
+antsAI -c [10,0.000001,10] -d 3 -x /home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz -m Mattes[/home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz,/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz,32,Regular,0.200000] -o initialization.mat -p 0 -s [20.000000,0.120000] -t Affine[0.100000] -v 1
+220623-11:49:37,655 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.init_aff".
+220623-11:49:39,845 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.norm" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/norm".
+220623-11:49:40,60 nipype.workflow INFO:
+	 [Node] Running "norm" ("niworkflows.interfaces.fixes.FixHeaderRegistration"), a CommandLine Interface with command:
+antsRegistration --collapse-output-transforms 1 --dimensionality 3 --float 1 --initial-moving-transform [ /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/init_aff/initialization.mat, 0 ] --initialize-transforms-per-stage 0 --interpolation Linear --output transform --transform Affine[ 0.1 ] --metric Mattes[ /home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz, /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz, 1, 64, Random, 0.2 ] --convergence [ 200, 1e-09, 10 ] --smoothing-sigmas 2.0mm --shrink-factors 2 --use-estimate-learning-rate-once 1 --use-histogram-matching 1 --winsorize-image-intensities [ 0.05, 0.98 ]  --write-composite-transform 0
+220623-11:49:43,60 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.norm".
+220623-11:49:43,842 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.map_brainmask" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/map_brainmask".
+220623-11:49:43,862 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_hmc_wf.fsl2itk" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_hmc_wf/fsl2itk".
+220623-11:49:44,12 nipype.workflow INFO:
+	 [Node] Running "map_brainmask" ("niworkflows.interfaces.fixes.FixHeaderApplyTransforms"), a CommandLine Interface with command:
+antsApplyTransforms --default-value 0 --float 1 --input /home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz --interpolation MultiLabel --output tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans.nii.gz --reference-image /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz --transform [ /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/norm/transform0GenericAffine.mat, 1 ]
+220623-11:49:44,523 nipype.workflow INFO:
+	 [Node] Running "fsl2itk" ("niworkflows.interfaces.itk.MCFLIRT2ITK")
+220623-11:49:48,990 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.map_brainmask".
+220623-11:49:49,858 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.pre_mask_dilate" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/pre_mask_dilate".
+220623-11:49:50,50 nipype.workflow INFO:
+	 [Node] Running "pre_mask_dilate" ("nipype.interfaces.fsl.maths.DilateImage"), a CommandLine Interface with command:
+fslmaths -dt char /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/map_brainmask/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans.nii.gz -kernel sphere 3.0000 -dilF /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/pre_mask_dilate/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans_dil.nii.gz
+220623-11:49:50,577 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.pre_mask_dilate".
+220623-11:49:53,857 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.n4_correct" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/n4_correct".
+220623-11:49:54,41 nipype.workflow INFO:
+	 [Node] Running "n4_correct" ("niworkflows.interfaces.fixes.FixN4BiasFieldCorrection"), a CommandLine Interface with command:
+N4BiasFieldCorrection --bspline-fitting [ 200 ] -d 3 --input-image /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz --mask-image /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/check_hdr/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans_dil_hdr.nii.gz --output ref_bold_corrected.nii.gz -r
+220623-11:49:59,650 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.n4_correct".
+220623-11:50:01,897 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_pass" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass".
+220623-11:50:02,112 nipype.workflow INFO:
+	 [Node] Running "skullstrip_first_pass" ("nipype.interfaces.fsl.preprocess.BET"), a CommandLine Interface with command:
+bet /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/n4_correct/ref_bold_corrected.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain.nii.gz -f 0.20 -m
+220623-11:50:04,86 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_pass".
+220623-11:50:05,864 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_dilate" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_dilate".
+220623-11:50:06,48 nipype.workflow INFO:
+	 [Node] Running "skullstrip_first_dilate" ("nipype.interfaces.fsl.maths.DilateImage"), a CommandLine Interface with command:
+fslmaths -dt char /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain_mask.nii.gz -kernel sphere 6.0000 -dilF /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_dilate/ref_bold_corrected_brain_mask_dil.nii.gz
+220623-11:50:07,556 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_dilate".
+220623-11:50:07,867 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_mask" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_mask".
+220623-11:50:08,644 nipype.workflow INFO:
+	 [Node] Running "skullstrip_first_mask" ("nipype.interfaces.fsl.maths.ApplyMask"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain.nii.gz -mas /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_dilate/ref_bold_corrected_brain_mask_dil.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_mask/ref_bold_corrected_brain_masked.nii.gz
+220623-11:50:08,987 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_mask".
+220623-11:50:09,866 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.unifize" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/unifize".
+220623-11:50:10,105 nipype.workflow INFO:
+	 [Node] Running "unifize" ("nipype.interfaces.afni.utils.Unifize"), a CommandLine Interface with command:
+3dUnifize -clfrac 0.2 -rbt 18.3 65.0 90.0 -prefix uni.nii.gz -T2 -input /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/unifize/ref_bold_corrected_brain_masked.nii.gz
+220623-11:50:13,857 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.unifize".
+220623-11:50:15,897 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_unifize" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_unifize".
+220623-11:50:16,68 nipype.workflow INFO:
+	 [Node] Running "fixhdr_unifize" ("niworkflows.interfaces.utils.CopyXForm")
+220623-11:50:16,258 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_unifize".
+220623-11:50:17,888 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_second_pass" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_second_pass".
+220623-11:50:18,405 nipype.workflow INFO:
+	 [Node] Running "skullstrip_second_pass" ("nipype.interfaces.afni.preprocess.Automask"), a CommandLine Interface with command:
+3dAutomask -apply_prefix uni_xform_masked.nii.gz -dilate 1 -prefix uni_xform_mask.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_second_pass/uni_xform.nii.gz
+220623-11:50:18,980 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_second_pass".
+220623-11:50:19,900 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_skullstrip2" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_skullstrip2".
+220623-11:50:20,48 nipype.workflow INFO:
+	 [Node] Running "fixhdr_skullstrip2" ("niworkflows.interfaces.utils.CopyXForm")
+220623-11:50:20,189 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_skullstrip2".
+220623-11:50:21,895 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.combine_masks" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/combine_masks".
+220623-11:50:22,33 nipype.workflow INFO:
+	 [Node] Running "combine_masks" ("nipype.interfaces.fsl.maths.BinaryMaths"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain_mask.nii.gz -mul /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_skullstrip2/uni_xform_mask_xform.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/combine_masks/ref_bold_corrected_brain_mask_maths.nii.gz
+220623-11:50:22,288 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.combine_masks".
+220623-11:50:23,882 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.apply_mask" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/apply_mask".
+220623-11:50:24,41 nipype.workflow INFO:
+	 [Node] Running "apply_mask" ("nipype.interfaces.fsl.maths.ApplyMask"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_unifize/uni_xform.nii.gz -mas /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/combine_masks/ref_bold_corrected_brain_mask_maths.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_3_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/apply_mask/uni_xform_masked.nii.gz
+220623-11:50:24,401 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_3_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.apply_mask".
+220623-11:50:35,300 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_hmc_wf.fsl2itk".
+220623-11:50:35,891 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.init_aff" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/init_aff".
+220623-11:50:36,538 nipype.workflow INFO:
+	 [Node] Running "init_aff" ("niworkflows.interfaces.ants.AI"), a CommandLine Interface with command:
+antsAI -c [10,0.000001,10] -d 3 -x /home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz -m Mattes[/home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz,/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz,32,Regular,0.200000] -o initialization.mat -p 0 -s [20.000000,0.120000] -t Affine[0.100000] -v 1
+220623-11:50:40,143 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.init_aff".
+220623-11:50:41,892 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.norm" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/norm".
+220623-11:50:42,83 nipype.workflow INFO:
+	 [Node] Running "norm" ("niworkflows.interfaces.fixes.FixHeaderRegistration"), a CommandLine Interface with command:
+antsRegistration --collapse-output-transforms 1 --dimensionality 3 --float 1 --initial-moving-transform [ /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/init_aff/initialization.mat, 0 ] --initialize-transforms-per-stage 0 --interpolation Linear --output transform --transform Affine[ 0.1 ] --metric Mattes[ /home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz, /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz, 1, 64, Random, 0.2 ] --convergence [ 200, 1e-09, 10 ] --smoothing-sigmas 2.0mm --shrink-factors 2 --use-estimate-learning-rate-once 1 --use-histogram-matching 1 --winsorize-image-intensities [ 0.05, 0.98 ]  --write-composite-transform 0
+220623-11:50:43,588 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.norm".
+220623-11:50:43,907 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.map_brainmask" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/map_brainmask".
+220623-11:50:43,922 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_hmc_wf.fsl2itk" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_hmc_wf/fsl2itk".
+220623-11:50:44,59 nipype.workflow INFO:
+	 [Node] Running "map_brainmask" ("niworkflows.interfaces.fixes.FixHeaderApplyTransforms"), a CommandLine Interface with command:
+antsApplyTransforms --default-value 0 --float 1 --input /home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz --interpolation MultiLabel --output tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans.nii.gz --reference-image /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz --transform [ /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/norm/transform0GenericAffine.mat, 1 ]
+220623-11:50:45,337 nipype.workflow INFO:
+	 [Node] Running "fsl2itk" ("niworkflows.interfaces.itk.MCFLIRT2ITK")
+220623-11:50:49,9 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.map_brainmask".
+220623-11:50:49,904 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.pre_mask_dilate" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/pre_mask_dilate".
+220623-11:50:50,40 nipype.workflow INFO:
+	 [Node] Running "pre_mask_dilate" ("nipype.interfaces.fsl.maths.DilateImage"), a CommandLine Interface with command:
+fslmaths -dt char /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/map_brainmask/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans.nii.gz -kernel sphere 3.0000 -dilF /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/pre_mask_dilate/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans_dil.nii.gz
+220623-11:50:50,579 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.pre_mask_dilate".
+220623-11:50:53,909 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.n4_correct" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/n4_correct".
+220623-11:50:54,97 nipype.workflow INFO:
+	 [Node] Running "n4_correct" ("niworkflows.interfaces.fixes.FixN4BiasFieldCorrection"), a CommandLine Interface with command:
+N4BiasFieldCorrection --bspline-fitting [ 200 ] -d 3 --input-image /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz --mask-image /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/check_hdr/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans_dil_hdr.nii.gz --output ref_bold_corrected.nii.gz -r
+220623-11:50:59,878 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.n4_correct".
+220623-11:51:01,919 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_pass" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass".
+220623-11:51:02,128 nipype.workflow INFO:
+	 [Node] Running "skullstrip_first_pass" ("nipype.interfaces.fsl.preprocess.BET"), a CommandLine Interface with command:
+bet /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/n4_correct/ref_bold_corrected.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain.nii.gz -f 0.20 -m
+220623-11:51:04,71 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_pass".
+220623-11:51:05,913 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_dilate" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_dilate".
+220623-11:51:06,129 nipype.workflow INFO:
+	 [Node] Running "skullstrip_first_dilate" ("nipype.interfaces.fsl.maths.DilateImage"), a CommandLine Interface with command:
+fslmaths -dt char /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain_mask.nii.gz -kernel sphere 6.0000 -dilF /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_dilate/ref_bold_corrected_brain_mask_dil.nii.gz
+220623-11:51:08,5 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_dilate".
+220623-11:51:09,919 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_mask" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_mask".
+220623-11:51:10,230 nipype.workflow INFO:
+	 [Node] Running "skullstrip_first_mask" ("nipype.interfaces.fsl.maths.ApplyMask"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain.nii.gz -mas /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_dilate/ref_bold_corrected_brain_mask_dil.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_mask/ref_bold_corrected_brain_masked.nii.gz
+220623-11:51:10,519 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_mask".
+220623-11:51:11,912 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.unifize" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/unifize".
+220623-11:51:12,408 nipype.workflow INFO:
+	 [Node] Running "unifize" ("nipype.interfaces.afni.utils.Unifize"), a CommandLine Interface with command:
+3dUnifize -clfrac 0.2 -rbt 18.3 65.0 90.0 -prefix uni.nii.gz -T2 -input /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/unifize/ref_bold_corrected_brain_masked.nii.gz
+220623-11:51:16,189 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.unifize".
+220623-11:51:17,917 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_unifize" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_unifize".
+220623-11:51:18,87 nipype.workflow INFO:
+	 [Node] Running "fixhdr_unifize" ("niworkflows.interfaces.utils.CopyXForm")
+220623-11:51:18,318 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_unifize".
+220623-11:51:19,923 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_second_pass" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_second_pass".
+220623-11:51:20,107 nipype.workflow INFO:
+	 [Node] Running "skullstrip_second_pass" ("nipype.interfaces.afni.preprocess.Automask"), a CommandLine Interface with command:
+3dAutomask -apply_prefix uni_xform_masked.nii.gz -dilate 1 -prefix uni_xform_mask.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_second_pass/uni_xform.nii.gz
+220623-11:51:20,630 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_second_pass".
+220623-11:51:21,934 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_skullstrip2" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_skullstrip2".
+220623-11:51:22,440 nipype.workflow INFO:
+	 [Node] Running "fixhdr_skullstrip2" ("niworkflows.interfaces.utils.CopyXForm")
+220623-11:51:22,571 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_skullstrip2".
+220623-11:51:23,928 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.combine_masks" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/combine_masks".
+220623-11:51:24,85 nipype.workflow INFO:
+	 [Node] Running "combine_masks" ("nipype.interfaces.fsl.maths.BinaryMaths"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain_mask.nii.gz -mul /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_skullstrip2/uni_xform_mask_xform.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/combine_masks/ref_bold_corrected_brain_mask_maths.nii.gz
+220623-11:51:24,337 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.combine_masks".
+220623-11:51:25,939 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.apply_mask" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/apply_mask".
+220623-11:51:26,98 nipype.workflow INFO:
+	 [Node] Running "apply_mask" ("nipype.interfaces.fsl.maths.ApplyMask"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_unifize/uni_xform.nii.gz -mas /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/combine_masks/ref_bold_corrected_brain_mask_maths.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_4_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/apply_mask/uni_xform_masked.nii.gz
+220623-11:51:26,367 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_4_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.apply_mask".
+220623-11:51:34,591 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_hmc_wf.fsl2itk".
+220623-11:51:35,958 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.init_aff" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/init_aff".
+220623-11:51:36,195 nipype.workflow INFO:
+	 [Node] Running "init_aff" ("niworkflows.interfaces.ants.AI"), a CommandLine Interface with command:
+antsAI -c [10,0.000001,10] -d 3 -x /home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz -m Mattes[/home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz,/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz,32,Regular,0.200000] -o initialization.mat -p 0 -s [20.000000,0.120000] -t Affine[0.100000] -v 1
+220623-11:51:40,39 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.init_aff".
+220623-11:51:41,942 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.norm" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/norm".
+220623-11:51:42,122 nipype.workflow INFO:
+	 [Node] Running "norm" ("niworkflows.interfaces.fixes.FixHeaderRegistration"), a CommandLine Interface with command:
+antsRegistration --collapse-output-transforms 1 --dimensionality 3 --float 1 --initial-moving-transform [ /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/init_aff/initialization.mat, 0 ] --initialize-transforms-per-stage 0 --interpolation Linear --output transform --transform Affine[ 0.1 ] --metric Mattes[ /home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-fMRIPrep_boldref.nii.gz, /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz, 1, 64, Random, 0.2 ] --convergence [ 200, 1e-09, 10 ] --smoothing-sigmas 2.0mm --shrink-factors 2 --use-estimate-learning-rate-once 1 --use-histogram-matching 1 --winsorize-image-intensities [ 0.05, 0.98 ]  --write-composite-transform 0
+220623-11:51:43,263 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.norm".
+220623-11:51:43,990 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.map_brainmask" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/map_brainmask".
+220623-11:51:44,44 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.inu_n4" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/inu_n4".
+220623-11:51:44,274 nipype.workflow INFO:
+	 [Node] Running "map_brainmask" ("niworkflows.interfaces.fixes.FixHeaderApplyTransforms"), a CommandLine Interface with command:
+antsApplyTransforms --default-value 0 --float 1 --input /home/fmriprep/.cache/templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask.nii.gz --interpolation MultiLabel --output tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans.nii.gz --reference-image /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz --transform [ /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/norm/transform0GenericAffine.mat, 1 ]
+220623-11:51:44,279 nipype.workflow INFO:
+	 [Node] Setting-up "_inu_n40" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/inu_n4/mapflow/_inu_n40".
+220623-11:51:44,435 nipype.workflow INFO:
+	 [Node] Running "_inu_n40" ("nipype.interfaces.ants.segmentation.N4BiasFieldCorrection"), a CommandLine Interface with command:
+N4BiasFieldCorrection --bspline-fitting [ 200 ] -d 3 --input-image /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/truncate_images/mapflow/_truncate_images0/sub-GEO070_ses-t2_T1w_maths.nii.gz --convergence [ 50x50x50x50, 1e-07 ] --output sub-GEO070_ses-t2_T1w_maths_corrected.nii.gz --shrink-factor 4
+220623-11:51:49,267 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.map_brainmask".
+220623-11:51:49,964 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.pre_mask_dilate" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/pre_mask_dilate".
+220623-11:51:50,452 nipype.workflow INFO:
+	 [Node] Running "pre_mask_dilate" ("nipype.interfaces.fsl.maths.DilateImage"), a CommandLine Interface with command:
+fslmaths -dt char /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/map_brainmask/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans.nii.gz -kernel sphere 3.0000 -dilF /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/pre_mask_dilate/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans_dil.nii.gz
+220623-11:51:50,965 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.pre_mask_dilate".
+220623-11:51:53,959 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.n4_correct" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/n4_correct".
+220623-11:51:54,205 nipype.workflow INFO:
+	 [Node] Running "n4_correct" ("niworkflows.interfaces.fixes.FixN4BiasFieldCorrection"), a CommandLine Interface with command:
+N4BiasFieldCorrection --bspline-fitting [ 200 ] -d 3 --input-image /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/gen_ref/ref_bold.nii.gz --mask-image /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/check_hdr/tpl-MNI152NLin2009cAsym_res-02_desc-brain_mask_trans_dil_hdr.nii.gz --output ref_bold_corrected.nii.gz -r
+220623-11:51:59,906 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.n4_correct".
+220623-11:52:01,975 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_pass" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass".
+220623-11:52:02,430 nipype.workflow INFO:
+	 [Node] Running "skullstrip_first_pass" ("nipype.interfaces.fsl.preprocess.BET"), a CommandLine Interface with command:
+bet /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/n4_correct/ref_bold_corrected.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain.nii.gz -f 0.20 -m
+220623-11:52:04,853 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_pass".
+220623-11:52:05,977 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_dilate" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_dilate".
+220623-11:52:06,162 nipype.workflow INFO:
+	 [Node] Running "skullstrip_first_dilate" ("nipype.interfaces.fsl.maths.DilateImage"), a CommandLine Interface with command:
+fslmaths -dt char /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain_mask.nii.gz -kernel sphere 6.0000 -dilF /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_dilate/ref_bold_corrected_brain_mask_dil.nii.gz
+220623-11:52:07,703 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_dilate".
+220623-11:52:07,980 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_mask" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_mask".
+220623-11:52:08,304 nipype.workflow INFO:
+	 [Node] Running "skullstrip_first_mask" ("nipype.interfaces.fsl.maths.ApplyMask"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain.nii.gz -mas /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_dilate/ref_bold_corrected_brain_mask_dil.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_mask/ref_bold_corrected_brain_masked.nii.gz
+220623-11:52:08,592 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_first_mask".
+220623-11:52:09,985 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.unifize" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/unifize".
+220623-11:52:10,541 nipype.workflow INFO:
+	 [Node] Running "unifize" ("nipype.interfaces.afni.utils.Unifize"), a CommandLine Interface with command:
+3dUnifize -clfrac 0.2 -rbt 18.3 65.0 90.0 -prefix uni.nii.gz -T2 -input /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/unifize/ref_bold_corrected_brain_masked.nii.gz
+220623-11:52:14,356 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.unifize".
+220623-11:52:15,976 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_unifize" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_unifize".
+220623-11:52:16,114 nipype.workflow INFO:
+	 [Node] Running "fixhdr_unifize" ("niworkflows.interfaces.utils.CopyXForm")
+220623-11:52:16,302 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_unifize".
+220623-11:52:17,988 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_second_pass" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_second_pass".
+220623-11:52:18,122 nipype.workflow INFO:
+	 [Node] Running "skullstrip_second_pass" ("nipype.interfaces.afni.preprocess.Automask"), a CommandLine Interface with command:
+3dAutomask -apply_prefix uni_xform_masked.nii.gz -dilate 1 -prefix uni_xform_mask.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_second_pass/uni_xform.nii.gz
+220623-11:52:18,583 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.skullstrip_second_pass".
+220623-11:52:19,981 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_skullstrip2" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_skullstrip2".
+220623-11:52:20,440 nipype.workflow INFO:
+	 [Node] Running "fixhdr_skullstrip2" ("niworkflows.interfaces.utils.CopyXForm")
+220623-11:52:20,721 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.fixhdr_skullstrip2".
+220623-11:52:21,979 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.combine_masks" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/combine_masks".
+220623-11:52:22,134 nipype.workflow INFO:
+	 [Node] Running "combine_masks" ("nipype.interfaces.fsl.maths.BinaryMaths"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/skullstrip_first_pass/ref_bold_corrected_brain_mask.nii.gz -mul /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_skullstrip2/uni_xform_mask_xform.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/combine_masks/ref_bold_corrected_brain_mask_maths.nii.gz
+220623-11:52:22,391 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.combine_masks".
+220623-11:52:23,990 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.apply_mask" in "/work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/apply_mask".
+220623-11:52:24,125 nipype.workflow INFO:
+	 [Node] Running "apply_mask" ("nipype.interfaces.fsl.maths.ApplyMask"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/fixhdr_unifize/uni_xform.nii.gz -mas /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/combine_masks/ref_bold_corrected_brain_mask_maths.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/func_preproc_ses_t2_task_image_run_5_wf/bold_reference_wf/enhance_and_skullstrip_bold_wf/apply_mask/uni_xform_masked.nii.gz
+220623-11:52:24,394 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.func_preproc_ses_t2_task_image_run_5_wf.bold_reference_wf.enhance_and_skullstrip_bold_wf.apply_mask".
+220623-11:52:33,614 nipype.workflow INFO:
+	 [Node] Finished "_inu_n40".
+220623-11:52:33,674 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.inu_n4".
+220623-11:52:34,5 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.lap_target" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/lap_target".
+220623-11:52:34,6 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.res_target" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/res_target".
+220623-11:52:34,226 nipype.workflow INFO:
+	 [Node] Running "lap_target" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 sub-GEO070_ses-t2_T1w_maths_corrected_maths.nii.gz Laplacian /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/inu_n4/mapflow/_inu_n40/sub-GEO070_ses-t2_T1w_maths_corrected.nii.gz 1.5 1
+220623-11:52:34,504 nipype.workflow INFO:
+	 [Node] Running "res_target" ("niworkflows.interfaces.ants.ResampleImageBySpacing"), a CommandLine Interface with command:
+ResampleImageBySpacing 3 /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/inu_n4/mapflow/_inu_n40/sub-GEO070_ses-t2_T1w_maths_corrected.nii.gz sub-GEO070_ses-t2_T1w_maths_corrected_resampled.nii.gz 4 4 4 1
+220623-11:52:36,53 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.res_target".
+220623-11:52:38,9 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.init_aff" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/init_aff".
+220623-11:52:38,598 nipype.workflow INFO:
+	 [Node] Running "init_aff" ("niworkflows.interfaces.ants.AI"), a CommandLine Interface with command:
+antsAI -c [10,0.000001,10] -d 3 -x /home/fmriprep/.cache/templateflow/tpl-OASIS30ANTs/tpl-OASIS30ANTs_res-01_desc-BrainCerebellumExtraction_mask.nii.gz -m Mattes[/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/res_tmpl/tpl-OASIS30ANTs_res-01_T1w_resampled.nii.gz,/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/res_target/sub-GEO070_ses-t2_T1w_maths_corrected_resampled.nii.gz,32,Regular,0.250000] -o initialization.mat -p 0 -s [15.000000,0.100000] -t Affine[0.100000] -v 1
+220623-11:52:40,611 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.init_aff".
+220623-11:52:42,428 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.surface_recon_wf.autorecon1" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/surface_recon_wf/autorecon1".
+220623-11:52:42,581 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.lap_target".
+220623-11:52:42,758 nipype.workflow INFO:
+	 [Node] Running "autorecon1" ("smriprep.interfaces.freesurfer.ReconAll"), a CommandLine Interface with command:
+recon-all -autorecon1 -i /data/sub-GEO070/ses-t2/anat/sub-GEO070_ses-t2_T1w.nii.gz -T2 /data/sub-GEO070/ses-t2/anat/sub-GEO070_ses-t2_T2w.nii.gz -noskullstrip -openmp 7 -subjid sub-GEO070 -sd /out/freesurfer
+220623-11:52:44,6 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.mrg_target" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/mrg_target".
+220623-11:52:44,155 nipype.workflow INFO:
+	 [Node] Running "mrg_target" ("nipype.interfaces.utility.base.Merge")
+220623-11:52:44,212 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.mrg_target".
+220623-11:59:25,885 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.surface_recon_wf.autorecon1".
+220623-11:59:26,441 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.norm" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/norm".
+220623-11:59:26,630 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.surface_recon_wf.fsnative2t1w_xfm" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/surface_recon_wf/fsnative2t1w_xfm".
+220623-11:59:26,681 nipype.workflow INFO:
+	 [Node] Running "norm" ("niworkflows.interfaces.fixes.FixHeaderRegistration"), a CommandLine Interface with command:
+antsRegistration --collapse-output-transforms 1 --dimensionality 3 --float 1 --initial-moving-transform [ /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/init_aff/initialization.mat, 0 ] --initialize-transforms-per-stage 0 --interpolation LanczosWindowedSinc --output [ anat_to_template, anat_to_template_Warped.nii.gz ] --transform Rigid[ 0.1 ] --metric MI[ /home/fmriprep/.cache/templateflow/tpl-OASIS30ANTs/tpl-OASIS30ANTs_res-01_T1w.nii.gz, /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/inu_n4/mapflow/_inu_n40/sub-GEO070_ses-t2_T1w_maths_corrected.nii.gz, 1, 32, Regular, 0.25 ] --convergence [ 1000x500x250x100, 1e-08, 10 ] --smoothing-sigmas 4.0x2.0x1.0x0.0vox --shrink-factors 8x4x2x1 --use-histogram-matching 1 --masks [ /home/fmriprep/.cache/templateflow/tpl-OASIS30ANTs/tpl-OASIS30ANTs_res-01_desc-BrainCerebellumExtraction_mask.nii.gz, NULL ] --transform Affine[ 0.1 ] --metric MI[ /home/fmriprep/.cache/templateflow/tpl-OASIS30ANTs/tpl-OASIS30ANTs_res-01_T1w.nii.gz, /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/inu_n4/mapflow/_inu_n40/sub-GEO070_ses-t2_T1w_maths_corrected.nii.gz, 1, 32, Regular, 0.25 ] --convergence [ 1000x500x250x100, 1e-08, 10 ] --smoothing-sigmas 4.0x2.0x1.0x0.0vox --shrink-factors 8x4x2x1 --use-histogram-matching 1 --masks [ /home/fmriprep/.cache/templateflow/tpl-OASIS30ANTs/tpl-OASIS30ANTs_res-01_desc-BrainCerebellumExtraction_mask.nii.gz, NULL ] --transform SyN[ 0.1, 3.0, 0.0 ] --metric CC[ /home/fmriprep/.cache/templateflow/tpl-OASIS30ANTs/tpl-OASIS30ANTs_res-01_T1w.nii.gz, /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/inu_n4/mapflow/_inu_n40/sub-GEO070_ses-t2_T1w_maths_corrected.nii.gz, 0.5, 4, None, 1 ] --metric CC[ /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/lap_tmpl/tpl-OASIS30ANTs_res-01_T1w_maths.nii.gz, /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/lap_target/sub-GEO070_ses-t2_T1w_maths_corrected_maths.nii.gz, 0.5, 4, None, 1 ] --convergence [ 50x10x0, 1e-09, 15 ] --smoothing-sigmas 2.0x1.0x0.0vox --shrink-factors 4x2x1 --use-histogram-matching 1 --masks [ /home/fmriprep/.cache/templateflow/tpl-OASIS30ANTs/tpl-OASIS30ANTs_res-01_desc-BrainCerebellumExtraction_mask.nii.gz, NULL ] -v --winsorize-image-intensities [ 0.025, 0.975 ]  --write-composite-transform 0
+220623-11:59:27,8 nipype.workflow INFO:
+	 [Node] Running "fsnative2t1w_xfm" ("niworkflows.interfaces.freesurfer.PatchedRobustRegister"), a CommandLine Interface with command:
+mri_robust_register --satit --iscale --lta /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/surface_recon_wf/fsnative2t1w_xfm/T1_robustreg.lta --mov /out/freesurfer/sub-GEO070/mri/T1.mgz --dst /data/sub-GEO070/ses-t2/anat/sub-GEO070_ses-t2_T1w.nii.gz
+220623-12:00:26,425 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.surface_recon_wf.fsnative2t1w_xfm".
+220623-12:00:28,715 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_derivatives_wf.lta2itk_inv" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/anat_derivatives_wf/lta2itk_inv".
+220623-12:00:28,836 nipype.workflow INFO:
+	 [Node] Running "lta2itk_inv" ("niworkflows.interfaces.freesurfer.PatchedLTAConvert"), a CommandLine Interface with command:
+lta_convert --inlta /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/surface_recon_wf/fsnative2t1w_xfm/T1_robustreg.lta --outitk /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/anat_derivatives_wf/lta2itk_inv/out.txt
+220623-12:00:29,43 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_derivatives_wf.lta2itk_inv".
+220623-12:00:31,386 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.surface_recon_wf.t1w2fsnative_xfm" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/surface_recon_wf/t1w2fsnative_xfm".
+220623-12:00:31,553 nipype.workflow INFO:
+	 [Node] Running "t1w2fsnative_xfm" ("niworkflows.interfaces.freesurfer.PatchedLTAConvert"), a CommandLine Interface with command:
+lta_convert --inlta /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/surface_recon_wf/fsnative2t1w_xfm/T1_robustreg.lta --invert --outlta /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/surface_recon_wf/t1w2fsnative_xfm/out.lta
+220623-12:00:31,769 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.surface_recon_wf.t1w2fsnative_xfm".
+220623-12:00:32,720 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_derivatives_wf.lta2itk_fwd" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/anat_derivatives_wf/lta2itk_fwd".
+220623-12:00:32,858 nipype.workflow INFO:
+	 [Node] Running "lta2itk_fwd" ("niworkflows.interfaces.freesurfer.PatchedLTAConvert"), a CommandLine Interface with command:
+lta_convert --inlta /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/surface_recon_wf/t1w2fsnative_xfm/out.lta --outitk /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/anat_derivatives_wf/lta2itk_fwd/out.txt
+220623-12:00:33,136 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_derivatives_wf.lta2itk_fwd".
+220623-12:16:23,285 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.norm".
+220623-12:16:25,431 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.map_brainmask" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/map_brainmask".
+220623-12:16:25,625 nipype.workflow INFO:
+	 [Node] Running "map_brainmask" ("niworkflows.interfaces.fixes.FixHeaderApplyTransforms"), a CommandLine Interface with command:
+antsApplyTransforms --default-value 0 --float 1 --input /home/fmriprep/.cache/templateflow/tpl-OASIS30ANTs/tpl-OASIS30ANTs_res-01_label-brain_probseg.nii.gz --interpolation Gaussian --output tpl-OASIS30ANTs_res-01_label-brain_probseg_trans.nii.gz --reference-image /data/sub-GEO070/ses-t2/anat/sub-GEO070_ses-t2_T1w.nii.gz --transform [ /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/norm/anat_to_template0GenericAffine.mat, 1 ] --transform [ /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/norm/anat_to_template1InverseWarp.nii.gz, 0 ]
+220623-12:16:53,803 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.map_brainmask".
+220623-12:16:55,447 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.thr_brainmask" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/thr_brainmask".
+220623-12:16:55,593 nipype.workflow INFO:
+	 [Node] Running "thr_brainmask" ("niworkflows.interfaces.ants.ThresholdImage"), a CommandLine Interface with command:
+ThresholdImage 3 /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/map_brainmask/tpl-OASIS30ANTs_res-01_label-brain_probseg_trans.nii.gz tpl-OASIS30ANTs_res-01_label-brain_probseg_trans_resampled.nii.gz 0.500000 1.000000 1.000000 0.000000
+220623-12:16:56,678 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.thr_brainmask".
+220623-12:16:57,452 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.dil_brainmask" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/dil_brainmask".
+220623-12:16:57,463 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.03_pad_mask" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/03_pad_mask".
+220623-12:16:57,656 nipype.workflow INFO:
+	 [Node] Running "dil_brainmask" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 tpl-OASIS30ANTs_res-01_label-brain_probseg_trans_resampled_maths.nii.gz MD /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/thr_brainmask/tpl-OASIS30ANTs_res-01_label-brain_probseg_trans_resampled.nii.gz 2
+220623-12:16:57,656 nipype.workflow INFO:
+	 [Node] Running "03_pad_mask" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 tpl-OASIS30ANTs_res-01_label-brain_probseg_trans_resampled_maths.nii.gz PadImage /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/thr_brainmask/tpl-OASIS30ANTs_res-01_label-brain_probseg_trans_resampled.nii.gz 10
+220623-12:16:58,867 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.03_pad_mask".
+220623-12:16:59,186 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.dil_brainmask".
+220623-12:16:59,468 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.get_brainmask" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/get_brainmask".
+220623-12:16:59,715 nipype.workflow INFO:
+	 [Node] Running "get_brainmask" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 tpl-OASIS30ANTs_res-01_label-brain_probseg_trans_resampled_maths_maths.nii.gz GetLargestComponent /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/dil_brainmask/tpl-OASIS30ANTs_res-01_label-brain_probseg_trans_resampled_maths.nii.gz
+220623-12:17:01,74 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.get_brainmask".
+220623-12:17:01,464 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.01_atropos" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/01_atropos".
+220623-12:17:01,920 nipype.workflow INFO:
+	 [Node] Running "01_atropos" ("nipype.interfaces.ants.segmentation.Atropos"), a CommandLine Interface with command:
+Atropos --image-dimensionality 3 --initialization KMeans[3] --intensity-image /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/inu_n4/mapflow/_inu_n40/sub-GEO070_ses-t2_T1w_maths_corrected.nii.gz --likelihood-model Gaussian --mask-image /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/get_brainmask/tpl-OASIS30ANTs_res-01_label-brain_probseg_trans_resampled_maths_maths.nii.gz --mrf [0.1,1x1x1] --convergence [3,0] --output [sub-GEO070_ses-t2_T1w_maths_corrected_labeled.nii.gz] --use-random-seed 1
+220623-12:18:14,444 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.01_atropos".
+220623-12:18:15,515 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.02_pad_segm" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/02_pad_segm".
+220623-12:18:15,685 nipype.workflow INFO:
+	 [Node] Running "02_pad_segm" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 sub-GEO070_ses-t2_T1w_maths_corrected_labeled_maths.nii.gz PadImage /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/01_atropos/sub-GEO070_ses-t2_T1w_maths_corrected_labeled.nii.gz 10
+220623-12:18:17,175 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.02_pad_segm".
+220623-12:18:17,519 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.04_sel_labels" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/04_sel_labels".
+220623-12:18:17,662 nipype.workflow INFO:
+	 [Node] Running "04_sel_labels" ("nipype.interfaces.utility.wrappers.Function")
+220623-12:18:18,483 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.04_sel_labels".
+220623-12:18:19,547 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.27_depad_csf" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/27_depad_csf".
+220623-12:18:19,549 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.10_me_csf" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/10_me_csf".
+220623-12:18:19,550 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.06_get_gm" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/06_get_gm".
+220623-12:18:19,551 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.05_get_wm" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/05_get_wm".
+220623-12:18:19,752 nipype.workflow INFO:
+	 [Node] Running "05_get_wm" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 sub-GEO070_ses-t2_T1w_maths_corrected_labeled_maths_class-03_maths.nii.gz GetLargestComponent /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/04_sel_labels/sub-GEO070_ses-t2_T1w_maths_corrected_labeled_maths_class-03.nii.gz
+220623-12:18:19,752 nipype.workflow INFO:
+	 [Node] Running "10_me_csf" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 sub-GEO070_ses-t2_T1w_maths_corrected_labeled_maths_class-01_maths.nii.gz ME /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/04_sel_labels/sub-GEO070_ses-t2_T1w_maths_corrected_labeled_maths_class-01.nii.gz 10
+220623-12:18:19,758 nipype.workflow INFO:
+	 [Node] Running "27_depad_csf" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 sub-GEO070_ses-t2_T1w_maths_corrected_labeled_maths_class-01_maths.nii.gz PadImage /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/04_sel_labels/sub-GEO070_ses-t2_T1w_maths_corrected_labeled_maths_class-01.nii.gz -10
+220623-12:18:19,790 nipype.workflow INFO:
+	 [Node] Running "06_get_gm" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 sub-GEO070_ses-t2_T1w_maths_corrected_labeled_maths_class-02_maths.nii.gz GetLargestComponent /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/04_sel_labels/sub-GEO070_ses-t2_T1w_maths_corrected_labeled_maths_class-02.nii.gz
+220623-12:18:20,815 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.27_depad_csf".
+220623-12:18:21,625 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.05_get_wm".
+220623-12:18:21,682 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.06_get_gm".
+220623-12:18:23,553 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.07_fill_gm" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/07_fill_gm".
+220623-12:18:23,555 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.09_relabel_wm" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/09_relabel_wm".
+220623-12:18:23,718 nipype.workflow INFO:
+	 [Node] Running "07_fill_gm" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 sub-GEO070_ses-t2_T1w_maths_corrected_labeled_maths_class-02_maths_maths.nii.gz FillHoles /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/06_get_gm/sub-GEO070_ses-t2_T1w_maths_corrected_labeled_maths_class-02_maths.nii.gz 2
+220623-12:18:23,722 nipype.workflow INFO:
+	 [Node] Running "09_relabel_wm" ("nipype.interfaces.ants.utils.MultiplyImages"), a CommandLine Interface with command:
+MultiplyImages 3 /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/05_get_wm/sub-GEO070_ses-t2_T1w_maths_corrected_labeled_maths_class-03_maths.nii.gz 3.0 09_relabel_wm.nii.gz
+220623-12:18:24,892 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.09_relabel_wm".
+220623-12:18:25,41 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.10_me_csf".
+220623-12:18:25,558 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.26_depad_wm" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/26_depad_wm".
+220623-12:18:25,710 nipype.workflow INFO:
+	 [Node] Running "26_depad_wm" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 09_relabel_wm_maths.nii.gz PadImage /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/09_relabel_wm/09_relabel_wm.nii.gz -10
+220623-12:18:27,19 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.26_depad_wm".
+220623-12:18:31,275 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.07_fill_gm".
+220623-12:18:31,662 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.08_mult_gm" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/08_mult_gm".
+220623-12:18:31,831 nipype.workflow INFO:
+	 [Node] Running "08_mult_gm" ("nipype.interfaces.ants.utils.MultiplyImages"), a CommandLine Interface with command:
+MultiplyImages 3 /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/06_get_gm/sub-GEO070_ses-t2_T1w_maths_corrected_labeled_maths_class-02_maths.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/07_fill_gm/sub-GEO070_ses-t2_T1w_maths_corrected_labeled_maths_class-02_maths_maths.nii.gz 08_mult_gm.nii.gz
+220623-12:18:33,20 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.08_mult_gm".
+220623-12:18:33,661 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.11_add_gm" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/11_add_gm".
+220623-12:18:33,807 nipype.workflow INFO:
+	 [Node] Running "11_add_gm" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 08_mult_gm_maths.nii.gz addtozero /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/08_mult_gm/08_mult_gm.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/10_me_csf/sub-GEO070_ses-t2_T1w_maths_corrected_labeled_maths_class-01_maths.nii.gz
+220623-12:18:37,508 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.11_add_gm".
+220623-12:18:39,678 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.12_relabel_gm" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/12_relabel_gm".
+220623-12:18:39,933 nipype.workflow INFO:
+	 [Node] Running "12_relabel_gm" ("nipype.interfaces.ants.utils.MultiplyImages"), a CommandLine Interface with command:
+MultiplyImages 3 /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/11_add_gm/08_mult_gm_maths.nii.gz 2.0 12_relabel_gm.nii.gz
+220623-12:18:40,999 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.12_relabel_gm".
+220623-12:18:41,658 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.25_depad_gm" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/25_depad_gm".
+220623-12:18:41,659 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.13_add_gm_wm" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/13_add_gm_wm".
+220623-12:18:41,923 nipype.workflow INFO:
+	 [Node] Running "25_depad_gm" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 12_relabel_gm_maths.nii.gz PadImage /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/12_relabel_gm/12_relabel_gm.nii.gz -10
+220623-12:18:41,930 nipype.workflow INFO:
+	 [Node] Running "13_add_gm_wm" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 09_relabel_wm_maths.nii.gz addtozero /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/09_relabel_wm/09_relabel_wm.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/12_relabel_gm/12_relabel_gm.nii.gz
+220623-12:18:43,499 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.25_depad_gm".
+220623-12:18:45,675 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.merge_tpms" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/merge_tpms".
+220623-12:18:45,803 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.13_add_gm_wm".
+220623-12:18:45,886 nipype.workflow INFO:
+	 [Node] Running "merge_tpms" ("nipype.interfaces.utility.base.Merge")
+220623-12:18:45,997 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.merge_tpms".
+220623-12:18:47,659 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.24_depad_segm" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/24_depad_segm".
+220623-12:18:47,661 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.14_sel_labels2" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/14_sel_labels2".
+220623-12:18:47,835 nipype.workflow INFO:
+	 [Node] Running "14_sel_labels2" ("nipype.interfaces.utility.wrappers.Function")
+220623-12:18:47,969 nipype.workflow INFO:
+	 [Node] Running "24_depad_segm" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 09_relabel_wm_maths_maths.nii.gz PadImage /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/13_add_gm_wm/09_relabel_wm_maths.nii.gz -10
+220623-12:18:48,201 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.14_sel_labels2".
+220623-12:18:49,310 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.24_depad_segm".
+220623-12:18:49,670 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.15_add_7" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/15_add_7".
+220623-12:18:49,956 nipype.workflow INFO:
+	 [Node] Running "15_add_7" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 09_relabel_wm_maths_class-03_maths.nii.gz addtozero /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/14_sel_labels2/09_relabel_wm_maths_class-03.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/14_sel_labels2/09_relabel_wm_maths_class-02.nii.gz
+220623-12:18:53,345 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.15_add_7".
+220623-12:18:55,659 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.16_me_7" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/16_me_7".
+220623-12:18:55,930 nipype.workflow INFO:
+	 [Node] Running "16_me_7" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 09_relabel_wm_maths_class-03_maths_maths.nii.gz ME /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/15_add_7/09_relabel_wm_maths_class-03_maths.nii.gz 2
+220623-12:18:58,768 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.16_me_7".
+220623-12:18:59,657 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.17_comp_7" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/17_comp_7".
+220623-12:18:59,848 nipype.workflow INFO:
+	 [Node] Running "17_comp_7" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 09_relabel_wm_maths_class-03_maths_maths_maths.nii.gz GetLargestComponent /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/16_me_7/09_relabel_wm_maths_class-03_maths_maths.nii.gz
+220623-12:19:01,761 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.17_comp_7".
+220623-12:19:03,666 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.18_md_7" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/18_md_7".
+220623-12:19:04,138 nipype.workflow INFO:
+	 [Node] Running "18_md_7" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 09_relabel_wm_maths_class-03_maths_maths_maths_maths.nii.gz MD /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/17_comp_7/09_relabel_wm_maths_class-03_maths_maths_maths.nii.gz 4
+220623-12:19:06,131 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.18_md_7".
+220623-12:19:07,661 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.19_fill_7" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/19_fill_7".
+220623-12:19:07,860 nipype.workflow INFO:
+	 [Node] Running "19_fill_7" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 09_relabel_wm_maths_class-03_maths_maths_maths_maths_maths.nii.gz FillHoles /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/18_md_7/09_relabel_wm_maths_class-03_maths_maths_maths_maths.nii.gz 2
+220623-12:19:14,566 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.19_fill_7".
+220623-12:19:15,682 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.20_add_7_2" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/20_add_7_2".
+220623-12:19:15,864 nipype.workflow INFO:
+	 [Node] Running "20_add_7_2" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 09_relabel_wm_maths_class-03_maths_maths_maths_maths_maths_maths.nii.gz addtozero /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/19_fill_7/09_relabel_wm_maths_class-03_maths_maths_maths_maths_maths.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/03_pad_mask/tpl-OASIS30ANTs_res-01_label-brain_probseg_trans_resampled_maths.nii.gz
+220623-12:19:19,338 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.20_add_7_2".
+220623-12:19:19,674 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.21_md_7_2" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/21_md_7_2".
+220623-12:19:20,158 nipype.workflow INFO:
+	 [Node] Running "21_md_7_2" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 09_relabel_wm_maths_class-03_maths_maths_maths_maths_maths_maths_maths.nii.gz MD /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/20_add_7_2/09_relabel_wm_maths_class-03_maths_maths_maths_maths_maths_maths.nii.gz 5
+220623-12:19:22,134 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.21_md_7_2".
+220623-12:19:23,692 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.22_me_7_2" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/22_me_7_2".
+220623-12:19:23,910 nipype.workflow INFO:
+	 [Node] Running "22_me_7_2" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 09_relabel_wm_maths_class-03_maths_maths_maths_maths_maths_maths_maths_maths.nii.gz ME /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/21_md_7_2/09_relabel_wm_maths_class-03_maths_maths_maths_maths_maths_maths_maths.nii.gz 5
+220623-12:19:26,713 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.22_me_7_2".
+220623-12:19:27,678 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.23_depad_mask" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/23_depad_mask".
+220623-12:19:28,125 nipype.workflow INFO:
+	 [Node] Running "23_depad_mask" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 09_relabel_wm_maths_class-03_maths_maths_maths_maths_maths_maths_maths_maths_maths.nii.gz PadImage /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/22_me_7_2/09_relabel_wm_maths_class-03_maths_maths_maths_maths_maths_maths_maths_maths.nii.gz -10
+220623-12:19:29,165 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.23_depad_mask".
+220623-12:19:29,682 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.msk_conform" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/msk_conform".
+220623-12:19:29,924 nipype.workflow INFO:
+	 [Node] Running "msk_conform" ("nipype.interfaces.utility.wrappers.Function")
+220623-12:19:30,232 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.atropos_wf.msk_conform".
+220623-12:19:36,292 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.inu_n4_final" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/inu_n4_final".
+220623-12:19:36,566 nipype.workflow INFO:
+	 [Node] Setting-up "_inu_n4_final0" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/inu_n4_final/mapflow/_inu_n4_final0".
+220623-12:19:36,956 nipype.workflow INFO:
+	 [Node] Running "_inu_n4_final0" ("nipype.interfaces.ants.segmentation.N4BiasFieldCorrection"), a CommandLine Interface with command:
+N4BiasFieldCorrection --bspline-fitting [ 200 ] -d 3 --input-image /data/sub-GEO070/ses-t2/anat/sub-GEO070_ses-t2_T1w.nii.gz --convergence [ 50x50x50x50x50, 1e-07 ] --output [ sub-GEO070_ses-t2_T1w_corrected.nii.gz, sub-GEO070_ses-t2_T1w_bias.nii.gz ] -r --shrink-factor 4 --weight-image /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/copy_xform/09_relabel_wm_maths_xform.nii.gz
+220623-12:20:07,366 nipype.workflow INFO:
+	 [Node] Finished "_inu_n4_final0".
+220623-12:20:07,451 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.inu_n4_final".
+220623-12:20:08,289 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.apply_mask" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/apply_mask".
+220623-12:20:08,492 nipype.workflow INFO:
+	 [Node] Setting-up "_apply_mask0" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/apply_mask/mapflow/_apply_mask0".
+220623-12:20:08,694 nipype.workflow INFO:
+	 [Node] Running "_apply_mask0" ("nipype.interfaces.fsl.maths.ApplyMask"), a CommandLine Interface with command:
+fslmaths /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/inu_n4_final/mapflow/_inu_n4_final0/sub-GEO070_ses-t2_T1w_corrected.nii.gz -mas /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/atropos_wf/copy_xform/09_relabel_wm_mask_xform.nii.gz /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/apply_mask/mapflow/_apply_mask0/sub-GEO070_ses-t2_T1w_corrected_masked.nii.gz
+220623-12:20:10,289 nipype.workflow INFO:
+	 [Node] Finished "_apply_mask0".
+220623-12:20:10,412 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.brain_extraction_wf.apply_mask".
+220623-12:20:19,424 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_norm_wf.trunc_mov" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/anat_norm_wf/_template_MNI152NLin2009cAsym/trunc_mov".
+220623-12:20:19,591 nipype.workflow INFO:
+	 [Node] Running "trunc_mov" ("niworkflows.interfaces.ants.ImageMath"), a CommandLine Interface with command:
+ImageMath 3 sub-GEO070_ses-t2_T1w_corrected_xform_maths.nii.gz TruncateImageIntensity /work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/brain_extraction_wf/copy_xform/sub-GEO070_ses-t2_T1w_corrected_xform.nii.gz 0.01 0.999 256
+220623-12:20:24,811 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.surface_recon_wf.skull_strip_extern" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/surface_recon_wf/skull_strip_extern".
+220623-12:20:25,230 nipype.workflow INFO:
+	 [Node] Running "skull_strip_extern" ("niworkflows.interfaces.freesurfer.FSInjectBrainExtracted")
+220623-12:20:25,238 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.anat_norm_wf.trunc_mov".
+220623-12:20:26,886 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.surface_recon_wf.skull_strip_extern".
+220623-12:20:28,949 nipype.workflow INFO:
+	 [Node] Setting-up "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.surface_recon_wf.autorecon_resume_wf.autorecon2_vol" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/surface_recon_wf/autorecon_resume_wf/autorecon2_vol".
+220623-12:20:29,140 nipype.interface INFO:
+	 resume recon-all : recon-all -autorecon2-volonly -openmp 7 -subjid sub-GEO070 -sd /out/freesurfer 
+220623-12:20:29,164 nipype.workflow INFO:
+	 [Node] Running "autorecon2_vol" ("smriprep.interfaces.freesurfer.ReconAll"), a CommandLine Interface with command:
+recon-all -autorecon2-volonly -openmp 7 -subjid sub-GEO070 -sd /out/freesurfer 
+220623-12:20:29,168 nipype.interface INFO:
+	 resume recon-all : recon-all -autorecon2-volonly -openmp 7 -subjid sub-GEO070 -sd /out/freesurfer 
+220623-15:07:22,650 nipype.workflow INFO:
+	 [Node] Finished "fmriprep_wf.single_subject_GEO070_wf.anat_preproc_wf.surface_recon_wf.autorecon_resume_wf.autorecon2_vol".
+220623-15:07:26,717 nipype.workflow INFO:
+	 [Node] Setting-up "_autorecon_surfs0" in "/work/fmriprep_wf/single_subject_GEO070_wf/anat_preproc_wf/surface_recon_wf/autorecon_resume_wf/autorecon_surfs/mapflow/_autorecon_surfs0".
+220623-15:07:26,950 nipype.interface INFO:
+	 resume recon-all : recon-all -autorecon-hemi lh -noparcstats -noparcstats2 -noparcstats3 -nohyporelabel -nobalabels -openmp 7 -subjid sub-GEO070 -sd /out/freesurfer 
+220623-15:07:26,984 nipype.workflow INFO:
+	 [Node] Running "_autorecon_surfs0" ("smriprep.interfaces.freesurfer.ReconAll"), a CommandLine Interface with command:
+recon-all -autorecon-hemi lh -noparcstats -noparcstats2 -noparcstats3 -nohyporelabel -nobalabels -openmp 7 -subjid sub-GEO070 -sd /out/freesurfer 
+220623-15:07:26,988 nipype.interface INFO:
+	 resume recon-all : recon-all -autorecon-hemi lh -noparcstats -noparcstats2 -noparcstats3 -nohyporelabel -nobalabels -openmp 7 -subjid sub-GEO070 -sd /out/freesurfer 

@@ -1,0 +1,1513 @@
+Loading required package: tidyverse
+Installing package into '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6'
+(as 'lib' is unspecified)
+Warning: dependencies 'purrr', 'gtable', 'scales', 'tzdb', 'cpp11' are not available
+also installing the dependencies 'fastmap', 'sys', 'bit', 'ps', 'sass', 'cachem', 'rappdirs', 'rematch', 'askpass', 'base64enc', 'bit64', 'prettyunits', 'processx', 'evaluate', 'highr', 'xfun', 'yaml', 'bslib', 'fontawesome', 'htmltools', 'jquerylib', 'tinytex', 'backports', 'memoise', 'blob', 'DBI', 'glue', 'lifecycle', 'tidyselect', 'vctrs', 'withr', 'data.table', 'isoband', 'gargle', 'uuid', 'cellranger', 'curl', 'ids', 'rematch2', 'mime', 'openssl', 'timechange', 'systemfonts', 'textshaping', 'clipr', 'vroom', 'progress', 'callr', 'fs', 'knitr', 'rmarkdown', 'selectr', 'stringi', 'broom', 'conflicted', 'cli', 'dbplyr', 'dplyr', 'dtplyr', 'forcats', 'ggplot2', 'googledrive', 'googlesheets4', 'haven', 'hms', 'httr', 'jsonlite', 'lubridate', 'magrittr', 'modelr', 'pillar', 'ragg', 'readr', 'readxl', 'reprex', 'rlang', 'rstudioapi', 'rvest', 'stringr', 'tibble', 'tidyr', 'xml2'
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/fastmap_1.2.0.tar.gz'
+Content type 'application/x-gzip' length 46710 bytes (45 KB)
+==================================================
+downloaded 45 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/sys_3.4.3.tar.gz'
+Content type 'application/x-gzip' length 19936 bytes (19 KB)
+==================================================
+downloaded 19 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/bit_4.6.0.tar.gz'
+Content type 'application/x-gzip' length 304585 bytes (297 KB)
+==================================================
+downloaded 297 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/ps_1.9.1.tar.gz'
+Content type 'application/x-gzip' length 167920 bytes (163 KB)
+==================================================
+downloaded 163 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/sass_0.4.10.tar.gz'
+Content type 'application/x-gzip' length 3025163 bytes (2.9 MB)
+==================================================
+downloaded 2.9 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/cachem_1.1.0.tar.gz'
+Content type 'application/x-gzip' length 27192 bytes (26 KB)
+==================================================
+downloaded 26 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/rappdirs_0.3.3.tar.gz'
+Content type 'application/x-gzip' length 12288 bytes (12 KB)
+==================================================
+downloaded 12 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/rematch_2.0.0.tar.gz'
+Content type 'application/x-gzip' length 4781 bytes
+==================================================
+downloaded 4781 bytes
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/askpass_1.2.1.tar.gz'
+Content type 'application/x-gzip' length 6058 bytes
+==================================================
+downloaded 6058 bytes
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/base64enc_0.1-3.tar.gz'
+Content type 'application/x-gzip' length 7833 bytes
+==================================================
+downloaded 7833 bytes
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/bit64_4.6.0-1.tar.gz'
+Content type 'application/x-gzip' length 142045 bytes (138 KB)
+==================================================
+downloaded 138 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/prettyunits_1.2.0.tar.gz'
+Content type 'application/x-gzip' length 97496 bytes (95 KB)
+==================================================
+downloaded 95 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/processx_3.8.6.tar.gz'
+Content type 'application/x-gzip' length 165190 bytes (161 KB)
+==================================================
+downloaded 161 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/evaluate_1.0.3.tar.gz'
+Content type 'application/x-gzip' length 37753 bytes (36 KB)
+==================================================
+downloaded 36 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/highr_0.11.tar.gz'
+Content type 'application/x-gzip' length 13851 bytes (13 KB)
+==================================================
+downloaded 13 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/xfun_0.52.tar.gz'
+Content type 'application/x-gzip' length 177584 bytes (173 KB)
+==================================================
+downloaded 173 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/yaml_2.3.10.tar.gz'
+Content type 'application/x-gzip' length 94556 bytes (92 KB)
+==================================================
+downloaded 92 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/bslib_0.9.0.tar.gz'
+Content type 'application/x-gzip' length 5428353 bytes (5.2 MB)
+==================================================
+downloaded 5.2 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/fontawesome_0.5.3.tar.gz'
+Content type 'application/x-gzip' length 1320479 bytes (1.3 MB)
+==================================================
+downloaded 1.3 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/htmltools_0.5.8.1.tar.gz'
+Content type 'application/x-gzip' length 135134 bytes (131 KB)
+==================================================
+downloaded 131 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/jquerylib_0.1.4.tar.gz'
+Content type 'application/x-gzip' length 520207 bytes (508 KB)
+==================================================
+downloaded 508 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/tinytex_0.57.tar.gz'
+Content type 'application/x-gzip' length 36295 bytes (35 KB)
+==================================================
+downloaded 35 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/backports_1.5.0.tar.gz'
+Content type 'application/x-gzip' length 30687 bytes (29 KB)
+==================================================
+downloaded 29 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/memoise_2.0.1.tar.gz'
+Content type 'application/x-gzip' length 17852 bytes (17 KB)
+==================================================
+downloaded 17 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/blob_1.2.4.tar.gz'
+Content type 'application/x-gzip' length 10620 bytes (10 KB)
+==================================================
+downloaded 10 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/DBI_1.2.3.tar.gz'
+Content type 'application/x-gzip' length 1137307 bytes (1.1 MB)
+==================================================
+downloaded 1.1 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/glue_1.8.0.tar.gz'
+Content type 'application/x-gzip' length 126682 bytes (123 KB)
+==================================================
+downloaded 123 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/lifecycle_1.0.4.tar.gz'
+Content type 'application/x-gzip' length 107656 bytes (105 KB)
+==================================================
+downloaded 105 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/tidyselect_1.2.1.tar.gz'
+Content type 'application/x-gzip' length 103591 bytes (101 KB)
+==================================================
+downloaded 101 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/vctrs_0.6.5.tar.gz'
+Content type 'application/x-gzip' length 969066 bytes (946 KB)
+==================================================
+downloaded 946 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/withr_3.0.2.tar.gz'
+Content type 'application/x-gzip' length 103240 bytes (100 KB)
+==================================================
+downloaded 100 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/data.table_1.17.4.tar.gz'
+Content type 'application/x-gzip' length 5839682 bytes (5.6 MB)
+==================================================
+downloaded 5.6 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/isoband_0.2.7.tar.gz'
+Content type 'application/x-gzip' length 1591812 bytes (1.5 MB)
+==================================================
+downloaded 1.5 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/gargle_1.5.2.tar.gz'
+Content type 'application/x-gzip' length 627560 bytes (612 KB)
+==================================================
+downloaded 612 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/uuid_1.2-1.tar.gz'
+Content type 'application/x-gzip' length 80662 bytes (78 KB)
+==================================================
+downloaded 78 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/cellranger_1.1.0.tar.gz'
+Content type 'application/x-gzip' length 63857 bytes (62 KB)
+==================================================
+downloaded 62 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/curl_6.2.3.tar.gz'
+Content type 'application/x-gzip' length 933427 bytes (911 KB)
+==================================================
+downloaded 911 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/ids_1.0.1.tar.gz'
+Content type 'application/x-gzip' length 91213 bytes (89 KB)
+==================================================
+downloaded 89 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/rematch2_2.1.2.tar.gz'
+Content type 'application/x-gzip' length 13366 bytes (13 KB)
+==================================================
+downloaded 13 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/mime_0.13.tar.gz'
+Content type 'application/x-gzip' length 21950 bytes (21 KB)
+==================================================
+downloaded 21 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/openssl_2.3.3.tar.gz'
+Content type 'application/x-gzip' length 1206720 bytes (1.2 MB)
+==================================================
+downloaded 1.2 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/timechange_0.3.0.tar.gz'
+Content type 'application/x-gzip' length 103439 bytes (101 KB)
+==================================================
+downloaded 101 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/systemfonts_1.2.3.tar.gz'
+Content type 'application/x-gzip' length 105970 bytes (103 KB)
+==================================================
+downloaded 103 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/textshaping_1.0.1.tar.gz'
+Content type 'application/x-gzip' length 75793 bytes (74 KB)
+==================================================
+downloaded 74 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/clipr_0.8.0.tar.gz'
+Content type 'application/x-gzip' length 21898 bytes (21 KB)
+==================================================
+downloaded 21 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/vroom_1.6.5.tar.gz'
+Content type 'application/x-gzip' length 750416 bytes (732 KB)
+==================================================
+downloaded 732 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/progress_1.2.3.tar.gz'
+Content type 'application/x-gzip' length 30499 bytes (29 KB)
+==================================================
+downloaded 29 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/callr_3.7.6.tar.gz'
+Content type 'application/x-gzip' length 104358 bytes (101 KB)
+==================================================
+downloaded 101 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/fs_1.6.6.tar.gz'
+Content type 'application/x-gzip' length 1201011 bytes (1.1 MB)
+==================================================
+downloaded 1.1 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/knitr_1.50.tar.gz'
+Content type 'application/x-gzip' length 534264 bytes (521 KB)
+==================================================
+downloaded 521 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/rmarkdown_2.29.tar.gz'
+Content type 'application/x-gzip' length 2194660 bytes (2.1 MB)
+==================================================
+downloaded 2.1 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/selectr_0.4-2.tar.gz'
+Content type 'application/x-gzip' length 41371 bytes (40 KB)
+==================================================
+downloaded 40 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/stringi_1.8.7.tar.gz'
+Content type 'application/x-gzip' length 11910646 bytes (11.4 MB)
+==================================================
+downloaded 11.4 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/broom_1.0.8.tar.gz'
+Content type 'application/x-gzip' length 651236 bytes (635 KB)
+==================================================
+downloaded 635 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/conflicted_1.2.0.tar.gz'
+Content type 'application/x-gzip' length 17071 bytes (16 KB)
+==================================================
+downloaded 16 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/cli_3.6.5.tar.gz'
+Content type 'application/x-gzip' length 640240 bytes (625 KB)
+==================================================
+downloaded 625 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/dbplyr_2.5.0.tar.gz'
+Content type 'application/x-gzip' length 770647 bytes (752 KB)
+==================================================
+downloaded 752 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/dplyr_1.1.4.tar.gz'
+Content type 'application/x-gzip' length 1207521 bytes (1.2 MB)
+==================================================
+downloaded 1.2 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/dtplyr_1.3.1.tar.gz'
+Content type 'application/x-gzip' length 150971 bytes (147 KB)
+==================================================
+downloaded 147 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/forcats_1.0.0.tar.gz'
+Content type 'application/x-gzip' length 294183 bytes (287 KB)
+==================================================
+downloaded 287 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/ggplot2_3.5.2.tar.gz'
+Content type 'application/x-gzip' length 3580451 bytes (3.4 MB)
+==================================================
+downloaded 3.4 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/googledrive_2.1.1.tar.gz'
+Content type 'application/x-gzip' length 1609266 bytes (1.5 MB)
+==================================================
+downloaded 1.5 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/googlesheets4_1.1.1.tar.gz'
+Content type 'application/x-gzip' length 232584 bytes (227 KB)
+==================================================
+downloaded 227 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/haven_2.5.5.tar.gz'
+Content type 'application/x-gzip' length 316909 bytes (309 KB)
+==================================================
+downloaded 309 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/hms_1.1.3.tar.gz'
+Content type 'application/x-gzip' length 43379 bytes (42 KB)
+==================================================
+downloaded 42 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/httr_1.4.7.tar.gz'
+Content type 'application/x-gzip' length 118500 bytes (115 KB)
+==================================================
+downloaded 115 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/jsonlite_2.0.0.tar.gz'
+Content type 'application/x-gzip' length 1055849 bytes (1.0 MB)
+==================================================
+downloaded 1.0 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/lubridate_1.9.4.tar.gz'
+Content type 'application/x-gzip' length 429341 bytes (419 KB)
+==================================================
+downloaded 419 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/magrittr_2.0.3.tar.gz'
+Content type 'application/x-gzip' length 267074 bytes (260 KB)
+==================================================
+downloaded 260 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/modelr_0.1.11.tar.gz'
+Content type 'application/x-gzip' length 121480 bytes (118 KB)
+==================================================
+downloaded 118 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/pillar_1.10.2.tar.gz'
+Content type 'application/x-gzip' length 408422 bytes (398 KB)
+==================================================
+downloaded 398 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/ragg_1.4.0.tar.gz'
+Content type 'application/x-gzip' length 430819 bytes (420 KB)
+==================================================
+downloaded 420 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/readr_2.1.5.tar.gz'
+Content type 'application/x-gzip' length 298065 bytes (291 KB)
+==================================================
+downloaded 291 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/readxl_1.4.5.tar.gz'
+Content type 'application/x-gzip' length 1636512 bytes (1.6 MB)
+==================================================
+downloaded 1.6 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/reprex_2.1.1.tar.gz'
+Content type 'application/x-gzip' length 1089023 bytes (1.0 MB)
+==================================================
+downloaded 1.0 MB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/rlang_1.1.6.tar.gz'
+Content type 'application/x-gzip' length 767928 bytes (749 KB)
+==================================================
+downloaded 749 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/rstudioapi_0.17.1.tar.gz'
+Content type 'application/x-gzip' length 118455 bytes (115 KB)
+==================================================
+downloaded 115 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/rvest_1.0.4.tar.gz'
+Content type 'application/x-gzip' length 115876 bytes (113 KB)
+==================================================
+downloaded 113 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/stringr_1.5.1.tar.gz'
+Content type 'application/x-gzip' length 176599 bytes (172 KB)
+==================================================
+downloaded 172 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/tibble_3.2.1.tar.gz'
+Content type 'application/x-gzip' length 565982 bytes (552 KB)
+==================================================
+downloaded 552 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/tidyr_1.3.1.tar.gz'
+Content type 'application/x-gzip' length 809058 bytes (790 KB)
+==================================================
+downloaded 790 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/xml2_1.3.8.tar.gz'
+Content type 'application/x-gzip' length 152925 bytes (149 KB)
+==================================================
+downloaded 149 KB
+
+trying URL 'http://ftp.osuosl.org/pub/cran/src/contrib/tidyverse_2.0.0.tar.gz'
+Content type 'application/x-gzip' length 704618 bytes (688 KB)
+==================================================
+downloaded 688 KB
+
+* installing *source* package 'fastmap' ...
+** package 'fastmap' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-fastmap/00new/fastmap/libs
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (fastmap)
+* installing *source* package 'sys' ...
+** package 'sys' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-sys/00new/sys/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (sys)
+* installing *source* package 'bit' ...
+** package 'bit' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-bit/00new/bit/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (bit)
+* installing *source* package 'ps' ...
+** package 'ps' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing via 'install.libs.R' to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-ps/00new/ps
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (ps)
+* installing *source* package 'rappdirs' ...
+** package 'rappdirs' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-rappdirs/00new/rappdirs/libs
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (rappdirs)
+* installing *source* package 'rematch' ...
+** package 'rematch' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (rematch)
+* installing *source* package 'base64enc' ...
+** package 'base64enc' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-base64enc/00new/base64enc/libs
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (base64enc)
+* installing *source* package 'prettyunits' ...
+** package 'prettyunits' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (prettyunits)
+* installing *source* package 'evaluate' ...
+** package 'evaluate' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (evaluate)
+* installing *source* package 'xfun' ...
+** package 'xfun' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-xfun/00new/xfun/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (xfun)
+* installing *source* package 'yaml' ...
+** package 'yaml' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-yaml/00new/yaml/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (yaml)
+* installing *source* package 'backports' ...
+** package 'backports' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-backports/00new/backports/libs
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (backports)
+* installing *source* package 'DBI' ...
+** package 'DBI' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (DBI)
+* installing *source* package 'glue' ...
+** package 'glue' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-glue/00new/glue/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (glue)
+* installing *source* package 'withr' ...
+** package 'withr' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (withr)
+* installing *source* package 'data.table' ...
+** package 'data.table' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-data.table/00new/data.table/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (data.table)
+* installing *source* package 'isoband' ...
+** package 'isoband' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-isoband/00new/isoband/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (isoband)
+* installing *source* package 'uuid' ...
+** package 'uuid' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-uuid/00new/uuid/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (uuid)
+* installing *source* package 'curl' ...
+** package 'curl' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+In file included from ada.cpp:3:0:
+ada.h:5255:10: fatal error: charconv: No such file or directory
+ #include <charconv>
+          ^~~~~~~~~~
+compilation terminated.
+make: *** [ada.o] Error 1
+ERROR: compilation failed for package 'curl'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/curl'
+* installing *source* package 'mime' ...
+** package 'mime' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-mime/00new/mime/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (mime)
+* installing *source* package 'timechange' ...
+** package 'timechange' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+Error: package 'cpp11' 0.2.4 was found, but >= 0.2.7 is required by 'timechange'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/timechange'
+* installing *source* package 'clipr' ...
+** package 'clipr' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (clipr)
+* installing *source* package 'fs' ...
+** package 'fs' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-fs/00new/fs/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (fs)
+* installing *source* package 'stringi' ...
+** package 'stringi' successfully unpacked and MD5 sums checked
+** using staged installation
+icu74/data/icudt74l.dat.xz exists
+** libs
+installing via 'install.libs.R' to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-stringi/00new/stringi
+icu74/data/icudt74l.dat.xz exists
+decompressing icu74/data/icudt74l.dat.xz to: /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-stringi/00new/stringi/libs
+icu74/data/icudt74l.dat installed successfully
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (stringi)
+* installing *source* package 'cli' ...
+** package 'cli' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-cli/00new/cli/libs
+** R
+** exec
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (cli)
+* installing *source* package 'jsonlite' ...
+** package 'jsonlite' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-jsonlite/00new/jsonlite/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (jsonlite)
+* installing *source* package 'magrittr' ...
+** package 'magrittr' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-magrittr/00new/magrittr/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (magrittr)
+* installing *source* package 'rlang' ...
+** package 'rlang' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-rlang/00new/rlang/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (rlang)
+* installing *source* package 'rstudioapi' ...
+** package 'rstudioapi' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (rstudioapi)
+* installing *source* package 'cachem' ...
+** package 'cachem' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-cachem/00new/cachem/libs
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (cachem)
+* installing *source* package 'askpass' ...
+** package 'askpass' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-askpass/00new/askpass/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (askpass)
+* installing *source* package 'bit64' ...
+** package 'bit64' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+integer64.c:277:1: warning: 'no_sanitize' attribute directive ignored [-Wattributes]
+ __attribute__((no_sanitize("signed-integer-overflow"))) SEXP plus_integer64(SEXP e1_, SEXP e2_, SEXP ret_){
+ ^~~~~~~~~~~~~
+integer64.c:292:1: warning: 'no_sanitize' attribute directive ignored [-Wattributes]
+ __attribute__((no_sanitize("signed-integer-overflow"))) SEXP minus_integer64(SEXP e1_, SEXP e2_, SEXP ret_){
+ ^~~~~~~~~~~~~
+integer64.c:307:1: warning: 'no_sanitize' attribute directive ignored [-Wattributes]
+ __attribute__((no_sanitize("signed-integer-overflow"))) SEXP diff_integer64(SEXP x_, SEXP lag_, SEXP n_, SEXP ret_){
+ ^~~~~~~~~~~~~
+integer64.c:354:1: warning: 'no_sanitize' attribute directive ignored [-Wattributes]
+ __attribute__((no_sanitize("signed-integer-overflow"))) SEXP times_integer64_integer64(SEXP e1_, SEXP e2_, SEXP ret_){
+ ^~~~~~~~~~~~~
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-bit64/00new/bit64/libs
+** R
+** data
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (bit64)
+* installing *source* package 'processx' ...
+** package 'processx' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing via 'install.libs.R' to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-processx/00new/processx
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (processx)
+* installing *source* package 'highr' ...
+** package 'highr' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (highr)
+* installing *source* package 'htmltools' ...
+** package 'htmltools' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-htmltools/00new/htmltools/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (htmltools)
+* installing *source* package 'tinytex' ...
+** package 'tinytex' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (tinytex)
+* installing *source* package 'lifecycle' ...
+** package 'lifecycle' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (lifecycle)
+ERROR: dependency 'timechange' is not available for package 'lubridate'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/lubridate'
+* installing *source* package 'xml2' ...
+** package 'xml2' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-xml2/00new/xml2/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (xml2)
+* installing *source* package 'sass' ...
+** package 'sass' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-sass/00new/sass/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (sass)
+* installing *source* package 'fontawesome' ...
+** package 'fontawesome' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (fontawesome)
+* installing *source* package 'jquerylib' ...
+** package 'jquerylib' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (jquerylib)
+* installing *source* package 'memoise' ...
+** package 'memoise' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (memoise)
+* installing *source* package 'vctrs' ...
+** package 'vctrs' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-vctrs/00new/vctrs/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (vctrs)
+* installing *source* package 'openssl' ...
+** package 'openssl' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-openssl/00new/openssl/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (openssl)
+* installing *source* package 'systemfonts' ...
+** package 'systemfonts' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+font_outlines.cpp: In function 'SEXPREC* one_glyph_bitmap(int, const char*, int, double, double, int, FreetypeCache&, bool)':
+font_outlines.cpp:332:3: error: 'cpp11::writable::integers_matrix {aka cpp11::matrix<cpp11::writable::r_vector<int>, cpp11::writable::r_vector<int>::proxy>}' is not a template
+   cpp11::writable::integers_matrix<> raster(bitmap.width, bitmap.rows);
+   ^~~~~
+make: *** [font_outlines.o] Error 1
+ERROR: compilation failed for package 'systemfonts'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/systemfonts'
+* installing *source* package 'callr' ...
+** package 'callr' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (callr)
+* installing *source* package 'knitr' ...
+** package 'knitr' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (knitr)
+* installing *source* package 'bslib' ...
+** package 'bslib' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (bslib)
+* installing *source* package 'blob' ...
+** package 'blob' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (blob)
+* installing *source* package 'tidyselect' ...
+** package 'tidyselect' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (tidyselect)
+* installing *source* package 'ids' ...
+** package 'ids' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (ids)
+ERROR: dependency 'systemfonts' is not available for package 'textshaping'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/textshaping'
+* installing *source* package 'conflicted' ...
+** package 'conflicted' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (conflicted)
+* installing *source* package 'hms' ...
+** package 'hms' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (hms)
+ERROR: dependency 'curl' is not available for package 'httr'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/httr'
+* installing *source* package 'pillar' ...
+** package 'pillar' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (pillar)
+* installing *source* package 'stringr' ...
+** package 'stringr' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** data
+*** moving datasets to lazyload DB
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (stringr)
+ERROR: dependency 'httr' is not available for package 'gargle'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/gargle'
+* installing *source* package 'progress' ...
+** package 'progress' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (progress)
+* installing *source* package 'rmarkdown' ...
+** package 'rmarkdown' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (rmarkdown)
+* installing *source* package 'selectr' ...
+** package 'selectr' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (selectr)
+ERROR: dependencies 'systemfonts', 'textshaping' are not available for package 'ragg'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/ragg'
+* installing *source* package 'tibble' ...
+** package 'tibble' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-tibble/00new/tibble/libs
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (tibble)
+* installing *source* package 'cellranger' ...
+** package 'cellranger' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (cellranger)
+* installing *source* package 'rematch2' ...
+** package 'rematch2' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (rematch2)
+ERROR: dependency 'tzdb' is not available for package 'vroom'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/vroom'
+* installing *source* package 'dplyr' ...
+** package 'dplyr' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+installing to /home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/00LOCK-dplyr/00new/dplyr/libs
+** R
+** data
+*** moving datasets to lazyload DB
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** checking absolute paths in shared objects and dynamic libraries
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (dplyr)
+* installing *source* package 'forcats' ...
+** package 'forcats' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** data
+*** moving datasets to lazyload DB
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (forcats)
+ERROR: dependencies 'gtable', 'scales' are not available for package 'ggplot2'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/ggplot2'
+ERROR: dependencies 'gargle', 'httr' are not available for package 'googledrive'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/googledrive'
+* installing *source* package 'reprex' ...
+** package 'reprex' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (reprex)
+ERROR: dependency 'httr' is not available for package 'rvest'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/rvest'
+* installing *source* package 'dtplyr' ...
+** package 'dtplyr' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (dtplyr)
+ERROR: dependencies 'curl', 'gargle', 'googledrive', 'httr' are not available for package 'googlesheets4'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/googlesheets4'
+ERROR: dependencies 'vroom', 'tzdb' are not available for package 'readr'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/readr'
+* installing *source* package 'readxl' ...
+** package 'readxl' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+Error: package 'cpp11' 0.2.4 was found, but >= 0.4.0 is required by 'readxl'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/readxl'
+* installing *source* package 'tidyr' ...
+** package 'tidyr' successfully unpacked and MD5 sums checked
+** using staged installation
+** libs
+Error: package 'cpp11' 0.2.4 was found, but >= 0.4.0 is required by 'tidyr'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/tidyr'
+* installing *source* package 'broom' ...
+** package 'broom' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (broom)
+* installing *source* package 'dbplyr' ...
+** package 'dbplyr' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (dbplyr)
+ERROR: dependency 'readr' is not available for package 'haven'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/haven'
+* installing *source* package 'modelr' ...
+** package 'modelr' successfully unpacked and MD5 sums checked
+** using staged installation
+** R
+** data
+*** moving datasets to lazyload DB
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+*** copying figures
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (modelr)
+ERROR: dependencies 'ggplot2', 'googledrive', 'googlesheets4', 'haven', 'httr', 'lubridate', 'ragg', 'readr', 'readxl', 'rvest' are not available for package 'tidyverse'
+* removing '/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6/tidyverse'
+
+The downloaded source packages are in
+	'/tmp/RtmpzXLo34/downloaded_packages'
+There were 19 warnings (use warnings() to see them)
+Error in contrib.url(repos, type) : 
+  trying to use CRAN without setting a mirror
+Calls: install.packages -> startsWith -> contrib.url
+In addition: Warning message:
+In library(package, lib.loc = lib.loc, character.only = TRUE, logical.return = TRUE,  :
+  there is no package called 'snakecase'
+Execution halted
+srun: error: cls000: task 0: Exited with exit code 1

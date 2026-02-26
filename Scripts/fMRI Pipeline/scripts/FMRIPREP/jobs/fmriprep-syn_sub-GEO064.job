@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH --job-name=fmriprep-syn_sub-GEO064.job
+#SBATCH --output=out/fmriprep-syn_sub-GEO064.out
+#SBATCH --error=out/fmriprep-syn_sub-GEO064.err
+#SBATCH --time=2-00:00
+
+srun singularity run --cleanenv \
+    -B /data00/tools/freesurfer/license.txt:/opt/freesurfer/license.txt  \
+    -B /data00/projects/geoscan_v2/data/bids_data:/data \
+    -B /data00/projects/geoscan_v2/data/bids_data/derivatives:/out  \
+    -B /data00/projects/geoscan_v2/data/bids_data/derivatives/working:/work \
+    /data00/tools/singularity_images/fmriprep_v20.0.6 /data /out -w /work \
+    --ignore slicetiming fieldmaps \
+    --use-syn-sdc \
+    --nthread 8 \
+    participant --participant_label sub-GEO064 \
+    --skip-bids-validation

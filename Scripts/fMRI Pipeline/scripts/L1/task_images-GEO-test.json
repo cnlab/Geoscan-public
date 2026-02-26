@@ -1,0 +1,44 @@
+{   
+    "Description": "Geoscan Image Task",
+        
+    "Info": {
+        "task": "image",
+        "run": [ 1, 2, 3, 4, 5 ],
+        "sub_container": "derivatives_nocorrection",
+        "exclude": {
+            "sub": ["GEO021",
+                    "GEO047",
+                    "GEO067",
+                    "GEO070",
+                    "GEO071",
+                    "GEO078",
+                    "GS005",
+                    "GS008",
+                    "GS017",
+                    "GS022",
+                    "GS024",
+                    "GS025",
+                    "GS028",
+                    "GS031",
+                    "GS032"],
+            "run": {
+                "GEO004": 3,
+                "GEO021": 5,
+                "GEO022": 4,
+                "GEO037": 5,
+                "GEO068": 1,
+                "GEO071": 1,
+                "GEO073": 1,
+                "GEO078": 1
+            }
+        }
+    },
+    
+    "SpecifySPMModel": {
+        "functional_runs": "data/bids_data/derivatives_nocorrection/sub-{sub}/ses-t2/func/sub-{sub}_ses-t2_task-{task}_run-{run}_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz",
+        "event_files": "data/bids_data/derivatives_nocorrection/sub-{sub}/ses-t2/func/sub-{sub}_ses-t2_task-{task}_run-{run}_events.tsv",
+        "regressors": "data/bids_data/derivatives_nocorrection/outlier/regressors/sub-{sub}/sub-{sub}_ses-t2_task-{task}_run-{run}_desc-motion_timeseries.tsv"
+    }
+}
+
+

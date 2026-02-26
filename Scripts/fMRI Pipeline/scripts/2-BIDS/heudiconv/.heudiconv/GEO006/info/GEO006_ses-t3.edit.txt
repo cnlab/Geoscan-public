@@ -1,0 +1,9 @@
+{('run{item:03d}', ('nii.gz',), None): ['1-localizer_multislice',
+                                        '2-BOLD_IMAGE_run01',
+                                        '3-BOLD_IMAGE_run02',
+                                        '4-BOLD_IMAGE_run03',
+                                        '5-BOLD_IMAGE_run04',
+                                        '6-BOLD_IMAGE_run05',
+                                        '7-T2_1mm_SPACE',
+                                        '8-MPRAGE_TI1100_ipat2',
+                                        '9-BOLD_RETRANS_run01']}

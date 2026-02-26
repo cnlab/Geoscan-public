@@ -1,0 +1,87 @@
+#!/bin/bash
+#SBATCH --job-name=auto_motion_job
+#SBATCH --output=auto_motion_%j.out
+#SBATCH --error=auto_motion_%j.err
+#SBATCH --time=02:00:00
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem=4G
+
+# Print job info
+echo "Job started at: $(date)"
+echo "Job ID: $SLURM_JOB_ID"
+echo "Running on node: $SLURM_NODELIST"
+echo "Working directory: $(pwd)"
+
+# Set variables - UPDATE THESE PATHS
+AUTO_MOTION_PATH="/data00/tools/auto-motion-fmriprep"
+CONFIG_PATH="/data00/projects/geoscan_v2/scripts/FMRIPREP/config.R"
+R_LIBRARY_PATH="/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6"
+
+
+# Create R library directory if it doesn't exist
+mkdir -p ${R_LIBRARY_PATH}
+
+# Create an R setup script that defines the missing variables and installs packages
+echo "Setting up R environment and installing packages..."
+cat > /tmp/setup_r_${SLURM_JOB_ID}.R << 'EOF'
+# Set library path and define osuRepo
+.libPaths("/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6")
+Sys.setenv(R_LIBS_USER = "/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6")
+
+# Define osuRepo (this is what was missing in your script)
+osuRepo <- "https://cran.r-project.org/"
+
+# Install required packages
+if (!require(tidyverse, quietly = TRUE)) {
+  install.packages('tidyverse', repos = osuRepo, lib = "/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6")
+}
+
+if (!require("snakecase", quietly = TRUE)) {
+  install.packages("snakecase", lib = "/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6", repos = osuRepo)
+}
+
+if (!require(caret, quietly = TRUE)) {
+  install.packages('caret', repos = osuRepo, lib = "/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6")
+}
+
+if (!require(randomForest, quietly = TRUE)) {
+  install.packages('randomForest', repos = osuRepo, lib = "/home/aresnick@asc.upenn.edu/R/x86_64-pc-linux-gnu-library/3.6")
+}
+
+cat("R environment setup complete\n")
+EOF
+
+# Run R setup
+srun singularity exec --cleanenv \
+    -B /data00:/data00 \
+    -B /home/aresnick@asc.upenn.edu:/home/aresnick@asc.upenn.edu \
+    /data00/tools/singularity_images/R_v3.6.3.simg \
+    Rscript --vanilla /tmp/setup_r_${SLURM_JOB_ID}.R
+
+echo "Running R script with Singularity container..."
+echo "Auto motion path: ${AUTO_MOTION_PATH}"
+echo "Config path: ${CONFIG_PATH}"
+echo "R library path: ${R_LIBRARY_PATH}"
+
+# Change to the auto motion directory
+cd ${AUTO_MOTION_PATH}
+
+# Set environment variables for R session
+export R_LIBS_USER="${R_LIBRARY_PATH}"
+
+# Run R script using singularity with proper mounting
+echo "Running auto_motion_fmriprep.R script..."
+srun singularity exec --cleanenv \
+    -B /data00:/data00 \
+    -B /home/aresnick@asc.upenn.edu:/home/aresnick@asc.upenn.edu \
+    --env R_LIBS_USER="${R_LIBRARY_PATH}" \
+    /data00/tools/singularity_images/R_v3.6.3.simg \
+    Rscript --vanilla auto_motion_fmriprep.R ${CONFIG_PATH}
+
+# Clean up temporary files
+rm -f /tmp/setup_r_${SLURM_JOB_ID}.R
+
+echo "Job completed at: $(date)"
+

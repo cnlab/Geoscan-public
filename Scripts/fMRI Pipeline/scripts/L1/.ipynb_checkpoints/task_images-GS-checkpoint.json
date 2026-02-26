@@ -1,0 +1,36 @@
+{   
+    "Description": "Geoscan Image Task",
+        
+    "Info": {
+        "task": "image",
+        "run": [ 1, 2, 3, 4, 5 ],
+        "exclude": {
+            "sub": ["GEO015",
+                    "GEO021",
+                    "GEO033",
+                    "GEO036",
+                    "GEO037",
+                    "GEO053",
+                    "GEO061",
+                    "GEO064",
+                    "GEO067",
+                    "GEO068",
+                    "GEO070",
+                    "GEO071",
+                    "GEO073",
+                    "GEO074",
+                    "GEO078",
+                    "GS008"
+                   ],
+            "run": {"GS017": 1}
+        }
+    },
+    
+    "SpecifySPMModel": {
+        "functional_runs": "data/bids_data/derivatives/fmriprep/sub-{sub}/ses-t2/func/sub-{sub}_ses-t2_task-{task}_run-{run}_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz",
+        "event_files": "data/bids_data/sub-{sub}/ses-t2/func/sub-{sub}_ses-t2_task-{task}_run-{run}_events.tsv",
+        "regressors": "data/bids_data/derivatives/outlier/regressors/sub-{sub}/sub-{sub}_ses-t2_task-{task}_run-{run}_desc-motion_regressors.tsv"
+    }
+}
+
+

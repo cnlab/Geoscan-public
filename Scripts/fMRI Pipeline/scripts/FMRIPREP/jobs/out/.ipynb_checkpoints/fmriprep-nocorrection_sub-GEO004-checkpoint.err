@@ -1,0 +1,5 @@
+WARNING: skipping mount of /data00/projects/geoscan_v2/data/bids_data/derivatives_nocorrection: stat /data00/projects/geoscan_v2/data/bids_data/derivatives_nocorrection: no such file or directory
+WARNING: skipping mount of /data00/projects/geoscan_v2/data/bids_data/derivatives_nocorrection/working: stat /data00/projects/geoscan_v2/data/bids_data/derivatives_nocorrection/working: no such file or directory
+srun: error: cls000: task 0: Exited with exit code 255
+FATAL:   container creation failed: mount /data00/projects/geoscan_v2/data/bids_data/derivatives_nocorrection->/out error: while mounting /data00/projects/geoscan_v2/data/bids_data/derivatives_nocorrection: mount source /data00/projects/geoscan_v2/data/bids_data/derivatives_nocorrection doesn't exist
+/var/spool/slurmd/job23773/slurm_script: line 17: --ignore: command not found

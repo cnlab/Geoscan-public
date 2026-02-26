@@ -1,0 +1,234 @@
+You are using fMRIPrep-20.0.6, and a newer version of fMRIPrep is available: 21.0.2.
+Please check out our documentation about how and when to upgrade:
+https://fmriprep.readthedocs.io/en/latest/faq.html#upgrading
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/scipy/fftpack/basic.py:160: FutureWarning: Using a non-tuple sequence for multidimensional indexing is deprecated; use `arr[tuple(seq)]` instead of `arr[seq]`. In the future this will be interpreted as an array index, `arr[np.array(seq)]`, which will result either in an error or a different result.
+  z[index] = x
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/scipy/fftpack/basic.py:160: FutureWarning: Using a non-tuple sequence for multidimensional indexing is deprecated; use `arr[tuple(seq)]` instead of `arr[seq]`. In the future this will be interpreted as an array index, `arr[np.array(seq)]`, which will result either in an error or a different result.
+  z[index] = x
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/scipy/fftpack/basic.py:160: FutureWarning: Using a non-tuple sequence for multidimensional indexing is deprecated; use `arr[tuple(seq)]` instead of `arr[seq]`. In the future this will be interpreted as an array index, `arr[np.array(seq)]`, which will result either in an error or a different result.
+  z[index] = x
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/scipy/fftpack/basic.py:160: FutureWarning: Using a non-tuple sequence for multidimensional indexing is deprecated; use `arr[tuple(seq)]` instead of `arr[seq]`. In the future this will be interpreted as an array index, `arr[np.array(seq)]`, which will result either in an error or a different result.
+  z[index] = x
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/scipy/fftpack/basic.py:160: FutureWarning: Using a non-tuple sequence for multidimensional indexing is deprecated; use `arr[tuple(seq)]` instead of `arr[seq]`. In the future this will be interpreted as an array index, `arr[np.array(seq)]`, which will result either in an error or a different result.
+  z[index] = x
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/scipy/fftpack/basic.py:160: FutureWarning: Using a non-tuple sequence for multidimensional indexing is deprecated; use `arr[tuple(seq)]` instead of `arr[seq]`. In the future this will be interpreted as an array index, `arr[np.array(seq)]`, which will result either in an error or a different result.
+  z[index] = x
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/scipy/fftpack/basic.py:160: FutureWarning: Using a non-tuple sequence for multidimensional indexing is deprecated; use `arr[tuple(seq)]` instead of `arr[seq]`. In the future this will be interpreted as an array index, `arr[np.array(seq)]`, which will result either in an error or a different result.
+  z[index] = x
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/scipy/fftpack/basic.py:160: FutureWarning: Using a non-tuple sequence for multidimensional indexing is deprecated; use `arr[tuple(seq)]` instead of `arr[seq]`. In the future this will be interpreted as an array index, `arr[np.array(seq)]`, which will result either in an error or a different result.
+  z[index] = x
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/scipy/fftpack/basic.py:160: FutureWarning: Using a non-tuple sequence for multidimensional indexing is deprecated; use `arr[tuple(seq)]` instead of `arr[seq]`. In the future this will be interpreted as an array index, `arr[np.array(seq)]`, which will result either in an error or a different result.
+  z[index] = x
+/usr/local/miniconda/lib/python3.7/site-packages/scipy/fftpack/basic.py:160: FutureWarning: Using a non-tuple sequence for multidimensional indexing is deprecated; use `arr[tuple(seq)]` instead of `arr[seq]`. In the future this will be interpreted as an array index, `arr[np.array(seq)]`, which will result either in an error or a different result.
+  z[index] = x
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/matplotlib/contour.py:1173: UserWarning: No contour levels were found within the data range.
+  warnings.warn("No contour levels were found"
+/usr/local/miniconda/lib/python3.7/site-packages/scipy/fftpack/basic.py:160: FutureWarning: Using a non-tuple sequence for multidimensional indexing is deprecated; use `arr[tuple(seq)]` instead of `arr[seq]`. In the future this will be interpreted as an array index, `arr[np.array(seq)]`, which will result either in an error or a different result.
+  z[index] = x
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+/usr/local/miniconda/lib/python3.7/site-packages/nipype/algorithms/confounds.py:1182: FutureWarning: `rcond` parameter will change to the default of machine precision times ``max(M, N)`` where M and N are the input matrix dimensions.
+To use the future default and silence this warning we advise to pass `rcond=None`, to keep using the old, explicitly pass `rcond=-1`.
+  betas = np.linalg.lstsq(X, data.T)[0]
+fMRIPrep finished without errors
