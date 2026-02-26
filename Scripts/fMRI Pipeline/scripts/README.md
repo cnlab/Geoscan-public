@@ -142,10 +142,10 @@ Each major step has its own README with detailed instructions, expected inputs/o
 
 ## Section READMEs
 
-- [`README_1_dicoms.md`](README_1_dicoms.md) — Flywheel transfer & DICOM organization
-- [`README_2_bids.md`](README_2_bids.md) — DICOM → NIfTI/BIDS conversion
-- [`README_2.5_mriqc.md`](README_2.5_mriqc.md) — MRIQC quality metrics
-- [`README_3_fmriprep.md`](README_3_fmriprep.md) — fMRIPrep preprocessing & QC
+- [`README_1_dicoms.md`](1-DICOMS/README.md) — Flywheel transfer & DICOM organization
+- [`README_2_bids.md`](2-BIDS/README.md) — DICOM → NIfTI/BIDS conversion
+- [`README_2.5_mriqc.md`](2.5-MRIQC/README.md) — MRIQC quality metrics
+- [`README_3_fmriprep.md`](3-FMRIPREP/README.md) — fMRIPrep preprocessing & QC
 - [`README_4_L1.md`](README_4_L1.md) — First-level modeling
 - [`README_5_L2.md`](README_5_L2.md) — Second-level modeling
 
