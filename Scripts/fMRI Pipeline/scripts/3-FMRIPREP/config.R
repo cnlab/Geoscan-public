@@ -15,15 +15,15 @@ BASE_DIR <- dirname(dirname(normalizePath(getwd())))
 # BASE_DIR <- '/data00/projects/geoscan_v2'
 
 # ── Derived paths ─────────────────────────────────────────────────────────────
-confoundDir <- file.path(BASE_DIR, 'data/bids_data/derivatives_nocorrection')
-outputDir   <- file.path(BASE_DIR, 'data/bids_data/derivatives_nocorrection/outlier')
+confoundDir <- file.path(BASE_DIR, 'data/bids_data/derivatives')
+outputDir   <- file.path(BASE_DIR, 'data/bids_data/derivatives/outlier')
 
 cat('BASE_DIR    :', BASE_DIR,    '\n')
 cat('confoundDir :', confoundDir, '\n')
 cat('outputDir   :', outputDir,   '\n')
 
 # ── Study variables ───────────────────────────────────────────────────────────
-version = '25.0.0'     # fMRIPrep version used
+version = '20.0.6'     # fMRIPrep version used
 study   = 'geoscan_v2' # Study name label in output
 ses     = 't3'         # Session label (used in file matching; set to FALSE if no sessions)
 

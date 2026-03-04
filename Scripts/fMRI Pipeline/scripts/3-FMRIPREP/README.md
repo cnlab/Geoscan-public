@@ -39,7 +39,7 @@ All paths below are relative to the project root. The notebooks derive these aut
 | fMRIPrep output | `data/bids_data/derivatives_nocorrection/` |
 | Working directory | `data/bids_data/derivatives_nocorrection/working/` |
 | FreeSurfer license | `/data00/tools/freesurfer/license.txt` |
-| Singularity image | `/data00/tools/singularity_images/fmriprep-25.0.0.simg` |
+| Singularity image | `/data00/tools/singularity_images/fmriprep-20.0.6.simg` |
 | Slurm job scripts | `scripts/FMRIPREP/jobs/` |
 
 ---

@@ -146,8 +146,8 @@ Each major step has its own README with detailed instructions, expected inputs/o
 - [`README_2_bids.md`](2-BIDS/README.md) — DICOM → NIfTI/BIDS conversion
 - [`README_2.5_mriqc.md`](2.5-MRIQC/README.md) — MRIQC quality metrics
 - [`README_3_fmriprep.md`](3-FMRIPREP/README.md) — fMRIPrep preprocessing & QC
-- [`README_4_L1.md`](README_4_L1.md) — First-level modeling
-- [`README_5_L2.md`](README_5_L2.md) — Second-level modeling
+- [`README_4_L1.md`](4-L1/README.md) — First-level modeling
+- [`README_5_L2.md`](5-L2/README.md) — Second-level modeling
 
 ---
 
