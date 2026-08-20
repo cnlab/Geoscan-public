@@ -176,9 +176,6 @@ Participants who completed the required tasks during the baseline period were ra
 
 The primary endpoints will be cigarette smoking and craving at the end of the intervention period, measured through EMA multiple times daily. The primary endpoints for the fMRI scan session will be measured through fMRI scanning (brain activity).
 
-#### Secondary Study Endpoints
-
-*(To be detailed per analysis plan.)*
 
 ---
 
@@ -190,9 +187,6 @@ The target population is current smokers, ages 21–65, who have smoked at least
 
 The target behaviors (smoking frequency, cravings for cigarettes) will be assessed for an approximately 2 week baseline period and for an approximately 4 week intervention period. Thus, total study participation is expected to be approximately 6 weeks of active participation, with possible breaks in between the baseline and intervention periods. Total duration of participation will thus be approximately 2 months, with some exceptions. A subset of participants will be invited to complete an optional fMRI scan after their final online session; flexibility will be allowed in the timing of the scan session, which can be as long as 6 months after the final online session. This subset of participants will participate for a longer duration (total duration of participation can be up to 8 months [2 months of active participation, with a scan session up to 6 months later]).
 
-### Total Number of Subjects and Sites
-
-Our initial recruitment plan specified that "Recruitment will end when approximately 400 participants have been enrolled. It is expected that 400 enrolled participants will produce 180 evaluable subjects after attrition and data issues. Penn is the only site." See Section 6.1 for final plan, adjusting for COVID and other constraints.
 
 ### Inclusion Criteria
 
@@ -216,7 +210,7 @@ Our initial recruitment plan specified that "Recruitment will end when approxima
 - Inability to provide informed consent or complete any of the study tasks as determined by the Principal Investigator and/or Study Physician
 - Any physical or visual impairment that may prevent the individual from using a computer keyboard or completing any study tasks
 
-**Additional criteria for fMRI component:**
+**Additional Criteria for fMRI component:**
 
 - Urine cotinine concentration below 200 ng/mL at scanning session
 - Currently or recently (within the last 5 years) receiving medical treatment for substance abuse (alcohol, opioids, cocaine, marijuana, or stimulants)
@@ -237,9 +231,7 @@ Our initial recruitment plan specified that "Recruitment will end when approxima
 
 ### Subject Recruitment
 
-Direct recruitment may occur through newsletters, fliers, online ads/posts (e.g., Craigslist, Facebook, Instagram), newspaper listings, and/or ads on TV (or streaming media services). Recruitment materials may be posted by the study team or by BuildClinical. We will also collaborate with another smoking research group at the University of Pennsylvania. All recruitment material will include links (e.g., URLs, QR codes) directing potential participants to the screening survey (Screen A).
-
-*Vulnerable Populations:* Not applicable
+Recruitment materials for this study were primarily distributed by BuildClinical, utilizing study advertisements to engage participants on digital platforms such as Facebook, Google, and WebMD. All recruitment materials included links (e.g., URLs, QR codes) directing potential participants to the study landing page at buildclinical.com/study/upenn-falk-smoking, which then directed them to complete the initial screening survey (Screen A) on the BuildClinical platform.
 
 ---
 
@@ -366,31 +358,14 @@ Baseline and demographic characteristics will be summarized by standard descript
 
 **Daily cigarette and craving analyses**
 
-**Hypothesis 1:** Reported craving will be higher for those in the Tobacco retailer condition, relative to the Control and Nontobacco retailer conditions, during the intervention phase, but not the baseline phase. A linear mixed effects model will be used. A binary *Study Phase* variable will indicate baseline (0) versus intervention (1). Two dummy-coded condition variables will be created: *Control condition* (1 = Control, 0 = other) and *Nontobacco retailer condition* (1 = Nontobacco, 0 = other).
+https://osf.io/k9qnw/overview
+https://osf.io/acbje/overview
 
-*Level 1 model:*
-
-> Craving_it = β_0i + β_1i × StudyPhase_it + e_it
-
-*Level 2 model:*
-
-> β_0i = γ_00 + γ_01 × ControlCondition_i + γ_02 × NontobaccoRetailerCondition_i + u_0i
->
-> β_1i = γ_10 + γ_11 × ControlCondition_i + γ_21 × NontobaccoRetailerCondition_i + u_1i
-
-Parameters γ_11 and γ_21 test the key hypotheses.
-
-**Hypothesis 2:** Reported cigarettes smoked will be higher for those in the Tobacco retailer condition, relative to the Control and Nontobacco retailer conditions, during the intervention phase, but not the baseline phase. A parallel model structure to Hypothesis 1 is used, with smoking as the outcome:
-
-> Smoking_it = β_0i + β_1i × StudyPhase_it + e_it
 
 **fMRI-related analyses**
 
-**Hypothesis 1:** Neural activity in smoking cue reactivity regions will be greater in response to standardized smoking cues than non-smoking cues. A binary *TaskCondition* variable will indicate standard smoking cue blocks (1) vs. non-smoking cue blocks (0). Linear mixed effects model:
+https://osf.io/mqbec/overview
 
-> lme(ROI ~ TaskCondition, random = ~ 1 | Participant / Session)
-
-**Hypothesis 2:** Neural activity in smoking cue reactivity regions will be greater in response to tobacco retail images than nontobacco retail images. A parallel model to Hypothesis 1 is used, where *TaskCondition* represents tobacco retail images vs. nontobacco retail images.
 
 #### Interim Analysis
 
@@ -562,7 +537,7 @@ This study will be conducted in accordance with the following publication and da
 - **NIH Data Sharing Policy and Clinical Trial Information Policy:** This trial has been registered at ClinicalTrials.gov and results information will be submitted accordingly.
 - **Data Sharing:** Final research data, with identity-related information deleted, will be made available to the scientific community upon request after the study's primary results have been published. Non-imaging data will be shared in spreadsheet format; fMRI data in NIFTI format. Geolocation data will be shared at an aggregate level with restrictions to protect participant privacy. Please fill out a form [here](https://tinyurl.com/geoscan-data-request) to request data access.
 - **Imaging Data:** Will be made available through a secure file-sharing interface once the main findings have been published.
-- **Study Tasks and Code:** Will be made available on the Falk Lab GitHub account at [https://github.com/cnlab/Geoscan-public/](https://github.com/cnlab/geoscan-public/).
+- **Study Tasks and Code:** Will be made available on the Falk Lab GitHub account 
 
 ---
 
